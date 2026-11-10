@@ -59,7 +59,10 @@ DEFAULTS = {
 }
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
-RAIN_SCALE_MIN = 2.0  # mm/Std.: so hoch ist der höchste Balken mindestens skaliert
+# Regenstärke in mm pro Stunde. Bewusst alltagsnah gewählt; die offizielle DWD-Einteilung
+# (leicht < 2,5, mäßig bis 10, stark > 10 mm/Std.) würde fast jeden Regen "leicht" nennen.
+RAIN_LEVELS = [(1.0, "leicht"), (4.0, "maessig"), (float("inf"), "stark")]
+RAIN_SCALE = 4.0  # mm/Std.: ab hier ist der Balken voll hoch (feste Skala, Tage bleiben vergleichbar)
 
 # UV-Gefahrenindex des DWD: tägliche Höchstwerte für ausgewählte Orte (heute, morgen, übermorgen)
 UVI_URL = "https://opendata.dwd.de/climate_environment/health/alerts/uvi.json"
@@ -426,7 +429,7 @@ class Tagesdashboard(BasePlugin):
         span = max(tmax - tmin, 4.0)
         mid = (tmax + tmin) / 2
         lo, hi = mid - span / 2, mid + span / 2
-        top, bottom = 0.32, 0.56
+        top, bottom = 0.30, 0.72
         x = lambda i: (i + 0.5) * slot  # noqa: E731
         y = lambda t: H * (top + (hi - t) / (hi - lo) * (bottom - top))  # noqa: E731
         left = lambda i: f"{(i + 0.5) / n * 100:.2f}"  # noqa: E731
@@ -441,29 +444,19 @@ class Tagesdashboard(BasePlugin):
             c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
             line += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
 
-        # Regen: Balkenhöhe = Niederschlagsmenge in mm pro Stunde. Die Skala reicht mindestens
-        # bis RAIN_SCALE_MIN, damit Nieselregen auch wie Nieselregen aussieht.
-        amounts = [r.get("precipitation") or 0 for r in pts]
-        scale = max(RAIN_SCALE_MIN, max(amounts))
-        bars, nights = [], []
-        for i, (r, amount) in enumerate(zip(pts, amounts)):
+        # Regen bekommt eine eigene Zeile unter der Kurve: Höhe = Menge, Füllung = Stärke.
+        rain, nights = [], []
+        for i, r in enumerate(pts):
+            amount = r.get("precipitation") or 0
             if amount >= 0.05:
-                h = max(H * 0.85 * amount / scale, H * 0.06)  # auch 0,1 mm bleibt sichtbar
-                bx, bw = i * slot + slot * 0.1, slot * 0.8
-                bars.append({"x": f"{bx:.1f}", "x2": f"{bx + bw:.1f}", "y": f"{H - h:.1f}",
-                             "w": f"{bw:.1f}", "h": f"{h:.1f}"})
+                level = next(name for limit, name in RAIN_LEVELS if amount < limit)
+                h = 100 * max(min(amount / RAIN_SCALE, 1.0), 0.28)  # auch Niesel bleibt sichtbar
+                rain.append({"x": f"{i * slot + slot * 0.08:.1f}", "w": f"{slot * 0.84:.1f}",
+                             "y": f"{100 - h:.1f}", "h": f"{h:.1f}", "cls": level})
             sr, ss = sun_cache(r["dt"].date())
             if sr and ss and not (sr <= r["dt"] < ss):
                 nights.append({"x": f"{i * slot:.1f}", "w": f"{slot + 0.6:.1f}"})
-
-        rain_max = None
-        if max(amounts) >= 0.05:
-            imx = amounts.index(max(amounts))
-            h = max(H * 0.85 * amounts[imx] / scale, H * 0.06)
-            rain_max = {"left": f"{(imx + 0.5) / n * 100:.2f}", "top": f"{(H - h) / H * 100:.2f}",
-                        "text": f"{dwd.de_num(amounts[imx], 1)} mm"}
-            v = float(rain_max["left"])
-            rain_max["edge"] = " edge-l" if v < 6 else (" edge-r" if v > 94 else "")
+        used_levels = {c["cls"] for c in rain}
 
         icon_hours = {9, 12, 15, 18, 21}
         gicons, xlabels = [], []
@@ -487,8 +480,9 @@ class Tagesdashboard(BasePlugin):
         now_left = None
         if start <= now <= end:
             now_left = f"{((now - start).total_seconds() / 3600 + 0.5) / n * 100:.2f}"
-        return {"line": line, "bars": bars, "nights": nights, "icons": gicons, "xlabels": xlabels,
-                "tlabels": tlabels, "now_left": now_left, "rain_max": rain_max,
+        return {"line": line, "nights": nights, "icons": gicons, "xlabels": xlabels,
+                "tlabels": tlabels, "now_left": now_left, "rain": rain,
+                "rain_levels": [lv for _, lv in RAIN_LEVELS if lv in used_levels],
                 "rain_summary": self.rain_summary(pts, now, d)}
 
     @staticmethod
@@ -514,10 +508,7 @@ class Tagesdashboard(BasePlugin):
             when = f"{word} um {first.hour} Uhr"
         else:
             when = f"{word} {first.hour}–{last.hour if last.hour else 24} Uhr"
-        parts = [when, f"{dwd.de_num(total, 1)} mm"]
-        if probs:
-            parts.append(f"bis {round(max(probs))} %")
-        return " · ".join(parts)
+        return f"{when} · {dwd.de_num(total, 1)} mm"
 
     # ------------------------------------------------------------------
     def wear(self, records, events, d, now, tz, sensitivity, uv=None):

@@ -59,23 +59,30 @@
     <div class="graph">
       <div class="g-head">
         <span class="g-rain">{{ graph.rain_summary }}</span>
-        <span class="g-legend"><i class="lg-r"></i>mm/Std.</span>
+        {% if graph.rain_levels %}
+        <span class="g-legend">
+          {% for lv in graph.rain_levels %}<i class="sw {{ lv }}"></i>{{ {"leicht": "leicht", "maessig": "mäßig", "stark": "stark"}[lv] }}{% endfor %}
+        </span>
+        {% endif %}
       </div>
       <div class="g-icons">
         {% for ic in graph.icons %}<div class="g-ic" style="left: {{ ic.left }}%;">{{ ic.svg | safe }}</div>{% endfor %}
       </div>
-      <div class="g-plot">
-        <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
-          {% for nt in graph.nights %}<rect class="night" x="{{ nt.x }}" y="0" width="{{ nt.w }}" height="300"/>{% endfor %}
-          {% for b in graph.bars %}
-          <rect class="bar" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}"/>
-          <line class="bar-top" x1="{{ b.x }}" y1="{{ b.y }}" x2="{{ b.x2 }}" y2="{{ b.y }}" vector-effect="non-scaling-stroke"/>
-          {% endfor %}
-          <path class="line" d="{{ graph.line }}" vector-effect="non-scaling-stroke"/>
-          <line class="axis" x1="0" y1="300" x2="1000" y2="300" vector-effect="non-scaling-stroke"/>
-        </svg>
-        {% if graph.rain_max %}<div class="r-label{{ graph.rain_max.edge }}" style="left: {{ graph.rain_max.left }}%; top: {{ graph.rain_max.top }}%;">{{ graph.rain_max.text }}</div>{% endif %}
-        {% for t in graph.tlabels %}<div class="t-label {{ t.cls }}{{ t.edge }}" style="left: {{ t.left }}%; top: {{ t.top }}%;">{{ t.text }}</div>{% endfor %}
+      <div class="g-area">
+        <div class="g-plot">
+          <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+            {% for nt in graph.nights %}<rect class="night" x="{{ nt.x }}" y="0" width="{{ nt.w }}" height="300"/>{% endfor %}
+            <path class="line" d="{{ graph.line }}" vector-effect="non-scaling-stroke"/>
+          </svg>
+          {% for t in graph.tlabels %}<div class="t-label {{ t.cls }}{{ t.edge }}" style="left: {{ t.left }}%; top: {{ t.top }}%;">{{ t.text }}</div>{% endfor %}
+        </div>
+        <div class="g-rainrow">
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
+            {% for nt in graph.nights %}<rect class="night" x="{{ nt.x }}" y="0" width="{{ nt.w }}" height="100"/>{% endfor %}
+            {% for c in graph.rain %}<rect class="rain {{ c.cls }}" x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" vector-effect="non-scaling-stroke"/>{% endfor %}
+            <line class="axis" x1="0" y1="100" x2="1000" y2="100" vector-effect="non-scaling-stroke"/>
+          </svg>
+        </div>
         {% if graph.now_left %}<div class="now-line" style="left: {{ graph.now_left }}%;"></div>{% endif %}
       </div>
       <div class="g-x">
