@@ -57,6 +57,10 @@
 
     {% if graph %}
     <div class="graph">
+      <div class="g-head">
+        <span class="g-rain">{{ graph.rain_summary }}</span>
+        <span class="g-legend"><i class="lg-r"></i>mm/Std.</span>
+      </div>
       <div class="g-icons">
         {% for ic in graph.icons %}<div class="g-ic" style="left: {{ ic.left }}%;">{{ ic.svg | safe }}</div>{% endfor %}
       </div>
@@ -70,6 +74,7 @@
           <path class="line" d="{{ graph.line }}" vector-effect="non-scaling-stroke"/>
           <line class="axis" x1="0" y1="300" x2="1000" y2="300" vector-effect="non-scaling-stroke"/>
         </svg>
+        {% if graph.rain_max %}<div class="r-label{{ graph.rain_max.edge }}" style="left: {{ graph.rain_max.left }}%; top: {{ graph.rain_max.top }}%;">{{ graph.rain_max.text }}</div>{% endif %}
         {% for t in graph.tlabels %}<div class="t-label {{ t.cls }}{{ t.edge }}" style="left: {{ t.left }}%; top: {{ t.top }}%;">{{ t.text }}</div>{% endfor %}
         {% if graph.now_left %}<div class="now-line" style="left: {{ graph.now_left }}%;"></div>{% endif %}
       </div>

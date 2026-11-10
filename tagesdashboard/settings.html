@@ -41,6 +41,8 @@
         </select>
         <span>das Wetter für morgen zeigen</span>
     </div>
+    <div class="form-group db-wide"><span>Ort für den UV-Index </span><input type="text" id="uvCity" name="uvCity" class="form-input" placeholder="leer = Ortsname vom DWD, z. B. Bonn" /></div>
+    <div class="db-hint">Der DWD berechnet den UV-Index nur für ausgewählte Orte. Liegt dein Ort nicht dabei, trag den nächstgelegenen ein (z. B. Köln). Ohne Treffer zeigt die Kachel die Bewölkung.</div>
     <div class="form-group"><input type="checkbox" class="db-check" id="showAlerts" name="showAlerts" value="true" data-default="true"><span>Amtliche DWD-Warnungen</span></div>
     <div class="form-group"><input type="checkbox" class="db-check" id="showGraph" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></div>
 </div>
@@ -175,7 +177,7 @@
         document.querySelectorAll('.db-check').forEach(cb => {
             cb.checked = configured ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
         });
-        ['latitude', 'longitude', 'customTitle', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
+        ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
             document.getElementById(id).value = saved[id] ?? '';
         });
         Object.entries(DEFAULTS).forEach(([id, def]) => { document.getElementById(id).value = saved[id] || def; });

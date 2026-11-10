@@ -282,7 +282,7 @@ class DwdWetter(BasePlugin):
             tz = ZoneInfo(tz_name)
         except Exception:
             tz = ZoneInfo("Europe/Berlin")
-        now = datetime.now(tz)
+        now = self.current_time(tz)
 
         data = self.fetch_data(lat, lon, tz, now, opts)
         params = self.build_template_params(data, lat, lon, tz, now, opts, settings)
@@ -299,6 +299,10 @@ class DwdWetter(BasePlugin):
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
         return image
+
+    def current_time(self, tz):
+        """Eigene Methode, damit Tests eine feste Uhrzeit einsetzen können."""
+        return datetime.now(tz)
 
     # ------------------------------------------------------------------
     def _options(self, settings):

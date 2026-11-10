@@ -35,7 +35,7 @@ class Empfehlung:
     grund: str = ""
 
 
-def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11):
+def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11, uv=None):
     if not stunden:
         return None
     off = EMPFINDLICHKEIT.get(empfindlichkeit, 3)
@@ -79,7 +79,7 @@ def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11):
         teile = [(p, "jacket" if i == "coat" else i, "warme Jacke zum Ausziehen" if i == "coat" else x)
                  for p, i, x in teile if i not in ("gloves",)]
         teile.append((2, "layers", "mehrere Schichten"))
-        gruende.append(f"{round(kaeltest)}° bis {round(waermst)}°")
+        gruende[0] = f"gefühlt {round(kaeltest)}° bis {round(waermst)}°"
 
     # 3) Nässe: Schirm nur, wenn der Wind es zulässt
     nass = [h for h in stunden if h.regen_prob >= 50 or h.regen_mm >= 0.3]
@@ -106,8 +106,13 @@ def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11):
         teile.append((2, "boots", "rutschfeste Schuhe"))
         gruende.append("Glättegefahr")
 
-    # 5) Sonne im Sommerhalbjahr
-    if 4 <= monat <= 9 and sum(h.sonne_min for h in stunden) >= 120:
+    # 5) Sonnenschutz: nach UV-Index des DWD (ab 3 = "mittel" empfiehlt das BfS Schutz),
+    #    ohne UV-Daten nach Sonnenstunden im Sommerhalbjahr
+    if uv is not None:
+        if uv >= 3:
+            teile.append((3, "sunglasses", "Sonnenschutz"))
+            gruende.append(f"UV {round(uv)}")
+    elif 4 <= monat <= 9 and sum(h.sonne_min for h in stunden) >= 120:
         teile.append((3, "sunglasses", "Sonnenschutz"))
 
     if nass and not schnee and titel.endswith(" anziehen"):

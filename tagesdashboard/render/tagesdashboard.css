@@ -49,7 +49,7 @@
 }
 .wx-top { display: flex; align-items: center; gap: calc(var(--u) * 1.2); }
 .wx-icon { flex: 0 0 auto; }
-.wx-icon .cur-icon { width: calc(var(--u) * 10); height: calc(var(--u) * 10); }
+.wx-icon .cur-icon { width: calc(var(--u) * 8.8); height: calc(var(--u) * 8.8); }
 .wx-text { min-width: 0; }
 .wx-label {
   display: inline-block;
@@ -60,7 +60,7 @@
   border-radius: 0.25em;
   margin-bottom: calc(var(--u) * 0.3);
 }
-.wx-temp { font-size: calc(var(--u) * 7); line-height: 0.88; white-space: nowrap; }
+.wx-temp { font-size: calc(var(--u) * 6.4); line-height: 0.88; white-space: nowrap; }
 .wx-temp .deg { font-size: 0.4em; vertical-align: top; margin-left: 0.05em; }
 .wx-cond { font-size: calc(var(--u) * 2.5); }
 .wx-sub { font-size: calc(var(--u) * 2); white-space: nowrap; }
@@ -113,7 +113,7 @@
   font-size: calc(var(--u) * 1.7);
   line-height: 1.05;
 }
-.wear-item .cl-icon { width: calc(var(--u) * 4); height: calc(var(--u) * 4); margin-bottom: calc(var(--u) * 0.15); }
+.wear-item .cl-icon { width: calc(var(--u) * 3.4); height: calc(var(--u) * 3.4); margin-bottom: calc(var(--u) * 0.15); }
 .wear-why {
   font-size: calc(var(--u) * 1.7);
   border-top: calc(var(--u) * 0.25) solid currentColor;
@@ -125,14 +125,14 @@
 
 /* Tageskurve */
 .graph { flex: 1 1 auto; min-height: calc(var(--u) * 11); display: flex; flex-direction: column; border-top: var(--line) solid currentColor; font-size: calc(var(--u) * 1.85); }
-.g-icons { position: relative; flex: 0 0 calc(var(--u) * 3.6); }
-.g-ic { position: absolute; top: calc(var(--u) * 0.4); transform: translateX(-50%); }
-.g-icon { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); }
+.g-icons { position: relative; flex: 0 0 calc(var(--u) * 3.1); }
+.g-ic { position: absolute; top: calc(var(--u) * 0.2); transform: translateX(-50%); }
+.g-icon { width: calc(var(--u) * 2.8); height: calc(var(--u) * 2.8); }
 .g-plot { position: relative; flex: 1 1 auto; min-height: 0; }
 .g-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
 .night { fill: #000; fill-opacity: 0.08; }
-.bar { fill: var(--rain-light); }
-.bar-top { stroke: var(--rain); stroke-width: 2.2; }
+.bar { fill: var(--rain); }
+.bar-top { stroke: #0B3D91; stroke-width: 2.2; }
 .line { fill: none; stroke: var(--warm); stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
 .axis { stroke: currentColor; stroke-width: 2.4; }
 .t-label { position: absolute; z-index: 2; transform: translate(-50%, -118%); font-size: calc(var(--u) * 2); white-space: nowrap; background: var(--bg); padding: 0 0.15em; border-radius: 0.2em; line-height: 1; }
@@ -141,8 +141,20 @@
 .t-label.edge-r { transform: translate(-85%, -118%); }
 .t-label.t-min.edge-l { transform: translate(-15%, 12%); }
 .t-label.t-min.edge-r { transform: translate(-85%, 12%); }
-.rain-text { position: absolute; right: 0.3em; bottom: 0.2em; color: #0B3D91; font-size: calc(var(--u) * 1.75); }
-.now-line { position: absolute; top: calc(var(--u) * -3.6); bottom: 0; border-left: var(--line) solid currentColor; }
+.g-head { display: flex; justify-content: space-between; align-items: baseline; gap: calc(var(--u) * 1); padding-top: calc(var(--u) * 0.3); }
+.g-rain { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-legend { display: inline-flex; align-items: center; gap: 0.3em; font-size: calc(var(--u) * 1.7); white-space: nowrap; }
+.g-legend i { display: inline-block; width: 1.1em; margin-left: 0.4em; }
+.lg-t { border-top: 0.22em solid var(--warm); }
+.lg-r { height: 0.8em; background: var(--rain); border-top: 0.15em solid #0B3D91; }
+.r-label {
+  position: absolute; z-index: 2; transform: translate(-50%, -115%);
+  color: #0B3D91; background: var(--bg); padding: 0 0.15em; border-radius: 0.2em; line-height: 1;
+  font-size: calc(var(--u) * 1.75); white-space: nowrap;
+}
+.r-label.edge-l { transform: translate(-15%, -115%); }
+.r-label.edge-r { transform: translate(-85%, -115%); }
+.now-line { position: absolute; top: calc(var(--u) * -3.1); bottom: 0; border-left: var(--line) solid currentColor; }
 .g-x { position: relative; flex: 0 0 calc(var(--u) * 2.4); }
 .x-label { position: absolute; top: 0.2em; transform: translateX(-50%); }
 

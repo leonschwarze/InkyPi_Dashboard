@@ -18,6 +18,8 @@ import logging
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+import requests
+
 from plugins.base_plugin.base_plugin import BasePlugin
 
 logger = logging.getLogger(__name__)
@@ -57,6 +59,18 @@ DEFAULTS = {
 }
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
+RAIN_SCALE_MIN = 2.0  # mm/Std.: so hoch ist der höchste Balken mindestens skaliert
+
+# UV-Gefahrenindex des DWD: tägliche Höchstwerte für ausgewählte Orte (heute, morgen, übermorgen)
+UVI_URL = "https://opendata.dwd.de/climate_environment/health/alerts/uvi.json"
+# Stufen nach WHO/Bundesamt für Strahlenschutz: (bis einschließlich, Bezeichnung, Farbe, Schrift)
+UV_STUFEN = [
+    (2, "niedrig", "#2E9E3F", "#FFFFFF"),
+    (5, "mittel", "#FFC400", "#000000"),
+    (7, "hoch", "#FF8C00", "#000000"),
+    (10, "sehr hoch", "#E3001B", "#FFFFFF"),
+    (99, "extrem", "#8B0A50", "#FFFFFF"),
+]
 MIN_WEAR_HOURS = 4
 
 
@@ -146,7 +160,8 @@ class Tagesdashboard(BasePlugin):
             if flag("showGraph"):
                 params["graph"] = self.day_graph(records, focus, now, tz, weather["sun_cache"])
             if flag("showWear"):
-                params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"))
+                params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
+                                           uv=weather.get("uv"))
 
         dimensions = device_config.get_resolution()
         if device_config.get_config("orientation") == "vertical":
@@ -234,7 +249,8 @@ class Tagesdashboard(BasePlugin):
         opts = {
             "show_alerts": flag("showAlerts"), "show_graph": False, "night_shading": True,
             "graph_icons": True, "hours": 24, "days": 2,
-            "tiles": ["wind", "gust", "precip", "humidity", "pressure", "sun"],
+            # Platz 5 wird durch den UV-Index ersetzt; Bewölkung ist der Ersatz ohne UV-Daten
+            "tiles": ["wind", "gust", "precip", "humidity", "cloudcover", "sun"],
         }
         data = w.fetch_data(lat, lon, tz, now, opts)
         base = w.build_template_params(data, lat, lon, tz, now, opts, settings)
@@ -256,7 +272,14 @@ class Tagesdashboard(BasePlugin):
                 continue
         records.sort(key=lambda r: r["dt"])
 
+        offset = (focus - now.date()).days  # 0 = heute, 1 = morgen
+        uv = self.load_uv(settings.get("uvCity", ""), base["title"])
+        uv_value = None
+        if uv:
+            uv_value = uv.get(["today", "tomorrow", "dayafter_to"][min(offset, 2)])
+
         result = {
+            "uv": uv_value,
             "place": base["title"],
             "station": base["station"],
             "alert": base["alerts"][0] if base["alerts"] else None,
@@ -277,7 +300,55 @@ class Tagesdashboard(BasePlugin):
             })
         else:
             result.update(self.focus_day(w, records, focus, tz, sun_cache))
+        if uv_value is not None:
+            result["tiles"] = [self.uv_tile(uv_value, offset) if t.get("key") == "cloudcover" else t
+                               for t in result["tiles"]]
         return result
+
+    # ------------------------------------------------------------------
+    def load_uv(self, wanted, place):
+        """UV-Index vom DWD; der Ort wird über den Namen zugeordnet (z. B. „Bonn“)."""
+        names = [n.strip() for n in (wanted, place) if n and n.strip()]
+        if not names:
+            return None
+        try:
+            session = requests.Session()
+            session.headers.update({"User-Agent": dwd.USER_AGENT})
+            resp = session.get(UVI_URL, timeout=15)
+            if resp.status_code != 200:
+                raise RuntimeError(f"HTTP {resp.status_code}")
+            entries = resp.json().get("content") or []
+        except Exception as exc:
+            logger.warning("UV-Index nicht verfügbar: %s", exc)
+            return None
+        by_city = {(e.get("city") or "").casefold(): e.get("forecast") or {} for e in entries}
+        for name in names:
+            key = name.casefold()
+            if key in by_city:
+                return by_city[key]
+            # z. B. "Frankfurt" passt auf "Frankfurt/Main"
+            for city, fc in by_city.items():
+                if city.startswith(key) or key.startswith(city):
+                    return fc
+        logger.info("Kein UV-Index für %s. Verfügbare Orte: %s", names,
+                    ", ".join(sorted(e.get("city", "") for e in entries)))
+        return None
+
+    @staticmethod
+    def uv_stufe(value):
+        for limit, name, bg, fg in UV_STUFEN:
+            if value <= limit:
+                return name, bg, fg
+        return UV_STUFEN[-1][1:]
+
+    def uv_tile(self, value, offset):
+        name, bg, fg = self.uv_stufe(value)
+        badge = (f'<svg class="mx-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+                 f'<rect x="2" y="5" width="28" height="22" rx="5" fill="{bg}" stroke="currentColor" stroke-width="2.4"/>'
+                 f'<text x="16" y="21" text-anchor="middle" font-family="Jost, sans-serif" font-weight="700" '
+                 f'font-size="13" fill="{fg}">UV</text></svg>')
+        return {"icon": badge, "label": "UV " + ("heute" if offset == 0 else "morgen"),
+                "value": str(int(round(value))), "unit": name, "key": "uv"}
 
     @staticmethod
     def today_tiles(tiles, records, d):
@@ -285,6 +356,8 @@ class Tagesdashboard(BasePlugin):
         snowy = any(r.get("icon") in ("snow", "sleet") for r in records if r["dt"].date() == d)
         out = []
         for t in tiles:
+            if t["label"] == "Bewölkung":
+                t = dict(t, key="cloudcover")
             if t["label"].startswith("Sonnenauf"):
                 t = dict(t, label="Sonne")
             elif t["label"] == "Regen heute" and snowy:
@@ -307,7 +380,6 @@ class Tagesdashboard(BasePlugin):
         dirs = val("wind_direction", daytime)
         gusts = val("wind_gust_speed")
         hums = val("relative_humidity", daytime)
-        press = val("pressure_msl", daytime)
         clouds = val("cloud_cover", daytime)
         sr, ss = sun_cache(d)
         mi = icons.metric_icon
@@ -322,7 +394,8 @@ class Tagesdashboard(BasePlugin):
             {"icon": mi("precip"), "label": "Regen morgen", "value": dwd.de_num(precip, 1), "unit": "mm",
              "extra": f"<span>{dwd.de_num(max(probs))} %</span>" if probs else ""},
             {"icon": mi("humidity"), "label": "Luftfeuchte", "value": dwd.de_num(sum(hums) / len(hums) if hums else None), "unit": "%"},
-            {"icon": mi("pressure"), "label": "Luftdruck", "value": dwd.de_num(sum(press) / len(press) if press else None), "unit": "hPa"},
+            {"icon": mi("cloudcover"), "label": "Bewölkung", "key": "cloudcover",
+             "value": dwd.de_num(sum(clouds) / len(clouds) if clouds else None), "unit": "%"},
         ]
         if sr and ss:
             tiles.append({"icon": mi("sun_times"), "label": "Sonne",
@@ -368,21 +441,29 @@ class Tagesdashboard(BasePlugin):
             c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
             line += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
 
+        # Regen: Balkenhöhe = Niederschlagsmenge in mm pro Stunde. Die Skala reicht mindestens
+        # bis RAIN_SCALE_MIN, damit Nieselregen auch wie Nieselregen aussieht.
+        amounts = [r.get("precipitation") or 0 for r in pts]
+        scale = max(RAIN_SCALE_MIN, max(amounts))
         bars, nights = [], []
-        rain_from = None
-        for i, r in enumerate(pts):
-            prob = r.get("precipitation_probability")
-            if prob is None:
-                prob = 100 if (r.get("precipitation") or 0) >= 0.1 else 0
-            if prob > 10:
-                h = H * 0.92 * prob / 100
-                bx, bw = i * slot + slot * 0.12, slot * 0.76
-                bars.append({"x": f"{bx:.1f}", "x2": f"{bx + bw:.1f}", "y": f"{H - h:.1f}", "w": f"{bw:.1f}", "h": f"{h:.1f}"})
-            if prob >= 50 and rain_from is None and r["dt"] >= now - timedelta(hours=1):
-                rain_from = r["dt"]
+        for i, (r, amount) in enumerate(zip(pts, amounts)):
+            if amount >= 0.05:
+                h = max(H * 0.85 * amount / scale, H * 0.06)  # auch 0,1 mm bleibt sichtbar
+                bx, bw = i * slot + slot * 0.1, slot * 0.8
+                bars.append({"x": f"{bx:.1f}", "x2": f"{bx + bw:.1f}", "y": f"{H - h:.1f}",
+                             "w": f"{bw:.1f}", "h": f"{h:.1f}"})
             sr, ss = sun_cache(r["dt"].date())
             if sr and ss and not (sr <= r["dt"] < ss):
                 nights.append({"x": f"{i * slot:.1f}", "w": f"{slot + 0.6:.1f}"})
+
+        rain_max = None
+        if max(amounts) >= 0.05:
+            imx = amounts.index(max(amounts))
+            h = max(H * 0.85 * amounts[imx] / scale, H * 0.06)
+            rain_max = {"left": f"{(imx + 0.5) / n * 100:.2f}", "top": f"{(H - h) / H * 100:.2f}",
+                        "text": f"{dwd.de_num(amounts[imx], 1)} mm"}
+            v = float(rain_max["left"])
+            rain_max["edge"] = " edge-l" if v < 6 else (" edge-r" if v > 94 else "")
 
         icon_hours = {9, 12, 15, 18, 21}
         gicons, xlabels = [], []
@@ -406,14 +487,40 @@ class Tagesdashboard(BasePlugin):
         now_left = None
         if start <= now <= end:
             now_left = f"{((now - start).total_seconds() / 3600 + 0.5) / n * 100:.2f}"
-        rain_text = None
-        if rain_from is not None:
-            rain_text = "Regen" if rain_from <= now else f"ab {rain_from.hour} Uhr Regen"
         return {"line": line, "bars": bars, "nights": nights, "icons": gicons, "xlabels": xlabels,
-                "tlabels": tlabels, "now_left": now_left, "rain_text": rain_text}
+                "tlabels": tlabels, "now_left": now_left, "rain_max": rain_max,
+                "rain_summary": self.rain_summary(pts, now, d)}
+
+    @staticmethod
+    def rain_summary(pts, now, d):
+        """Kopfzeile der Tageskurve, z. B. „Regen 17–23 Uhr · 6,8 mm · bis 85 %“."""
+        relevant = [r for r in pts if d != now.date() or r["dt"] >= now - timedelta(minutes=59)]
+        if not relevant:
+            return "Kein Regen mehr erwartet"
+        wet = [r for r in relevant if (r.get("precipitation") or 0) >= 0.1
+               or (r.get("precipitation_probability") or 0) >= 50]
+        probs = [r["precipitation_probability"] for r in relevant if r.get("precipitation_probability") is not None]
+        if not wet:
+            if probs and max(probs) >= 30:
+                return f"Kaum Regen · Risiko bis {round(max(probs))} %"
+            return "Kein Regen erwartet" if d != now.date() else "Kein Regen mehr erwartet"
+        total = sum(r.get("precipitation") or 0 for r in relevant)
+        first, last = wet[0]["dt"], wet[-1]["dt"]
+        snowy = sum(1 for r in wet if r.get("icon") in ("snow", "sleet") or r.get("condition") in ("snow", "sleet"))
+        word = "Schnee" if snowy > len(wet) / 2 else ("Niederschlag" if snowy else "Regen")
+        if d == now.date() and first <= now:
+            when = f"{word} bis {last.hour} Uhr"
+        elif first == last:
+            when = f"{word} um {first.hour} Uhr"
+        else:
+            when = f"{word} {first.hour}–{last.hour if last.hour else 24} Uhr"
+        parts = [when, f"{dwd.de_num(total, 1)} mm"]
+        if probs:
+            parts.append(f"bis {round(max(probs))} %")
+        return " · ".join(parts)
 
     # ------------------------------------------------------------------
-    def wear(self, records, events, d, now, tz, sensitivity):
+    def wear(self, records, events, d, now, tz, sensitivity, uv=None):
         """Kleidungsempfehlung für die Zeit, in der man voraussichtlich unterwegs ist."""
         day_start = datetime.combine(d, time.min, tz)
         day_end = day_start + timedelta(days=1)
@@ -450,15 +557,10 @@ class Tagesdashboard(BasePlugin):
                 sonne_min=r.get("sunshine") or 0,
                 schnee=(r.get("icon") in ("snow", "sleet")) or (r.get("condition") in ("snow", "sleet")),
             ))
-        rec = kleidung.empfehlen(hours, sensitivity, monat=d.month)
+        rec = kleidung.empfehlen(hours, sensitivity, monat=d.month, uv=uv)
         if rec is None:
             return None
-        # "Regen" um den Beginn ergänzen, wenn der Regen erst später einsetzt
-        grund = rec.grund
-        wet = [r["dt"] for r in records if start <= r["dt"] <= end + timedelta(minutes=59)
-               and ((r.get("precipitation_probability") or 0) >= 50 or (r.get("precipitation") or 0) >= 0.3)]
-        if wet and min(wet) > now + timedelta(minutes=30):
-            grund = grund.replace("Regen", f"Regen ab {min(wet).hour} Uhr", 1)  # wie in der Tageskurve
+        grund = rec.grund  # wann es regnet, steht in der Kopfzeile der Tageskurve
         until = f"Bis {hm(end)}" if end < day_end else "Bis Mitternacht"
         if d != now.date():
             until = f"Morgen {hm(start)}–{hm(end)}"
