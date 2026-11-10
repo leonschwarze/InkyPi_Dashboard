@@ -1,10 +1,11 @@
 """
 Tagesdashboard – Wetter (DWD) und Nextcloud-Kalender auf einem Bild.
 
-Das Plugin erfindet nichts neu, sondern nutzt die beiden Einzel-Plugins:
-  plugins/dwd_wetter          Wetterdaten, Symbole, Warnungen
-  plugins/nextcloud_kalender  CalDAV-Abruf, Serientermine
-Beide müssen installiert sein (Ordnernamen nicht ändern).
+Das Plugin ist eigenständig. Im Unterordner lib/ liegen die Bausteine der
+beiden Einzel-Plugins:
+  lib/dwd_wetter.py, lib/dwd_icons.py   Wetterdaten, Symbole, Warnungen
+  lib/nextcloud_kalender.py             CalDAV-Abruf, Serientermine
+Die Einzel-Plugins müssen dafür nicht installiert sein.
 
 Was das Dashboard selbst hinzufügt:
   * Fokus-Tag: tagsüber das Wetter von heute, abends (einstellbar) das von morgen
@@ -22,11 +23,12 @@ from plugins.base_plugin.base_plugin import BasePlugin
 logger = logging.getLogger(__name__)
 
 try:
-    from plugins.dwd_wetter import dwd_wetter as dwd
-    from plugins.dwd_wetter import dwd_icons as icons
-    from plugins.nextcloud_kalender import nextcloud_kalender as nc
+    from .lib import dwd_wetter as dwd
+    from .lib import dwd_icons as icons
+    from .lib import nextcloud_kalender as nc
     IMPORT_ERROR = None
 except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
+    logger.exception("Bausteine des Tagesdashboards konnten nicht geladen werden")
     dwd = icons = nc = None
     IMPORT_ERROR = exc
 
@@ -86,8 +88,7 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     def generate_image(self, settings, device_config):
         if IMPORT_ERROR is not None:
-            raise RuntimeError("Das Tagesdashboard braucht die Plugins „dwd_wetter“ und "
-                               f"„nextcloud_kalender“ ({IMPORT_ERROR}).")
+            raise RuntimeError(f"Plugin unvollständig – Ordner lib/ fehlt oder ist beschädigt ({IMPORT_ERROR}).")
         flag = lambda k: self._opt(settings, k) == "true"  # noqa: E731
 
         tz_name = device_config.get_config("timezone", default="Europe/Berlin") or "Europe/Berlin"
