@@ -1,0 +1,191 @@
+/* Tagesdashboard – Layout nach Mockup "Variante A"
+ * Alle Größen hängen an --u (bei 800×480 ist --u = 8 px).
+ * E-Ink: durchgehend Halbfett, kein grauer Text, keine Haarlinien.
+ */
+
+.db {
+  --u: min(1vw, 1.667vh);
+  --line: calc(var(--u) * 0.35);
+  --rain: #1E6FD9;
+  --rain-light: #BFDCFF;
+  --warm: #E0500B;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 54% 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "head head" "wx cal";
+  column-gap: calc(var(--u) * 2);
+  font-family: "Jost", sans-serif;
+  font-weight: 600;
+  line-height: 1.12;
+  overflow: hidden;
+}
+.db svg { display: block; overflow: visible; }
+
+/* ---------------- Kopf ---------------- */
+.head {
+  grid-area: head;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(var(--u) * 2);
+  border-bottom: var(--line) solid currentColor;
+  padding-bottom: calc(var(--u) * 0.35);
+  margin-bottom: calc(var(--u) * 0.9);
+}
+.h-date { font-size: calc(var(--u) * 3.1); white-space: nowrap; }
+.h-meta { font-size: calc(var(--u) * 2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------------- Wetter ---------------- */
+.wx {
+  grid-area: wx;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.7);
+  min-height: 0;
+  border-right: var(--line) solid currentColor;
+  padding-right: calc(var(--u) * 1.8);
+}
+.wx-top { display: flex; align-items: center; gap: calc(var(--u) * 1.2); }
+.wx-icon { flex: 0 0 auto; }
+.wx-icon .cur-icon { width: calc(var(--u) * 10); height: calc(var(--u) * 10); }
+.wx-text { min-width: 0; }
+.wx-label {
+  display: inline-block;
+  font-size: calc(var(--u) * 1.8);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0 0.35em;
+  border-radius: 0.25em;
+  margin-bottom: calc(var(--u) * 0.3);
+}
+.wx-temp { font-size: calc(var(--u) * 7); line-height: 0.88; white-space: nowrap; }
+.wx-temp .deg { font-size: 0.4em; vertical-align: top; margin-left: 0.05em; }
+.wx-cond { font-size: calc(var(--u) * 2.5); }
+.wx-sub { font-size: calc(var(--u) * 2); white-space: nowrap; }
+
+.alert {
+  margin-left: auto;
+  align-self: flex-start;
+  border: var(--line) solid #000;
+  border-radius: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 0.4) calc(var(--u) * 0.9);
+  font-size: calc(var(--u) * 1.75);
+  max-width: 42%;
+}
+.alert-head { display: flex; align-items: center; gap: 0.35em; font-size: calc(var(--u) * 1.9); }
+.alert-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alert .warn-icon { width: 1.25em; height: 1.25em; flex: 0 0 auto; }
+
+.tiles { display: grid; grid-template-columns: 1.15fr 0.95fr 1.1fr; gap: calc(var(--u) * 0.6) calc(var(--u) * 1); }
+.tile { display: flex; align-items: center; gap: calc(var(--u) * 0.7); min-width: 0; }
+.tile-icon .mx-icon { width: calc(var(--u) * 3.4); height: calc(var(--u) * 3.4); }
+.tile-body { min-width: 0; }
+.tile-label { font-size: calc(var(--u) * 1.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-value { display: flex; align-items: baseline; font-size: calc(var(--u) * 2.35); white-space: nowrap; }
+.tile-value .unit { font-size: 0.75em; margin-left: 0.2em; }
+.tile-value .raw { font-size: 0.92em; }
+.tile-value .sep { margin: 0 0.12em; }
+.tile-value .extra { display: inline-flex; align-items: center; gap: 0.12em; margin-left: 0.3em; font-size: 0.75em; align-self: center; }
+.tile-arrow, .trend-arrow { width: 1.1em; height: 1.1em; }
+
+/* Kleidungsempfehlung */
+.wear {
+  border: var(--line) solid currentColor;
+  border-radius: calc(var(--u) * 1);
+  padding: calc(var(--u) * 0.45) calc(var(--u) * 1) calc(var(--u) * 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.35);
+}
+.wear-head { display: flex; justify-content: space-between; align-items: baseline; gap: calc(var(--u) * 1); }
+.wear-title { font-size: calc(var(--u) * 2.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wear-who { font-size: calc(var(--u) * 1.7); white-space: nowrap; }
+.wear-items { display: flex; justify-content: space-around; gap: calc(var(--u) * 0.6); }
+.wear-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: calc(var(--u) * 1.7);
+  line-height: 1.05;
+}
+.wear-item .cl-icon { width: calc(var(--u) * 4); height: calc(var(--u) * 4); margin-bottom: calc(var(--u) * 0.15); }
+.wear-why {
+  font-size: calc(var(--u) * 1.7);
+  border-top: calc(var(--u) * 0.25) solid currentColor;
+  padding-top: calc(var(--u) * 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tageskurve */
+.graph { flex: 1 1 auto; min-height: calc(var(--u) * 11); display: flex; flex-direction: column; border-top: var(--line) solid currentColor; font-size: calc(var(--u) * 1.85); }
+.g-icons { position: relative; flex: 0 0 calc(var(--u) * 3.6); }
+.g-ic { position: absolute; top: calc(var(--u) * 0.4); transform: translateX(-50%); }
+.g-icon { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); }
+.g-plot { position: relative; flex: 1 1 auto; min-height: 0; }
+.g-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+.night { fill: #000; fill-opacity: 0.08; }
+.bar { fill: var(--rain-light); }
+.bar-top { stroke: var(--rain); stroke-width: 2.2; }
+.line { fill: none; stroke: var(--warm); stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+.axis { stroke: currentColor; stroke-width: 2.4; }
+.t-label { position: absolute; z-index: 2; transform: translate(-50%, -118%); font-size: calc(var(--u) * 2); white-space: nowrap; background: var(--bg); padding: 0 0.15em; border-radius: 0.2em; line-height: 1; }
+.t-label.t-min { transform: translate(-50%, 12%); }
+.t-label.edge-l { transform: translate(-15%, -118%); }
+.t-label.edge-r { transform: translate(-85%, -118%); }
+.t-label.t-min.edge-l { transform: translate(-15%, 12%); }
+.t-label.t-min.edge-r { transform: translate(-85%, 12%); }
+.rain-text { position: absolute; right: 0.3em; bottom: 0.2em; color: #0B3D91; font-size: calc(var(--u) * 1.75); }
+.now-line { position: absolute; top: calc(var(--u) * -3.6); bottom: 0; border-left: var(--line) solid currentColor; }
+.g-x { position: relative; flex: 0 0 calc(var(--u) * 2.4); }
+.x-label { position: absolute; top: 0.2em; transform: translateX(-50%); }
+
+/* ---------------- Kalender ---------------- */
+.cal { grid-area: cal; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.cal-list { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: calc(var(--u) * 0.8); }
+.day { display: flex; flex-direction: column; gap: calc(var(--u) * 0.45); }
+.day-head { display: flex; align-items: baseline; gap: calc(var(--u) * 1); border-bottom: var(--line) solid currentColor; }
+.dl { font-size: calc(var(--u) * 2.4); }
+.dd { font-size: calc(var(--u) * 1.8); }
+.is-today .dl { background: var(--ink); color: var(--bg); padding: 0 0.3em; border-radius: 0.2em; margin-bottom: 0.1em; }
+.ev {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 0.8) calc(var(--u) * 8.2) 1fr;
+  column-gap: calc(var(--u) * 0.9);
+  font-size: calc(var(--u) * 2);
+}
+.ev::before { content: ""; background: var(--c); border-radius: calc(var(--u) * 0.3); }
+.mono .ev::before { background: currentColor; }
+.ev-time { white-space: nowrap; }
+.ev-main { min-width: 0; }
+.ev-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ev-sub { font-size: calc(var(--u) * 1.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-span { font-size: 0.8em; }
+.ev.allday .ev-title { display: inline-block; background: var(--c); color: var(--fg); padding: 0 0.35em; border-radius: 0.25em; }
+.mono .ev.allday .ev-title { background: transparent; color: inherit; border: var(--line) solid currentColor; }
+.ev.empty { display: block; font-size: calc(var(--u) * 1.9); }
+.ev.empty::before { display: none; }
+.now-tag { display: inline-block; padding: 0 0.25em; border: var(--line) solid currentColor; border-radius: 0.3em; font-size: 0.8em; }
+.more { flex: 0 0 auto; font-size: calc(var(--u) * 1.85); text-align: center; padding-top: calc(var(--u) * 0.35); border-top: var(--line) dashed currentColor; }
+.more[hidden] { display: none; }
+
+.error-box { border: var(--line) dashed currentColor; border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 1.5); font-size: calc(var(--u) * 2.2); }
+.error-box span { font-size: calc(var(--u) * 1.7); }
+
+/* ---------------- Hochformat: Wetter oben, Kalender unten ---------------- */
+.db.portrait {
+  --u: min(1.45vw, 0.98vh);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "head" "wx" "cal";
+}
+.portrait .head { flex-direction: column; gap: 0; }
+.portrait .wx { border-right: none; padding-right: 0; border-bottom: var(--line) solid currentColor; padding-bottom: calc(var(--u) * 1); margin-bottom: calc(var(--u) * 1); }
+.portrait .graph { flex: 0 0 calc(var(--u) * 15); }
+.portrait .ev { grid-template-columns: calc(var(--u) * 0.8) calc(var(--u) * 8) 1fr; }

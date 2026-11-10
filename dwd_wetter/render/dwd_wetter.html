@@ -1,0 +1,124 @@
+{% extends "plugin.html" %}
+
+{% block content %}
+<div class="dwd {{ orientation }}" style="--cols: {{ tile_cols }}; --rows: {{ tile_rows }};">
+
+  {% if alerts %}
+  {% set a = alerts[0] %}
+  <div class="alert" style="background: {{ a.bg }}; color: {{ a.fg }};">
+    {{ a.icon | safe }}
+    <div class="alert-text">
+      <span class="alert-level">{{ a.level }}{% if a.event %}:{% endif %}</span>
+      <span class="alert-event">{{ a.event or a.headline }}</span>
+    </div>
+    <div class="alert-when">{{ a.when }}</div>
+    {% if alerts_more %}<div class="alert-more">+{{ alerts_more }}</div>{% endif %}
+  </div>
+  {% endif %}
+
+  <header class="head">
+    <div class="title">{{ title }}</div>
+    <div class="date">{{ date_str }}</div>
+  </header>
+
+  <section class="now{% if not (opts.show_metrics and tiles) %} no-tiles{% endif %}">
+    <div class="now-main">
+      <div class="now-icon">{{ current.icon | safe }}</div>
+      <div class="now-text">
+        <div class="temp">{{ current.temp }}<span class="deg">°C</span></div>
+        <div class="cond">{{ current.text }}</div>
+        <div class="minmax">
+          <span class="mm">{{ icon_up | safe }}{{ current.tmax }}°</span>
+          <span class="mm">{{ icon_down | safe }}{{ current.tmin }}°</span>
+          {% if current.show_feels %}<span class="feels">gefühlt {{ current.feels }}°</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if opts.show_metrics and tiles %}
+    <div class="tiles">
+      {% for t in tiles %}
+      <div class="tile">
+        <div class="tile-icon">{{ t.icon | safe }}</div>
+        <div class="tile-body">
+          <div class="tile-label">{{ t.label }}</div>
+          <div class="tile-value">
+            {%- if t.raw %}<span class="raw">{{ t.value | safe }}</span>{% else %}{{ t.value }}{% endif -%}
+            {%- if t.unit %}<span class="unit">{{ t.unit }}</span>{% endif -%}
+            {%- if t.extra %}<span class="extra">{{ t.extra | safe }}</span>{% endif -%}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  {% if graph %}
+  <section class="graph">
+    <div class="g-head">
+      <span class="g-title">Nächste {{ graph.hours }} Stunden</span>
+      <span class="g-legend"><i class="lg lg-t"></i>Temperatur <i class="lg lg-p"></i>Regenrisiko</span>
+    </div>
+    {% if graph.icons %}
+    <div class="g-icons">
+      {% for ic in graph.icons %}<div class="g-ic{{ ic.edge }}" style="left: {{ ic.left }}%;">{{ ic.svg | safe }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="g-plot">
+      <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFC400" stop-opacity="0.55"/>
+            <stop offset="1" stop-color="#FFC400" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        {% for nt in graph.nights %}<rect class="night" x="{{ nt.x }}" y="0" width="{{ nt.w }}" height="300"/>{% endfor %}
+        {% for b in graph.bars %}
+        <rect class="bar" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}"/>
+        <line class="bar-top" x1="{{ b.x }}" y1="{{ b.y }}" x2="{{ b.x2 }}" y2="{{ b.y }}" vector-effect="non-scaling-stroke"/>
+        {% endfor %}
+        <path class="area" d="{{ graph.area }}" fill="url(#tempFill)"/>
+        <path class="line" d="{{ graph.line }}" vector-effect="non-scaling-stroke"/>
+        <line class="axis" x1="0" y1="300" x2="1000" y2="300" vector-effect="non-scaling-stroke"/>
+      </svg>
+      {% for t in graph.tlabels %}<div class="t-label {{ t.cls }}{{ t.edge }}" style="left: {{ t.left }}%; top: {{ t.top }}%;">{{ t.text }}</div>{% endfor %}
+      {% for r in graph.rain_labels %}<div class="r-label" style="left: {{ r.left }}%;">{{ r.text }}</div>{% endfor %}
+    </div>
+    <div class="g-x">
+      {% for l in graph.xlabels %}<div class="x-label{% if l.bold %} bold{% endif %}{{ l.edge }}" style="left: {{ l.left }}%;">{{ l.text }}</div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if opts.show_forecast and forecast %}
+  <section class="forecast{% if fc_compact %} compact{% endif %}">
+    {% for d in forecast %}
+    <div class="fc-day{% if d.weekend %} weekend{% endif %}">
+      <div class="fc-name">{{ d.name }}<span class="fc-date">{{ d.date }}</span></div>
+      <div class="fc-mid">
+        <div class="fc-icon-wrap">{{ d.icon | safe }}</div>
+        <div class="fc-temps"><span class="fc-max">{{ d.tmax }}°</span><span class="fc-min">{{ d.tmin }}°</span></div>
+      </div>
+      {% if fc_compact %}
+      <div class="fc-detail">{{ icon_umbrella | safe }}<span>{% if d.prob is not none %}{{ d.prob }} %{% else %}{{ d.precip }}{% endif %}</span></div>
+      {% if d.prob is not none %}<div class="fc-detail fc-sub"><span>{{ d.precip }} mm</span></div>{% endif %}
+      <div class="fc-detail fc-sub">{{ icon_sun | safe }}<span>{{ d.sunshine }} h</span></div>
+      {% else %}
+      <div class="fc-detail">{{ icon_umbrella | safe }}<span>{% if d.prob is not none %}{{ d.prob }} %<span class="dot">·</span>{% endif %}{{ d.precip }} mm</span></div>
+      <div class="fc-detail fc-sub">{{ icon_sun | safe }}<span>{{ d.sunshine }} h Sonne</span></div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if opts.show_footer %}
+  <footer class="foot">
+    <span>Quelle: Deutscher Wetterdienst</span>
+    {% if station %}<span>Station {{ station }}</span>{% endif %}
+    <span>Stand {{ updated }} Uhr</span>
+  </footer>
+  {% endif %}
+</div>
+{% endblock %}

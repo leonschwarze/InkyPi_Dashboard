@@ -1,0 +1,184 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
+<input type="hidden" name="cfgVersion" value="1" />
+
+<div class="form-group">
+    <label class="form-label">Wetter-Ort:</label>
+    <div class="form-group db-wide">
+        <input type="text" id="dbSearch" class="form-input" placeholder="Ort suchen, z. B. Bonn" />
+        <button type="button" id="dbSearchBtn" class="action-button compact">Suchen</button>
+    </div>
+    <div id="dbResults" class="db-results"></div>
+    <div class="form-group"><span>Breitengrad </span><input type="text" id="latitude" name="latitude" class="form-input" placeholder="50.7374" /></div>
+    <div class="form-group"><span>Längengrad </span><input type="text" id="longitude" name="longitude" class="form-input" placeholder="7.0982" /></div>
+    <button type="button" id="openMap" class="action-button compact">Auf Karte wählen</button>
+    <div class="form-group db-wide"><span>Ortsname im Kopf (optional) </span><input type="text" id="customTitle" name="customTitle" class="form-input" placeholder="leer = Ortsname vom DWD" /></div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Nextcloud:</label>
+    <div class="form-group db-wide"><span>Adresse </span><input type="text" id="nextcloudUrl" name="nextcloudUrl" class="form-input" placeholder="https://cloud.example.de" /></div>
+    <div class="form-group"><span>Benutzername </span><input type="text" id="username" name="username" class="form-input" autocomplete="off" /></div>
+    <div class="form-group"><span>Schlüssel für App-Passwort </span><input type="text" id="passwordKey" name="passwordKey" class="form-input" placeholder="NEXTCLOUD_APP_PASSWORD" /></div>
+    <div class="form-group db-wide"><span>Kalender </span><input type="text" id="calendars" name="calendars" class="form-input" placeholder="leer = alle, sonst z. B.: Persönlich, Arbeit" /></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="verifySSL" name="verifySSL" value="true" data-default="true"><span>SSL-Zertifikat prüfen</span></div>
+    <div class="db-hint">Das App-Passwort gehört unter <b>API Keys</b> (Schlüssel <code>NEXTCLOUD_APP_PASSWORD</code>), wie beim Kalender-Plugin.</div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Wetter:</label>
+    <div class="form-group">
+        <span>Ab</span>
+        <select id="switchHour" name="switchHour" class="form-input">
+            <option value="18">18 Uhr</option>
+            <option value="19">19 Uhr</option>
+            <option value="20">20 Uhr</option>
+            <option value="21">21 Uhr</option>
+            <option value="22">22 Uhr</option>
+            <option value="never">nie</option>
+        </select>
+        <span>das Wetter für morgen zeigen</span>
+    </div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="showAlerts" name="showAlerts" value="true" data-default="true"><span>Amtliche DWD-Warnungen</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="showGraph" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Kleidung:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="showWear" name="showWear" value="true" data-default="true"><span>Kleidungsempfehlung</span></div>
+    <div class="form-group">
+        <span>Kälteempfinden</span>
+        <select id="sensitivity" name="sensitivity" class="form-input">
+            <option value="normal">normal</option>
+            <option value="empfindlich">kälteempfindlich (+3 °C)</option>
+            <option value="sehr">sehr kälteempfindlich (+5 °C)</option>
+        </select>
+    </div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Termine:</label>
+    <div class="form-group">
+        <span>Bis zu</span>
+        <select id="calendarDays" name="calendarDays" class="form-input">
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+            <option value="14">14</option>
+        </select>
+        <span>Tage (was nicht passt, wird gekürzt)</span>
+    </div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="rainOnEvents" name="rainOnEvents" value="true" data-default="true"><span>Regenrisiko an Terminen</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="showLocation" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="useColors" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="showPast" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></div>
+</div>
+
+<div id="mapModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeModal('mapModal')">×</span>
+        <h2>Ort wählen</h2>
+        <div class="separator"></div>
+        <div id="map" style="width: 100%; height: 240px; margin: 10px 0px;"></div>
+        <button type="button" id="closeMap" class="action-button">Übernehmen</button>
+    </div>
+</div>
+
+<style>
+    .db-wide { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; }
+    .db-wide .form-input { flex: 1; }
+    .db-results { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
+    .db-results button { text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+        border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; font: inherit; }
+    .db-results .db-hint, .db-hint { flex: 1 1 100%; opacity: 0.8; font-size: 0.9em; }
+</style>
+
+<script>
+(function () {
+    const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7' };
+    const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
+
+    function validate() {
+        const lat = document.getElementById('latitude').value.trim().replace(',', '.');
+        const lon = document.getElementById('longitude').value.trim().replace(',', '.');
+        if (!isNum(lat) || !isNum(lon)) {
+            showResponseModal('failure', 'Bitte einen Wetter-Ort wählen.');
+            return false;
+        }
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lon;
+        return true;
+    }
+    const baseHandleAction = window.handleAction;
+    window.handleAction = async function (action) { if (!validate()) return; return baseHandleAction(action); };
+    const baseOpenModal = window.openModal;
+    window.openModal = function (id) { if (id === 'scheduleModal' && !validate()) return; return baseOpenModal(id); };
+
+    function setLocation(lat, lon) {
+        document.getElementById('latitude').value = Number(lat).toFixed(4);
+        document.getElementById('longitude').value = Number(lon).toFixed(4);
+    }
+
+    async function searchPlace() {
+        const q = document.getElementById('dbSearch').value.trim();
+        const box = document.getElementById('dbResults');
+        if (!q) return;
+        box.innerHTML = '<span class="db-hint">Suche …</span>';
+        try {
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=de'
+                + '&countrycodes=de,at,ch,lu,li,be,nl,dk,pl,cz,fr&q=' + encodeURIComponent(q);
+            const items = await (await fetch(url, { headers: { 'Accept': 'application/json' } })).json();
+            box.innerHTML = items.length ? '' : '<span class="db-hint">Kein Ort gefunden.</span>';
+            items.forEach(item => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = item.display_name;
+                b.addEventListener('click', () => {
+                    setLocation(item.lat, item.lon);
+                    box.innerHTML = '<span class="db-hint">Übernommen: ' + item.display_name + '</span>';
+                });
+                box.appendChild(b);
+            });
+        } catch (e) {
+            box.innerHTML = '<span class="db-hint">Suche fehlgeschlagen – bitte Koordinaten eingeben.</span>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('dbSearchBtn').addEventListener('click', searchPlace);
+        document.getElementById('dbSearch').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } });
+
+        let map, marker;
+        document.getElementById('openMap').addEventListener('click', () => {
+            const latV = document.getElementById('latitude').value, lonV = document.getElementById('longitude').value;
+            const has = isNum(latV) && isNum(lonV);
+            const lat = has ? Number(latV) : 51.1, lon = has ? Number(lonV) : 10.4, zoom = has ? 10 : 5.5;
+            openModal('mapModal');
+            setTimeout(() => {
+                if (!map) {
+                    map = L.map('map').setView([lat, lon], zoom);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+                    marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+                    map.on('click', ev => marker.setLatLng(ev.latlng));
+                } else { map.invalidateSize(); map.setView([lat, lon], zoom); marker.setLatLng([lat, lon]); }
+            }, 100);
+        });
+        document.getElementById('closeMap').addEventListener('click', () => {
+            if (marker) { const p = marker.getLatLng().wrap(); setLocation(p.lat, p.lng); }
+            closeModal('mapModal');
+        });
+
+        const saved = loadPluginSettings ? pluginSettings : {};
+        const configured = loadPluginSettings && saved.cfgVersion !== undefined;
+        document.querySelectorAll('.db-check').forEach(cb => {
+            cb.checked = configured ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
+        });
+        ['latitude', 'longitude', 'customTitle', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
+            document.getElementById(id).value = saved[id] ?? '';
+        });
+        Object.entries(DEFAULTS).forEach(([id, def]) => { document.getElementById(id).value = saved[id] || def; });
+    });
+})();
+</script>
