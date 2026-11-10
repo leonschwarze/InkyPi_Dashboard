@@ -46,7 +46,7 @@ Das Inky Impression 7,3″ kann nur sechs Farben darstellen. Alles andere setzt 
 
 Damit das wirkt, in InkyPi unter den Bildeinstellungen (Image Settings) Sättigung, Kontrast, Schärfe und Helligkeit auf **1,0** lassen. Die Inky-Sättigung (`inky_saturation`) bei **0,5 oder weniger** einstellen. Andere Werte verfälschen die Farben wieder; das Plugin schreibt dann eine Warnung ins Log.
 
-**2. Schrift ohne Kantenglättung (einmalig auf dem Pi).** Normalerweise glättet Chromium die Schrift mit Grautönen. Auf E-Ink werden diese Grautöne zu Pünktchen. Ohne Kantenglättung bestehen die Buchstaben nur aus vollen Pixeln:
+**2. Schrift am Pixelraster ausrichten (einmalig auf dem Pi).** Diese Einstellung schaltet den Autohinter von FreeType ein. Er richtet alle Striche einer Schriftgröße auf dieselbe Pixelbreite aus. Die grauen Kantenpixel der geglätteten Schrift macht danach das Einrasten (Punkt 1) hart schwarz oder weiß. So entstehen gleichmäßige Buchstaben ohne graue Ränder:
 
 ```bash
 sudo tee /etc/fonts/local.conf > /dev/null <<'XML'
@@ -54,9 +54,12 @@ sudo tee /etc/fonts/local.conf > /dev/null <<'XML'
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
   <match target="font">
-    <edit name="antialias" mode="assign"><bool>false</bool></edit>
+    <edit name="antialias" mode="assign"><bool>true</bool></edit>
     <edit name="hinting" mode="assign"><bool>true</bool></edit>
+    <edit name="autohint" mode="assign"><bool>true</bool></edit>
     <edit name="hintstyle" mode="assign"><const>hintfull</const></edit>
+    <edit name="rgba" mode="assign"><const>none</const></edit>
+    <edit name="lcdfilter" mode="assign"><const>lcdnone</const></edit>
   </match>
 </fontconfig>
 XML
@@ -64,7 +67,9 @@ fc-cache -f
 sudo systemctl restart inkypi.service
 ```
 
-Das gilt für alle Programme auf dem Pi, die fontconfig nutzen, also auch für andere InkyPi-Plugins. Rückgängig machen: `sudo rm /etc/fonts/local.conf` und InkyPi neu starten.
+Der Befehl überschreibt eine vorhandene `/etc/fonts/local.conf`. Er gilt für alle Programme auf dem Pi, die fontconfig nutzen, also auch für andere InkyPi-Plugins. Rückgängig machen: `sudo rm /etc/fonts/local.conf` und InkyPi neu starten.
+
+Bitte nicht Schrift ganz ohne Kantenglättung (`antialias=false`) verwenden. Dann rundet FreeType jeden Buchstaben einzeln auf ganze Pixel, und die Striche werden ungleich dick: „n“ und „m“ wirken dünn, „H“ und Ziffern fett.
 
 **Vorschau:** Die Vorschau in der InkyPi-Weboberfläche zeigt das eingerastete Bild. So sieht es auf dem Display aus, nur leuchtender.
 

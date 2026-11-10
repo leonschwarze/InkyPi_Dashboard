@@ -130,6 +130,9 @@ def classify(rgb):
         # sonst würde z. B. ein Kalenderrot aus Nextcloud gepunktet.
         mixed2d = mixed.reshape(h, w)
         area = _erode(mixed2d).reshape(-1)
+        # Grau nur in großen Flächen rastern (5×5), nie an Schriftkanten: geglättete
+        # Schrift hat graue Ränder, die hart schwarz oder weiß werden sollen.
+        wide = _erode(_erode(mixed2d)).reshape(-1)
         gray_pair = ((a == BLACK) & (b == WHITE)) | ((a == WHITE) & (b == BLACK))
         strong_tint = (a == WHITE) & (b != BLACK) & (t >= 0.6)
         dark_tone = ((a == BLACK) | (b == BLACK)) & ~gray_pair
@@ -137,7 +140,7 @@ def classify(rgb):
         # eine Farbe deutlich (Nextcloud-Rot #E9322D ≈ 78 % Rot, 22 % Gelb), einfarbig.
         colour_pair = (a > WHITE) & (b > WHITE)
         dominant = colour_pair & (np.abs(t - 0.5) > 0.15)
-        in_area = area[mixed] & ~strong_tint & ~dark_tone & ~dominant
+        in_area = area[mixed] & ~strong_tint & ~dark_tone & ~dominant & (~gray_pair | wide[mixed])
         threshold = np.tile(BAYER, (h // 4 + 1, w // 4 + 1))[:h, :w].reshape(-1)[mixed]
         rastered = np.where(t > threshold, b, a)
         out_mixed = out[mixed]
