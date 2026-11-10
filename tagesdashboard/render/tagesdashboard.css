@@ -205,3 +205,43 @@
 
 /* Markante Warnung: dicker orangefarbener Rahmen statt orangefarbener Fläche (Spectra 6 hat kein Orange) */
 .alert.lvl-2 { border-width: calc(var(--u) * 0.7); }
+
+/* ---------------- Zug (nur im eingestellten Zeitfenster) ---------------- */
+.train {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  margin-bottom: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 0.8);
+  border: calc(var(--u) * 0.3) solid currentColor;
+  border-radius: calc(var(--u) * 1);
+}
+.tr-line {
+  flex: 0 0 auto;
+  background: #000; color: #fff;
+  border-radius: calc(var(--u) * 0.6);
+  padding: calc(var(--u) * 0.15) calc(var(--u) * 0.6);
+  font-size: calc(var(--u) * 2.2);
+  white-space: nowrap;
+}
+.tr-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.tr-top { font-size: calc(var(--u) * 2.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-plan { text-decoration-thickness: calc(var(--u) * 0.3); }
+.tr-new { color: #E3001B; }
+.tr-sub { font-size: calc(var(--u) * 1.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-pl.changed { background: #FFE500; color: #000; padding: 0 calc(var(--u) * 0.4); border-radius: calc(var(--u) * 0.4); }
+.tr-badge {
+  flex: 0 0 auto;
+  font-size: calc(var(--u) * 2.2);
+  padding: calc(var(--u) * 0.2) calc(var(--u) * 0.7);
+  border-radius: calc(var(--u) * 0.6);
+  white-space: nowrap;
+}
+.st-ok .tr-badge { background: #2E9E3F; color: #fff; }
+.st-slight .tr-badge { background: #FFE500; color: #000; }
+.st-late .tr-badge, .st-cancelled .tr-badge { background: #E3001B; color: #fff; }
+.st-cancelled { border-color: #E3001B; }
+.st-cancelled .tr-time { text-decoration: line-through; text-decoration-thickness: calc(var(--u) * 0.3); }
+.st-gone .tr-badge, .st-unknown .tr-badge { border: calc(var(--u) * 0.25) solid currentColor; }
+.st-unknown { border-style: dashed; }

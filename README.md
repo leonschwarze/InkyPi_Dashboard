@@ -4,6 +4,7 @@ Ein eigenständiges InkyPi-Plugin: links das Wetter vom Deutschen Wetterdienst m
 
 ![Dashboard tagsüber](docs/dashboard_tag.png)
 ![Dashboard abends](docs/dashboard_abend.png)
+![Dashboard morgens mit Zug](docs/dashboard_zug.png)
 
 *Die Screenshots zeigen Testdaten.*
 
@@ -35,8 +36,17 @@ Zusätzliche Python-Pakete braucht das Plugin nicht: `requests`, `astral`, `ical
 - **Abends das Wetter von morgen:** ab einer einstellbaren Uhrzeit, Standard 20 Uhr.
 - **Kleidungsempfehlung:** für die Zeit, in der man unterwegs ist, also bis zum Ende des letzten Termins. Das Kälteempfinden ist einstellbar: normal, empfindlich oder sehr empfindlich.
 - **Termine (Nextcloud per CalDAV):** Kalenderfarben, Serientermine, ganztägige und mehrtägige Termine. Steigt das Regenrisiko während eines Termins auf mindestens 50 %, steht es am Termin.
+- **Zug (optional):** an ausgewählten Wochentagen in einem Zeitfenster eine Karte über den Terminen mit den Live-Daten eines Zuges, z. B. dienstags 6:30–8:15 Uhr der RE 5 ab Bonn Hbf um 8:04 Uhr: Verspätung mit neuer Abfahrtszeit, Gleiswechsel, Ausfall, vorzeitiges Zugende. Daten: Timetables-API der Deutschen Bahn (CC BY 4.0).
 - **Robust:** Fällt der Kalender oder das Wetter aus, zeigt das Dashboard den anderen Teil trotzdem an.
 - **Layout:** Quer- und Hochformat; optimiert für E-Ink mit halbfetter Schrift und ohne grauen Text. Die Farben werden auf die sechs Displayfarben eingerastet (siehe unten).
+
+## Zug einrichten
+
+1. In den Dashboard-Einstellungen unter „Zug“ das Häkchen setzen und Bahnhof, Linie, planmäßige Abfahrt, Zeitfenster und Wochentage eintragen. Speichern.
+2. Damit die Zugdaten im Zeitfenster aktuell sind: unter **Settings** das Wechselintervall (Plugin Cycle Interval) auf **5 Minuten**, im Playlist-Eintrag des Dashboards die Aktualisierung (Refresh) ebenfalls auf **5 Minuten**. Außerhalb des Zeitfensters liefert das Dashboard bis zu 30 Minuten lang dasselbe Bild (einstellbar). InkyPi vergleicht die Bilder und zeichnet das Display dann nicht neu, es flackert also nicht alle 5 Minuten.
+3. Optional, aber empfohlen: kostenlos beim [DB API Marketplace](https://developers.deutschebahn.com/) registrieren, eine Anwendung anlegen und die API „Timetables“ abonnieren. Client-ID und API-Key unter **API Keys** als `DB_CLIENT_ID` und `DB_API_KEY` eintragen. Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn (`iris.noncd.db.de`); die ist inoffiziell und kann wegfallen.
+
+Die Karte zeigt: Linie, Abfahrt (bei Verspätung die alte Zeit durchgestrichen, die neue rot), Ziel, Gleis (gelb markiert bei Gleiswechsel), Hinweise wie „endet in Köln Hbf“ und rechts den Status: pünktlich (grün), +1 bis +4 (gelb), ab +5 und „fällt aus“ (rot), „abgefahren“. Fehlen die Live-Daten, ist die Karte gestrichelt umrandet.
 
 ## Schärfer auf dem Inky Impression
 
@@ -79,6 +89,7 @@ Bitte nicht Schrift ganz ohne Kantenglättung (`antialias=false`) verwenden. Dan
 tagesdashboard/
 ├── tagesdashboard.py        # Kombiniert Wetter und Termine, Tageskurve, Zeitfenster
 ├── kleidung.py              # Regeln und Symbole der Kleidungsempfehlung
+├── bahn.py                  # Live-Daten eines Zuges (DB Timetables-API)
 ├── settings.html            # Einstellungsseite (deutsch)
 ├── plugin-info.json
 ├── icon.png
@@ -90,16 +101,17 @@ tagesdashboard/
     └── eink.py              #   Farben auf die Displayfarben einrasten
 ```
 
-`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.1. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
+`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.2. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
 
 ## Datenquellen
 
 - Wetter: [Bright Sky](https://brightsky.dev) mit Open Data des Deutschen Wetterdienstes, ohne API-Key
 - UV-Index: [UV-Gefahrenindex des DWD](https://opendata.dwd.de/climate_environment/health/alerts/) (`uvi.json`). Er wird nur für ausgewählte Orte berechnet; der Ort wird über den Namen zugeordnet. Ohne Treffer in der Einstellung „Ort für den UV-Index“ einen Ort in der Nähe eintragen, sonst zeigt die Kachel die Bewölkung.
 - Termine: die eigene Nextcloud per CalDAV
+- Zug: [Timetables-API der Deutschen Bahn](https://developers.deutschebahn.com/) (Deutsche Bahn AG, CC BY 4.0)
 
 ## Status
 
-Version 1.1 (Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
+Version 1.2 (Zug-Live-Daten; seit 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
 
 Lizenz: GPL-3.0 (wie InkyPi).

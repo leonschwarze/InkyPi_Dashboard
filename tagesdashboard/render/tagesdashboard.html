@@ -97,6 +97,26 @@
 
   <!-- ===================== Kalender ===================== -->
   <section class="cal">
+    {% if train %}
+    <div class="train st-{{ train.state }}">
+      <div class="tr-line">{{ train.label }}</div>
+      <div class="tr-main">
+        <div class="tr-top">
+          {%- if train.delay and train.state not in ('cancelled',) %}<s class="tr-plan">{{ train.planned }}</s> <span class="tr-new">{{ train.actual }}</span>
+          {%- else %}<span class="tr-time">{{ train.planned }}</span>{% endif %}
+          {%- if train.dest %} <span class="tr-dest">nach {{ train.dest }}</span>{% endif %}
+        </div>
+        {% if train.platform or train.note %}
+        <div class="tr-sub">
+          {%- if train.platform %}<span class="tr-pl{% if train.platform_changed %} changed{% endif %}">Gleis {{ train.platform }}{% if train.platform_changed %} statt {{ train.planned_platform }}{% endif %}</span>{% endif %}
+          {%- if train.platform and train.note %} · {% endif %}
+          {%- if train.note %}<span class="tr-note">{{ train.note }}</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="tr-badge">{{ train.badge }}</div>
+    </div>
+    {% endif %}
     {% if cal_error %}
     <div class="error-box">Kalender nicht verfügbar<br><span>{{ cal_error }}</span></div>
     {% else %}

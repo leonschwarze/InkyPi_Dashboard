@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="1" />
+<input type="hidden" name="cfgVersion" value="2" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -79,6 +79,19 @@
     <div class="form-group"><input type="checkbox" class="db-check" id="showPast" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></div>
 </div>
 
+<div class="form-group">
+    <label class="form-label">Zug (Live-Daten der Bahn):</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="trainEnabled" name="trainEnabled" value="true" data-default="false" data-v2="1"><span>Zug im Zeitfenster über den Terminen einblenden</span></div>
+    <div class="form-group"><span>Bahnhof </span><input type="text" id="trainStation" name="trainStation" class="form-input" placeholder="Bonn Hbf" /></div>
+    <div class="form-group"><span>Linie </span><input type="text" id="trainLine" name="trainLine" class="form-input" placeholder="RE 5" /></div>
+    <div class="form-group"><span>Planmäßige Abfahrt </span><input type="time" id="trainTime" name="trainTime" class="form-input" /></div>
+    <div class="form-group"><span>Anzeigen von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input" /></div>
+    <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-v2="1">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-v2="1">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-v2="1">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-v2="1">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-v2="1">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-v2="1">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-v2="1">So</label></div>
+    <div class="form-group"><span>Außerhalb des Zeitfensters höchstens alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen</span></div>
+    <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters liefert das Dashboard bis zur oben eingestellten Zeit dasselbe Bild; InkyPi lässt das Display dann in Ruhe.
+    Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
+</div>
+
 <div id="mapModal" class="modal">
     <div class="modal-content">
         <span class="close-button" onclick="closeModal('mapModal')">×</span>
@@ -95,12 +108,17 @@
     .db-results { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
     .db-results button { text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer;
         border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; font: inherit; }
+    .db-days { display: flex; flex-wrap: wrap; gap: 10px; }
+    .db-day { display: inline-flex; align-items: center; gap: 4px; }
+    .db-num { width: 5em; }
     .db-results .db-hint, .db-hint { flex: 1 1 100%; opacity: 0.8; font-size: 0.9em; }
 </style>
 
 <script>
 (function () {
-    const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7' };
+    const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7',
+        trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
+        quietMinutes: '30' };
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 
     function validate() {
@@ -176,7 +194,9 @@
         const saved = loadPluginSettings ? pluginSettings : {};
         const configured = loadPluginSettings && saved.cfgVersion !== undefined;
         document.querySelectorAll('.db-check').forEach(cb => {
-            cb.checked = configured ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
+            // Felder, die es bei Einstellungen von Version 1 noch nicht gab, starten mit dem Standardwert
+            const known = configured && !(cb.dataset.v2 && saved.cfgVersion === '1');
+            cb.checked = known ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
         });
         ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
             document.getElementById(id).value = saved[id] ?? '';

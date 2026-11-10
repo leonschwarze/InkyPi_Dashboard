@@ -12,9 +12,12 @@ Was das Dashboard selbst hinzufügt:
   * Tageskurve 6–24 Uhr mit "jetzt"-Linie
   * Kleidungsempfehlung für die Zeit, in der man unterwegs ist (aus den Terminen)
   * Regenwahrscheinlichkeit direkt an den Terminen
+  * Live-Daten eines Pendelzuges in einem Zeitfenster (bahn.py)
 """
 
+import json
 import logging
+import sys
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -36,9 +39,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung
+    from . import kleidung, bahn
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung
+    from plugins.tagesdashboard import kleidung, bahn
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -58,7 +61,23 @@ DEFAULTS = {
     "showPast": "false",
     "verifySSL": "true",
     "einkSnap": "true",
+    # Zug (seit cfgVersion 2)
+    "trainEnabled": "false",
+    "trainStation": "Bonn Hbf",
+    "trainLine": "RE 5",
+    "trainTime": "08:04",
+    "trainFrom": "06:30",
+    "trainTo": "08:15",
+    "trainMo": "false", "trainDi": "true", "trainMi": "false", "trainDo": "false",
+    "trainFr": "false", "trainSa": "false", "trainSo": "false",
+    "quietMinutes": "30",
 }
+# Schlüssel, die es in Einstellungen mit cfgVersion 1 noch nicht gab: Dort gilt für sie der
+# Standardwert statt "fehlt = aus".
+NEW_IN_V2 = {k for k in DEFAULTS if k.startswith("train") or k == "quietMinutes"}
+
+# Außerhalb des Zug-Zeitfensters wird ein fertiges Bild wiederverwendet (siehe generate_image)
+_IMAGE_CACHE = {}
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
 # Regenstärke in mm pro Stunde. Bewusst alltagsnah gewählt; die offizielle DWD-Einteilung
@@ -101,8 +120,23 @@ class Tagesdashboard(BasePlugin):
 
     def _opt(self, settings, key):
         if "cfgVersion" in settings and DEFAULTS.get(key) in ("true", "false"):
+            if key in NEW_IN_V2 and settings.get("cfgVersion") == "1":
+                return settings.get(key) or DEFAULTS[key]
             return settings.get(key, "false")
         return settings.get(key) or DEFAULTS[key]
+
+    @staticmethod
+    def _manual_refresh():
+        """True, wenn InkyPi gerade „Jetzt aktualisieren“ ausführt (dann nie den Cache nutzen)."""
+        frame = sys._getframe(1)
+        for _ in range(25):
+            if frame is None:
+                return False
+            obj = frame.f_locals.get("self")
+            if obj is not None and type(obj).__name__ == "ManualRefresh":
+                return True
+            frame = frame.f_back
+        return False
 
     # ==================================================================
     def generate_image(self, settings, device_config):
@@ -117,6 +151,23 @@ class Tagesdashboard(BasePlugin):
             tz = ZoneInfo("Europe/Berlin")
         now = self.current_time(tz)
         today = now.date()
+
+        dimensions = device_config.get_resolution()
+        if device_config.get_config("orientation") == "vertical":
+            dimensions = dimensions[::-1]
+
+        # ---- Zug: nur im Zeitfenster; sonst Bild wiederverwenden ---------
+        # Damit die Zugdaten aktuell sind, läuft das Dashboard im Zeitfenster z. B. alle 5 Minuten.
+        # Außerhalb liefert es bis zu quietMinutes lang dasselbe Bild. InkyPi vergleicht die Bilder
+        # und lässt das Display dann in Ruhe (kein Flackern, keine unnötigen Abrufe).
+        train_cfg = bahn.read_config(lambda k: self._opt(settings, k), flag)
+        train_now = bool(train_cfg) and bahn.in_window(now, train_cfg)
+        cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
+        if train_cfg and not train_now and not self._manual_refresh():
+            hit = _IMAGE_CACHE.get(cache_key)
+            if hit and now < hit["until"]:
+                logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet", hit["made"])
+                return hit["image"].copy()
 
         switch = self._opt(settings, "switchHour")
         focus = today + timedelta(days=1) if switch.isdigit() and now.hour >= int(switch) else today
@@ -168,9 +219,10 @@ class Tagesdashboard(BasePlugin):
                 params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
                                            uv=weather.get("uv"))
 
-        dimensions = device_config.get_resolution()
-        if device_config.get_config("orientation") == "vertical":
-            dimensions = dimensions[::-1]
+        if train_now:
+            params["train"] = bahn.load(train_cfg, now, tz,
+                                        client_id=device_config.load_env_key("DB_CLIENT_ID"),
+                                        api_key=device_config.load_env_key("DB_API_KEY"))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
 
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -178,6 +230,14 @@ class Tagesdashboard(BasePlugin):
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
         if eink is not None:
             image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
+        if train_cfg and not train_now:
+            quiet = self._opt(settings, "quietMinutes")
+            until = now + timedelta(minutes=int(quiet) if quiet.isdigit() else 30)
+            nxt = bahn.next_window_start(now, train_cfg)
+            if nxt and nxt < until:
+                until = nxt
+            _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
+            _IMAGE_CACHE[cache_key] = {"image": image.copy(), "until": until, "made": now.strftime("%H:%M")}
         return image
 
     # ==================================================================
