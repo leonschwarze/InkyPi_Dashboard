@@ -21,6 +21,11 @@ import requests
 
 from plugins.base_plugin.base_plugin import BasePlugin
 
+try:  # Schärfere Darstellung auf Inky-Displays (Kopie von shared/eink.py)
+    from . import eink
+except ImportError:  # pragma: no cover
+    eink = None
+
 try:  # relativer Import, damit der Ordnername frei bleibt
     from . import dwd_icons as icons
 except ImportError:  # pragma: no cover - Fallback, falls ohne Paketkontext geladen
@@ -53,12 +58,15 @@ MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
 HIMMELSRICHTUNGEN = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"]
 BEAUFORT_GRENZEN = [1, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118]  # km/h
 
-# DWD-Warnstufen: Farbe, Textfarbe, Bezeichnung
+# DWD-Warnstufen: Hintergrund, Textfarbe, Bezeichnung, Rang, Rahmenfarbe.
+# Spectra-6-Displays haben kein Orange. Statt einer orangefarbenen Fläche (würde als
+# Rot-Gelb-Schachbrett die Schrift unruhig machen) bekommt die markante Warnung einen
+# gelben Grund mit dickem orangem Rahmen.
 WARNSTUFEN = {
-    "minor": ("#FFE500", "#000000", "Wetterwarnung", 1),
-    "moderate": ("#FF8C00", "#000000", "Markante Wetterwarnung", 2),
-    "severe": ("#E3001B", "#FFFFFF", "Unwetterwarnung", 3),
-    "extreme": ("#8B0A50", "#FFFFFF", "Extremes Unwetter", 4),
+    "minor": ("#FFE500", "#000000", "Wetterwarnung", 1, "#000000"),
+    "moderate": ("#FFE500", "#000000", "Markante Wetterwarnung", 2, "#FF8C00"),
+    "severe": ("#E3001B", "#FFFFFF", "Unwetterwarnung", 3, "#000000"),
+    "extreme": ("#8B0A50", "#FFFFFF", "Extremes Unwetter", 4, "#000000"),
 }
 
 # Messwert-Kacheln: Schlüssel -> (Einstellungsname, Standard an/aus)
@@ -66,12 +74,12 @@ TILES = [
     ("wind", True),
     ("gust", True),
     ("humidity", True),
-    ("pressure", True),
+    ("pressure", False),
     ("precip", True),
     ("sunshine", True),
     ("sun", True),
-    ("visibility", True),
-    ("dewpoint", True),
+    ("visibility", False),
+    ("dewpoint", False),
     ("cloudcover", False),
 ]
 
@@ -82,6 +90,7 @@ DEFAULTS = {
     "showGraph": "true",
     "showForecast": "true",
     "showFooter": "true",
+    "einkSnap": "true",
     "nightShading": "true",
     "graphIcons": "true",
     "hourlyHours": "24",
@@ -291,6 +300,8 @@ class DwdWetter(BasePlugin):
         if device_config.get_config("orientation") == "vertical":
             dimensions = dimensions[::-1]
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        # Querformat mit Warnzeile: Kopfbereich flacher, sonst bleibt der Graph zu niedrig
+        params["tight"] = bool(params.get("alerts")) and params["orientation"] == "landscape"
         # Schmale Vorhersagespalten (z. B. 7 Tage im Hochformat) kompakter darstellen
         params["fc_compact"] = dimensions[0] / max(len(params["forecast"]), 1) < 125
         params["plugin_settings"] = settings
@@ -298,6 +309,8 @@ class DwdWetter(BasePlugin):
         image = self.render_image(dimensions, "dwd_wetter.html", "dwd_wetter.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
+        if eink is not None:
+            image = eink.prepare(image, device_config, enabled=opts["eink"])
         return image
 
     def current_time(self, tz):
@@ -325,6 +338,7 @@ class DwdWetter(BasePlugin):
             "show_graph": flag("showGraph"),
             "show_forecast": flag("showForecast"),
             "show_footer": flag("showFooter"),
+            "eink": flag("einkSnap"),
             "night_shading": flag("nightShading"),
             "graph_icons": flag("graphIcons"),
             "hours": number("hourlyHours", (12, 24, 36, 48)),
@@ -546,6 +560,7 @@ class DwdWetter(BasePlugin):
             },
             "tiles": tiles,
             "tile_cols": self.tile_columns(len(tiles)),
+            "tile_dense": len(tiles) > 6,  # mehr als 2 Reihen: kompakter, damit der Graph Platz behält
             "tile_rows": max(1, math.ceil(len(tiles) / self.tile_columns(len(tiles)))),
             "alerts": alerts[:1],
             "alerts_more": max(len(alerts) - 1, 0),
@@ -592,7 +607,7 @@ class DwdWetter(BasePlugin):
             sr, ss = ctx["sunrise"], ctx["sunset"]
             if sr is None or ss is None:
                 return None
-            return {"icon": mi("sun_times"), "label": "Sonnenauf/-unter",
+            return {"icon": mi("sun_times"), "label": "Tageslicht",
                     "value": f'{sr.hour}:{sr.minute:02d}<span class="sep">–</span>{ss.hour}:{ss.minute:02d}',
                     "unit": "", "raw": True}
         if key == "visibility":
@@ -654,7 +669,7 @@ class DwdWetter(BasePlugin):
             expires = parse_ts(a["expires"], tz) if a.get("expires") else None
             if expires and expires < now:
                 continue
-            bg, fg, level, rank = WARNSTUFEN.get(a.get("severity"), WARNSTUFEN["minor"])
+            bg, fg, level, rank, border = WARNSTUFEN.get(a.get("severity"), WARNSTUFEN["minor"])
 
             def fmt(dt):
                 if dt.date() == now.date():
@@ -674,9 +689,10 @@ class DwdWetter(BasePlugin):
                 "when": when,
                 "bg": bg,
                 "fg": fg,
+                "border": border,
                 "rank": rank,
                 "onset": onset or now,
-                "icon": icons.warning_icon(bg if rank < 3 else "#FFFFFF", "#000000", "warn-icon"),
+                "icon": icons.warning_icon(border if rank == 2 else (bg if rank < 3 else "#FFFFFF"), "#000000", "warn-icon"),
             })
         alerts.sort(key=lambda x: (-x["rank"], x["onset"]))
         # Doppelte Meldungen (gleiche Überschrift) zusammenfassen

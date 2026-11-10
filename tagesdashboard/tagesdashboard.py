@@ -28,10 +28,11 @@ try:
     from .lib import dwd_wetter as dwd
     from .lib import dwd_icons as icons
     from .lib import nextcloud_kalender as nc
+    from .lib import eink
     IMPORT_ERROR = None
 except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     logger.exception("Bausteine des Tagesdashboards konnten nicht geladen werden")
-    dwd = icons = nc = None
+    dwd = icons = nc = eink = None
     IMPORT_ERROR = exc
 
 try:
@@ -56,6 +57,7 @@ DEFAULTS = {
     "showLocation": "true",
     "showPast": "false",
     "verifySSL": "true",
+    "einkSnap": "true",
 }
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
@@ -174,6 +176,8 @@ class Tagesdashboard(BasePlugin):
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
+        if eink is not None:
+            image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
         return image
 
     # ==================================================================
@@ -361,9 +365,7 @@ class Tagesdashboard(BasePlugin):
         for t in tiles:
             if t["label"] == "Bewölkung":
                 t = dict(t, key="cloudcover")
-            if t["label"].startswith("Sonnenauf"):
-                t = dict(t, label="Sonne")
-            elif t["label"] == "Regen heute" and snowy:
+            if t["label"] == "Regen heute" and snowy:
                 t = dict(t, label="Schnee heute")
             out.append(t)
         return out

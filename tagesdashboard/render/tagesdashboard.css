@@ -131,7 +131,7 @@
 .g-plot { position: relative; flex: 1 1 auto; min-height: 0; }
 .g-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
 .night { fill: #000; fill-opacity: 0.08; }
-.line { fill: none; stroke: var(--warm); stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+.line { fill: none; stroke: var(--warm); stroke-width: 4.6; stroke-linejoin: round; stroke-linecap: round; }
 .axis { stroke: currentColor; stroke-width: 2.4; }
 .t-label { position: absolute; z-index: 2; transform: translate(-50%, -118%); font-size: calc(var(--u) * 2); white-space: nowrap; background: var(--bg); padding: 0 0.15em; border-radius: 0.2em; line-height: 1; }
 .t-label.t-min { transform: translate(-50%, 12%); }
@@ -202,3 +202,6 @@
 .portrait .wx { border-right: none; padding-right: 0; border-bottom: var(--line) solid currentColor; padding-bottom: calc(var(--u) * 1); margin-bottom: calc(var(--u) * 1); }
 .portrait .graph { flex: 0 0 calc(var(--u) * 15); }
 .portrait .ev { grid-template-columns: calc(var(--u) * 0.8) calc(var(--u) * 8) 1fr; }
+
+/* Markante Warnung: dicker orangefarbener Rahmen statt orangefarbener Fläche (Spectra 6 hat kein Orange) */
+.alert.lvl-2 { border-width: calc(var(--u) * 0.7); }

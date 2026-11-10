@@ -90,7 +90,7 @@ def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11, uv=None):
             teile.append((2, "boots", "rutschfeste Schuhe"))
             gruende.append("Schnee")
         elif max_boeen >= SCHIRM_MAX_BOEEN:
-            teile.append((2, "rainjacket", "Kapuze statt Schirm"))
+            teile.append((2, "rainjacket", "Kapuze"))
             gruende.append("Regen, zu windig für Schirm")
         else:
             teile.append((2, "umbrella", "Schirm"))

@@ -22,7 +22,7 @@
       </div>
       {% if weather.alert %}
       {% set a = weather.alert %}
-      <div class="alert" style="background: {{ a.bg }}; color: {{ a.fg }};">
+      <div class="alert lvl-{{ a.rank }}" style="background: {{ a.bg }}; color: {{ a.fg }}; border-color: {{ a.border }};">
         <div class="alert-head">{{ a.icon | safe }}<span>{{ a.event or a.level }}</span></div>
         <div class="alert-when">{{ a.when }}{% if weather.alerts_more %} · +{{ weather.alerts_more }}{% endif %}</div>
       </div>

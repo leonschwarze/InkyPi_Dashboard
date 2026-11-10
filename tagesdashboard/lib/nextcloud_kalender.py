@@ -26,6 +26,11 @@ import requests
 
 from plugins.base_plugin.base_plugin import BasePlugin
 
+try:  # Schärfere Darstellung auf Inky-Displays (Kopie von shared/eink.py)
+    from . import eink
+except ImportError:  # pragma: no cover
+    eink = None
+
 logger = logging.getLogger(__name__)
 
 NS = {
@@ -54,6 +59,7 @@ DEFAULTS = {
     "showMonth": "true",
     "showEmptyToday": "true",
     "showFooter": "true",
+    "einkSnap": "true",
 }
 
 
@@ -367,6 +373,8 @@ class NextcloudKalender(BasePlugin):
         image = self.render_image(dimensions, "nextcloud_kalender.html", "nextcloud_kalender.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
+        if eink is not None:
+            image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
         return image
 
     def current_time(self, tz):
