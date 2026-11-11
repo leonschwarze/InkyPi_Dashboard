@@ -13,6 +13,7 @@ Was das Dashboard selbst hinzufügt:
   * Kleidungsempfehlung für die Zeit, in der man unterwegs ist (aus den Terminen)
   * Regenwahrscheinlichkeit direkt an den Terminen
   * Live-Daten eines Pendelzuges in einem Zeitfenster (bahn.py)
+  * morgens Schlagzeilen für Bonn, NRW und Bund (nachrichten.py)
 """
 
 import json
@@ -39,9 +40,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn
+    from . import kleidung, bahn, nachrichten
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn
+    from plugins.tagesdashboard import kleidung, bahn, nachrichten
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -71,10 +72,19 @@ DEFAULTS = {
     "trainMo": "false", "trainDi": "true", "trainMi": "false", "trainDo": "false",
     "trainFr": "false", "trainSa": "false", "trainSo": "false",
     "quietMinutes": "30",
+    # Nachrichten (seit cfgVersion 3)
+    "newsEnabled": "true",
+    "newsFrom": "06:00", "newsTo": "09:30",
+    "newsWeekendFrom": "08:00", "newsWeekendTo": "10:30",
+    "newsBonnUrl": nachrichten.DEFAULT_FEEDS["bonn"][2],
+    "newsBonnFilter": "/bonn/",
+    "newsNrwUrl": nachrichten.DEFAULT_FEEDS["nrw"][2],
+    "newsBundUrl": nachrichten.DEFAULT_FEEDS["bund"][2],
 }
-# Schlüssel, die es in Einstellungen mit cfgVersion 1 noch nicht gab: Dort gilt für sie der
-# Standardwert statt "fehlt = aus".
-NEW_IN_V2 = {k for k in DEFAULTS if k.startswith("train") or k == "quietMinutes"}
+# Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
+# Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
+SINCE_VERSION = {k: 2 for k in DEFAULTS if k.startswith("train") or k == "quietMinutes"}
+SINCE_VERSION.update({k: 3 for k in DEFAULTS if k.startswith("news")})
 
 # Außerhalb des Zug-Zeitfensters wird ein fertiges Bild wiederverwendet (siehe generate_image)
 _IMAGE_CACHE = {}
@@ -119,8 +129,11 @@ class Tagesdashboard(BasePlugin):
         return datetime.now(tz)
 
     def _opt(self, settings, key):
+        if key == "newsBonnFilter" and key in settings:  # leer = bewusst kein Filter
+            return settings[key]
         if "cfgVersion" in settings and DEFAULTS.get(key) in ("true", "false"):
-            if key in NEW_IN_V2 and settings.get("cfgVersion") == "1":
+            saved = int(settings["cfgVersion"]) if str(settings["cfgVersion"]).isdigit() else 1
+            if saved < SINCE_VERSION.get(key, 1):
                 return settings.get(key) or DEFAULTS[key]
             return settings.get(key, "false")
         return settings.get(key) or DEFAULTS[key]
@@ -160,10 +173,14 @@ class Tagesdashboard(BasePlugin):
         # Damit die Zugdaten aktuell sind, läuft das Dashboard im Zeitfenster z. B. alle 5 Minuten.
         # Außerhalb liefert es bis zu quietMinutes lang dasselbe Bild. InkyPi vergleicht die Bilder
         # und lässt das Display dann in Ruhe (kein Flackern, keine unnötigen Abrufe).
-        train_cfg = bahn.read_config(lambda k: self._opt(settings, k), flag)
+        opt = lambda k: self._opt(settings, k)  # noqa: E731
+        train_cfg = bahn.read_config(opt, flag)
         train_now = bool(train_cfg) and bahn.in_window(now, train_cfg)
+        news_cfg = nachrichten.read_config(opt, flag, bahn.parse_hhmm)
+        news_now = bool(news_cfg) and nachrichten.in_window(now, news_cfg)
+        use_cache = bool(train_cfg or news_cfg) and not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
-        if train_cfg and not train_now and not self._manual_refresh():
+        if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
             if hit and now < hit["until"]:
                 logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet", hit["made"])
@@ -219,6 +236,9 @@ class Tagesdashboard(BasePlugin):
                 params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
                                            uv=weather.get("uv"))
 
+        if news_now:
+            params["news"] = nachrichten.load(news_cfg, now)
+            params["news_sources"] = list(dict.fromkeys(it["source"] for g in params["news"] for it in g["items"]))
         if train_now:
             params["train"] = bahn.load(train_cfg, now, tz,
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
@@ -230,12 +250,16 @@ class Tagesdashboard(BasePlugin):
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
         if eink is not None:
             image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
-        if train_cfg and not train_now:
+        if use_cache:
+            # Bild höchstens quietMinutes lang wiederverwenden und nie über eine Fenstergrenze
+            # hinweg (Zugfenster beginnt, Nachrichten erscheinen oder verschwinden).
             quiet = self._opt(settings, "quietMinutes")
             until = now + timedelta(minutes=int(quiet) if quiet.isdigit() else 30)
-            nxt = bahn.next_window_start(now, train_cfg)
-            if nxt and nxt < until:
-                until = nxt
+            edges = [bahn.next_window_start(now, train_cfg)] if train_cfg else []
+            edges += nachrichten.boundaries(now, news_cfg) if news_cfg else []
+            for edge in edges:
+                if edge and now < edge < until:
+                    until = edge
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "until": until, "made": now.strftime("%H:%M")}
         return image

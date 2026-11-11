@@ -1,7 +1,7 @@
 {% extends "plugin.html" %}
 
 {% block content %}
-<div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}"
+<div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}"
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
   <header class="head">
@@ -121,7 +121,7 @@
     <div class="error-box">Kalender nicht verfügbar<br><span>{{ cal_error }}</span></div>
     {% else %}
     <div class="cal-list fit-box">
-      {% for day in calendar %}
+      {% for day in (calendar[:1] if news else calendar) %}
       <div class="day{% if day.is_today %} is-today{% endif %}">
         <div class="day-head fit-item"><span class="dl">{{ day.label }}</span>{% if day.date %}<span class="dd">{{ day.date }}</span>{% endif %}</div>
         {% if not day.events %}<div class="ev empty fit-item">Keine weiteren Termine</div>{% endif %}
@@ -142,6 +142,22 @@
       {% endfor %}
     </div>
     <div class="more" hidden></div>
+    {% endif %}
+    {% if news %}
+    <!-- Nachrichten (nur im Morgenfenster): dann zeigt die Spalte nur die heutigen Termine -->
+    <div class="news-wrap">
+      <div class="news" data-max="{{ 3 if orientation == 'portrait' else 2 }}">
+        {% for grp in news %}
+        <div class="nw-grp">
+          <span class="nw-lvl">{{ grp.label }}</span>
+          <div class="nw-items">
+            {% for it in grp["items"] %}<div class="nw-item" data-src="{{ it.source }}">{{ it.title }}</div>{% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="nw-credit">{{ news_sources | join(" · ") }}</div>
+    </div>
     {% endif %}
   </section>
 </div>
@@ -175,13 +191,45 @@
       else more.hidden = true;
     }
   }
-  function fitAll() { document.querySelectorAll('.fit-box').forEach(fitBox); }
+  /* Schlagzeilen gerecht verteilen: zuerst je Ebene eine, dann je eine zweite (hochkant
+     auch eine dritte), solange Platz ist. Der Quellenhinweis nennt nur, was sichtbar ist. */
+  function fitNews(box) {
+    const max = Number(box.dataset.max || 2);
+    const groups = Array.from(box.querySelectorAll('.nw-grp'));
+    const items = groups.map(g => Array.from(g.querySelectorAll('.nw-item')));
+    groups.forEach(g => { g.style.display = ''; });
+    items.flat().forEach(el => { el.style.display = 'none'; });
+    // Über Kanten messen, nicht über scrollHeight: das rundet auf und meldet sonst 1 px "Überlauf"
+    const fits = () => {
+      const limit = box.getBoundingClientRect().bottom + 0.5;
+      return items.flat().every(e => e.style.display === 'none' || e.getBoundingClientRect().bottom <= limit);
+    };
+    for (let rank = 0; rank < max; rank++) {
+      items.forEach(list => {
+        const el = list[rank];
+        if (!el || (rank > 0 && list[rank - 1].style.display === 'none')) return;
+        el.style.display = '';
+        if (!fits()) el.style.display = 'none';
+      });
+    }
+    groups.forEach((g, i) => { if (!items[i].some(e => e.style.display !== 'none')) g.style.display = 'none'; });
+    const credit = box.parentElement.querySelector('.nw-credit');
+    if (credit) {
+      const src = [...new Set(items.flat().filter(e => e.style.display !== 'none').map(e => e.dataset.src))];
+      credit.textContent = src.join(' · ');
+    }
+  }
+  function fitAll() {
+    document.querySelectorAll('.fit-box').forEach(fitBox);
+    document.querySelectorAll('.news').forEach(fitNews);
+  }
   fitAll();
   window.addEventListener('load', fitAll);
   window.addEventListener('resize', fitAll);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
   if (window.ResizeObserver) {
-    const ro = new ResizeObserver(entries => entries.forEach(e => fitBox(e.target)));
+    // Nach jeder Größenänderung alles neu verteilen: Termine zuerst, dann die Nachrichten darunter
+    const ro = new ResizeObserver(() => fitAll());
     document.querySelectorAll('.fit-box').forEach(b => ro.observe(b));
   }
 </script>

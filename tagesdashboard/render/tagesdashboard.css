@@ -245,3 +245,36 @@
 .st-cancelled .tr-time { text-decoration: line-through; text-decoration-thickness: calc(var(--u) * 0.3); }
 .st-gone .tr-badge, .st-unknown .tr-badge { border: calc(var(--u) * 0.25) solid currentColor; }
 .st-unknown { border-style: dashed; }
+
+/* ---------------- Nachrichten (morgens, nur im Zeitfenster) ----------------
+ * Die rechte Spalte zeigt dann nur die heutigen Termine (höchstens 58 % der Höhe),
+ * darunter je Ebene bis zu zwei Schlagzeilen. Was nicht passt, blendet fitBox() aus. */
+.has-news .cal-list { flex: 0 0 auto; max-height: 58%; }
+.news-wrap {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+  margin-top: calc(var(--u) * 0.9);
+  padding-top: calc(var(--u) * 0.7);
+  border-top: var(--line) solid currentColor;
+}
+.news { flex: 0 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: calc(var(--u) * 0.7); }
+.nw-grp { display: flex; align-items: flex-start; gap: calc(var(--u) * 0.8); min-width: 0; }
+.nw-lvl {
+  flex: 0 0 calc(var(--u) * 5.4);
+  text-align: center;
+  background: #000; color: #fff;
+  border-radius: calc(var(--u) * 0.5);
+  font-size: calc(var(--u) * 1.7);
+  padding: calc(var(--u) * 0.1) 0;
+  margin-top: calc(var(--u) * 0.15);
+}
+.nw-items { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 0.35); }
+.nw-item {
+  font-size: calc(var(--u) * 1.95);
+  line-height: 1.12;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.nw-item + .nw-item { border-top: calc(var(--u) * 0.2) dotted currentColor; padding-top: calc(var(--u) * 0.3); }
+.nw-credit { flex: 0 0 auto; font-size: calc(var(--u) * 1.5); text-align: right; padding-top: calc(var(--u) * 0.2); }
+/* Hochkant ist die Spalte breiter: Termine dürfen weniger Anteil haben */
+.portrait.has-news .cal-list { max-height: 50%; }

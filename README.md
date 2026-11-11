@@ -5,6 +5,7 @@ Ein eigenständiges InkyPi-Plugin: links das Wetter vom Deutschen Wetterdienst m
 ![Dashboard tagsüber](docs/dashboard_tag.png)
 ![Dashboard abends](docs/dashboard_abend.png)
 ![Dashboard morgens mit Zug](docs/dashboard_zug.png)
+![Dashboard morgens mit Nachrichten](docs/dashboard_nachrichten.png)
 
 *Die Screenshots zeigen Testdaten.*
 
@@ -36,9 +37,22 @@ Zusätzliche Python-Pakete braucht das Plugin nicht: `requests`, `astral`, `ical
 - **Abends das Wetter von morgen:** ab einer einstellbaren Uhrzeit, Standard 20 Uhr.
 - **Kleidungsempfehlung:** für die Zeit, in der man unterwegs ist, also bis zum Ende des letzten Termins. Das Kälteempfinden ist einstellbar: normal, empfindlich oder sehr empfindlich.
 - **Termine (Nextcloud per CalDAV):** Kalenderfarben, Serientermine, ganztägige und mehrtägige Termine. Steigt das Regenrisiko während eines Termins auf mindestens 50 %, steht es am Termin.
+- **Nachrichten am Morgen:** werktags 6:00–9:30, am Wochenende 8:00–10:30 Uhr zeigt die rechte Spalte nur die heutigen Termine und darunter Schlagzeilen für Bonn (General-Anzeiger), NRW (WDR) und Bund (tagesschau). Ohne Liveblogs und doppelte Themen; quer bis zu zwei, hochkant bis zu drei pro Ebene, je nach Platz. Quellen und Zeiten sind einstellbar.
 - **Zug (optional):** an ausgewählten Wochentagen in einem Zeitfenster eine Karte über den Terminen mit den Live-Daten eines Zuges, z. B. dienstags 6:30–8:15 Uhr der RE 5 ab Bonn Hbf um 8:04 Uhr: Verspätung mit neuer Abfahrtszeit, Gleiswechsel, Ausfall, vorzeitiges Zugende. Daten: Timetables-API der Deutschen Bahn (CC BY 4.0).
 - **Robust:** Fällt der Kalender oder das Wetter aus, zeigt das Dashboard den anderen Teil trotzdem an.
 - **Layout:** Quer- und Hochformat; optimiert für E-Ink mit halbfetter Schrift und ohne grauen Text. Die Farben werden auf die sechs Displayfarben eingerastet (siehe unten).
+
+## Nachrichten
+
+Sind ab dem Update eingeschaltet. In den Einstellungen unter „Nachrichten am Morgen“ lassen sich Zeitfenster und Feeds ändern. Für Bonn werden aus dem GA-Feed nur Artikel genommen, deren Adresse `/bonn/` enthält; reicht das nicht, ergänzt das Dashboard WDR-Meldungen, in denen Bonn vorkommt. Fällt ein Feed aus, fehlt nur diese Ebene. Feiertage zählen als Werktage.
+
+Test auf dem Pi, ob die Feeds antworten:
+
+```bash
+for u in https://ga.de/feed.rss https://www1.wdr.de/uebersicht-100.feed https://www.tagesschau.de/index~rss2.xml; do
+  echo "== $u"; curl -s "$u" | grep -o '<title>[^<]*' | sed 's/<title>//' | sed -n '2,6p'
+done
+```
 
 ## Zug einrichten
 
@@ -90,6 +104,7 @@ tagesdashboard/
 ├── tagesdashboard.py        # Kombiniert Wetter und Termine, Tageskurve, Zeitfenster
 ├── kleidung.py              # Regeln und Symbole der Kleidungsempfehlung
 ├── bahn.py                  # Live-Daten eines Zuges (DB Timetables-API)
+├── nachrichten.py           # Morgen-Schlagzeilen aus RSS-Feeds
 ├── settings.html            # Einstellungsseite (deutsch)
 ├── plugin-info.json
 ├── icon.png
@@ -101,17 +116,18 @@ tagesdashboard/
     └── eink.py              #   Farben auf die Displayfarben einrasten
 ```
 
-`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.2. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
+`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.3. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
 
 ## Datenquellen
 
 - Wetter: [Bright Sky](https://brightsky.dev) mit Open Data des Deutschen Wetterdienstes, ohne API-Key
 - UV-Index: [UV-Gefahrenindex des DWD](https://opendata.dwd.de/climate_environment/health/alerts/) (`uvi.json`). Er wird nur für ausgewählte Orte berechnet; der Ort wird über den Namen zugeordnet. Ohne Treffer in der Einstellung „Ort für den UV-Index“ einen Ort in der Nähe eintragen, sonst zeigt die Kachel die Bewölkung.
 - Termine: die eigene Nextcloud per CalDAV
+- Nachrichten: RSS-Feeds von General-Anzeiger, WDR und tagesschau
 - Zug: [Timetables-API der Deutschen Bahn](https://developers.deutschebahn.com/) (Deutsche Bahn AG, CC BY 4.0)
 
 ## Status
 
-Version 1.2 (Zug-Live-Daten; seit 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
+Version 1.3 (Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
 
 Lizenz: GPL-3.0 (wie InkyPi).

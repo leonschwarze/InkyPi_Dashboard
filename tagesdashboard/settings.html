@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="2" />
+<input type="hidden" name="cfgVersion" value="3" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -80,13 +80,25 @@
 </div>
 
 <div class="form-group">
+    <label class="form-label">Nachrichten am Morgen:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="newsEnabled" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></div>
+    <div class="form-group"><span>Mo–Fr von</span><input type="time" id="newsFrom" name="newsFrom" class="form-input" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input" /></div>
+    <div class="form-group"><span>Sa/So von</span><input type="time" id="newsWeekendFrom" name="newsWeekendFrom" class="form-input" /><span>bis</span><input type="time" id="newsWeekendTo" name="newsWeekendTo" class="form-input" /></div>
+    <div class="form-group db-wide"><span>Bonn (Feed) </span><input type="text" id="newsBonnUrl" name="newsBonnUrl" class="form-input" /></div>
+    <div class="form-group db-wide"><span>… nur Links mit </span><input type="text" id="newsBonnFilter" name="newsBonnFilter" class="form-input" placeholder="leer = alle Artikel" /></div>
+    <div class="form-group db-wide"><span>NRW (Feed) </span><input type="text" id="newsNrwUrl" name="newsNrwUrl" class="form-input" /></div>
+    <div class="form-group db-wide"><span>Bund (Feed) </span><input type="text" id="newsBundUrl" name="newsBundUrl" class="form-input" /></div>
+    <div class="db-hint">Standard: General-Anzeiger (nur Bonner Artikel), WDR, tagesschau. Pro Ebene bis zu zwei Schlagzeilen der letzten 24 Stunden, ohne Liveblogs, Podcasts und doppelte Themen. Findet der GA zu wenig, ergänzt das Dashboard WDR-Meldungen mit „Bonn“.</div>
+</div>
+
+<div class="form-group">
     <label class="form-label">Zug (Live-Daten der Bahn):</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="trainEnabled" name="trainEnabled" value="true" data-default="false" data-v2="1"><span>Zug im Zeitfenster über den Terminen einblenden</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="trainEnabled" name="trainEnabled" value="true" data-default="false" data-since="2"><span>Zug im Zeitfenster über den Terminen einblenden</span></div>
     <div class="form-group"><span>Bahnhof </span><input type="text" id="trainStation" name="trainStation" class="form-input" placeholder="Bonn Hbf" /></div>
     <div class="form-group"><span>Linie </span><input type="text" id="trainLine" name="trainLine" class="form-input" placeholder="RE 5" /></div>
     <div class="form-group"><span>Planmäßige Abfahrt </span><input type="time" id="trainTime" name="trainTime" class="form-input" /></div>
     <div class="form-group"><span>Anzeigen von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input" /></div>
-    <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-v2="1">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-v2="1">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-v2="1">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-v2="1">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-v2="1">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-v2="1">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-v2="1">So</label></div>
+    <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-since="2">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-since="2">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-since="2">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-since="2">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-since="2">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-since="2">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-since="2">So</label></div>
     <div class="form-group"><span>Außerhalb des Zeitfensters höchstens alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen</span></div>
     <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters liefert das Dashboard bis zur oben eingestellten Zeit dasselbe Bild; InkyPi lässt das Display dann in Ruhe.
     Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
@@ -118,7 +130,10 @@
 (function () {
     const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7',
         trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
-        quietMinutes: '30' };
+        quietMinutes: '30',
+        newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
+        newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
+        newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 
     function validate() {
@@ -195,9 +210,11 @@
         const configured = loadPluginSettings && saved.cfgVersion !== undefined;
         document.querySelectorAll('.db-check').forEach(cb => {
             // Felder, die es bei Einstellungen von Version 1 noch nicht gab, starten mit dem Standardwert
-            const known = configured && !(cb.dataset.v2 && saved.cfgVersion === '1');
+            const known = configured && Number(saved.cfgVersion || 1) >= Number(cb.dataset.since || 1);
             cb.checked = known ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
         });
+        // Filter darf bewusst leer sein; nur ohne gespeicherten Wert den Standard eintragen
+        document.getElementById('newsBonnFilter').value = ('newsBonnFilter' in saved) ? saved.newsBonnFilter : '/bonn/';
         ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
             document.getElementById(id).value = saved[id] ?? '';
         });
