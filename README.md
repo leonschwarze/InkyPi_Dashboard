@@ -1,4 +1,4 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.9
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.9.1
 
 Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau – und neu: **Anfahrt zu Terminen**.
 
@@ -29,7 +29,7 @@ Plugin-Einstellungen → **Festtage und Geburtstage** (standardmäßig an):
 
 - **Gruß im Kopf** neben dem Datum: 24.–26.12. „Frohe Weihnachten“, 31.12. „Guten Rutsch“, 1.1. „Frohes neues Jahr“ und an Geburtstagen „Alles Gute, …!“.
 - **Festbild:** Heiligabend 17–23 Uhr „Bonn im Schnee“; Silvester ab 22 Uhr Feuerwerk über Bonn mit Fallblattanzeige, um Mitternacht „Frohes neues Jahr 2027“ mit Sektgläsern (bis 2 Uhr). Darunter Datum, Wetter und die Termine des Tages.
-- **Geburtstage im Haushalt:** Name, Tag und Monat auswählen, Jahr freiwillig. Fehler werden vor dem Speichern markiert. Das große Geburtstagsbild folgt, sobald das Motiv feststeht.
+- **Geburtstage im Haushalt:** Name, Tag und Monat auswählen, Jahr freiwillig. Fehler werden vor dem Speichern markiert. Am Geburtstag morgens 6–10 Uhr das Festbild: der Name in Folienballons, mit Jahr auch das Alter in Gold.
 
 ## Schrift und Schärfe
 
@@ -44,4 +44,4 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `anfahrt-verspaetung_800x480.png` – Bus mit 4 Minuten Verspätung
 - `anfahrt-morgens_800x480.png` – morgens mit Schlagzeilen
 - `anfahrt-bus_480x800.png` – hochkant
-- `fest-weihnachten.png`, `fest-silvester.png`, `fest-neujahr.png` – Festbilder
+- `fest-weihnachten.png`, `fest-silvester.png`, `fest-neujahr.png`, `fest-geburtstag.png` – Festbilder

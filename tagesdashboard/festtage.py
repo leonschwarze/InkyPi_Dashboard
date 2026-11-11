@@ -11,6 +11,7 @@ Feuerwerk) hängen am Datum: Am selben Tag sieht das Bild bei jeder Aktualisieru
 
 import math
 import random
+from html import escape
 
 try:
     from . import nachtgrafik as ng
@@ -112,28 +113,10 @@ def fairy_lights(W, y, sag, colors, wire, n_swags=2, per=9):
     return "".join(out)
 
 
-def bunting(W, y, sag, colors, n_swags=2, per=8, size=22):
-    out = []
-    step = W / n_swags
-    k = 0
-    for i in range(n_swags):
-        path, at = swag(i * step - 6, (i + 1) * step + 6, y, sag)
-        for j in range(per):
-            t0, t1 = (j + 0.12) / per, (j + 0.88) / per
-            (xa, ya), (xb, yb) = at(t0), at(t1)
-            xm, ym = (xa + xb) / 2, (ya + yb) / 2 + size * 1.25
-            c = colors[k % len(colors)]
-            k += 1
-            out.append(f'<path d="M{xa:.1f},{ya:.1f} L{xb:.1f},{yb:.1f} L{xm:.1f},{ym:.1f} Z" fill="{c}" '
-                       f'stroke="{BLACK}" stroke-width="2" stroke-linejoin="round"/>')
-        out.append(f'<path d="{path}" fill="none" stroke="{BLACK}" stroke-width="2.4"/>')
-    return "".join(out)
-
-
 def text(x, y, s, size, fill, anchor="start", stroke=None, sw=0):
     st = f' stroke="{stroke}" stroke-width="{sw}" paint-order="stroke" stroke-linejoin="round"' if stroke else ""
     return (f'<text x="{_r(x)}" y="{_r(y)}" font-family="{FONT}" font-weight="600" font-size="{size:.0f}" '
-            f'fill="{fill}" text-anchor="{anchor}"{st}>{s}</text>')
+            f'fill="{fill}" text-anchor="{anchor}"{st}>{escape(str(s))}</text>')  # Namen können & oder < enthalten
 
 
 # ======================================================================
@@ -411,129 +394,109 @@ def scene_silvester(W, H, year, after_midnight, seed=0):
 # ======================================================================
 # Geburtstag
 # ======================================================================
-def balloon(cx, cy, rx, color, knot_to, letter=None):
-    ry = rx * 1.22
-    out = [f'<path d="M{cx:.1f},{cy + ry:.1f} C{cx - 8:.1f},{cy + ry + 30:.1f} {cx + 12:.1f},{cy + ry + 50:.1f} '
-           f'{knot_to[0]:.1f},{knot_to[1]:.1f}" fill="none" stroke="{BLACK}" stroke-width="2"/>',
-           f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="{color}" stroke="{BLACK}" stroke-width="2.6"/>',
-           f'<path d="M{cx - 6:.1f},{cy + ry + 8:.1f} L{cx + 6:.1f},{cy + ry + 8:.1f} L{cx:.1f},{cy + ry - 1:.1f} Z" fill="{color}" stroke="{BLACK}" stroke-width="2"/>',
-           f'<ellipse cx="{cx - rx * 0.42:.1f}" cy="{cy - ry * 0.42:.1f}" rx="{rx * 0.16:.1f}" ry="{ry * 0.24:.1f}" fill="{WHITE}" transform="rotate(25 {cx - rx * 0.42:.1f} {cy - ry * 0.42:.1f})"/>']
-    if letter:
-        out.append(text(cx, cy + rx * 0.42, letter, rx * 1.15, WHITE, anchor="middle", stroke=BLACK, sw=3))
-    return "".join(out)
+def gift(cx, base, w):
+    """Geschenk mit Schleife; base = Unterkante."""
+    h = w * 0.72
+    x0, y0 = cx - w / 2, base - h
+    return (f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" fill="{RED}" stroke="{BLACK}" stroke-width="2.6"/>'
+            f'<rect x="{x0 - 6:.1f}" y="{y0 - 14:.1f}" width="{w + 12:.1f}" height="16" fill="{RED}" stroke="{BLACK}" stroke-width="2.6"/>'
+            f'<rect x="{cx - 7:.1f}" y="{y0 - 14:.1f}" width="14" height="{h + 14:.1f}" fill="{YELLOW}" stroke="{BLACK}" stroke-width="2"/>'
+            f'<path d="M{cx:.1f},{y0 - 14:.1f} C{cx - 34:.1f},{y0 - 46:.1f} {cx - 40:.1f},{y0 - 8:.1f} {cx:.1f},{y0 - 14:.1f} Z '
+            f'M{cx:.1f},{y0 - 14:.1f} C{cx + 34:.1f},{y0 - 46:.1f} {cx + 40:.1f},{y0 - 8:.1f} {cx:.1f},{y0 - 14:.1f} Z" '
+            f'fill="{YELLOW}" stroke="{BLACK}" stroke-width="2.2"/>')
 
 
-def cake(cx, base, w, age=None):
-    """Zweistöckige Torte mit Zuckerguss; Zahlenkerzen mit dem Alter, sonst bunte Kerzen."""
-    out = []
-    h1, h2 = w * 0.36, w * 0.28
-    w1, w2 = w, w * 0.72
-    y1, y2 = base - h1, base - h1 - h2
-    out.append(f'<ellipse cx="{cx:.1f}" cy="{base + 4:.1f}" rx="{w * 0.62:.1f}" ry="{w * 0.06:.1f}" fill="{WHITE}" stroke="{BLACK}" stroke-width="2.6"/>')
-    for (yy, ww, hh, body, dots) in ((y1, w1, h1, RED, YELLOW), (y2, w2, h2, YELLOW, BLUE)):
-        x0 = cx - ww / 2
-        out.append(f'<rect x="{x0:.1f}" y="{yy:.1f}" width="{ww:.1f}" height="{hh:.1f}" rx="5" fill="{body}" stroke="{BLACK}" stroke-width="2.6"/>')
-        # Zuckerguss mit Tropfen
-        n = 7
-        d = [f"M{x0:.1f},{yy + 2:.1f}"]
-        for k in range(n):
-            xa, xb = x0 + ww * k / n, x0 + ww * (k + 1) / n
-            drop = hh * (0.42 if k % 2 == 0 else 0.26)
-            d.append(f"L{xa + (xb - xa) * 0.15:.1f},{yy + 6:.1f} Q{(xa + xb) / 2:.1f},{yy + drop * 1.6:.1f} {xb - (xb - xa) * 0.15:.1f},{yy + 6:.1f}")
-        d.append(f"L{x0 + ww:.1f},{yy + 2:.1f} L{x0 + ww:.1f},{yy - 1:.1f} L{x0:.1f},{yy - 1:.1f} Z")
-        out.append(f'<path d="{" ".join(d)}" fill="{WHITE}" stroke="{BLACK}" stroke-width="2.2" stroke-linejoin="round"/>')
-        for k in range(5):
-            out.append(f'<circle cx="{x0 + ww * (k + 0.5) / 5:.1f}" cy="{yy + hh * 0.74:.1f}" r="{w * 0.022:.1f}" fill="{dots}"/>')
+def sparkle(x, y, r, color=YELLOW):
+    return f'<path d="{star_path(x, y, r, r * 0.28, n=4)}" fill="{color}" stroke="{BLACK}" stroke-width="1.6" stroke-linejoin="round"/>'
 
-    def flame(x, y, s):
-        return (f'<path d="M{x:.1f},{y - s * 1.9:.1f} C{x + s:.1f},{y - s:.1f} {x + s * 0.8:.1f},{y:.1f} {x:.1f},{y:.1f} '
-                f'C{x - s * 0.8:.1f},{y:.1f} {x - s:.1f},{y - s:.1f} {x:.1f},{y - s * 1.9:.1f} Z" fill="{YELLOW}" stroke="{BLACK}" stroke-width="1.8"/>'
-                f'<path d="M{x:.1f},{y - s * 0.95:.1f} C{x + s * 0.4:.1f},{y - s * 0.5:.1f} {x + s * 0.35:.1f},{y - s * 0.05:.1f} {x:.1f},{y - s * 0.05:.1f} '
-                f'C{x - s * 0.35:.1f},{y - s * 0.05:.1f} {x - s * 0.4:.1f},{y - s * 0.5:.1f} {x:.1f},{y - s * 0.95:.1f} Z" fill="{RED}"/>')
-    if age is not None and 0 < age < 130:
-        digits = str(age)
-        size = w * (0.5 if len(digits) < 3 else 0.38)
-        step = size * 0.62
-        x0 = cx - step * (len(digits) - 1) / 2
-        for i, dg in enumerate(digits):
-            x = x0 + i * step
-            out.append(f'<rect x="{x - 1.5:.1f}" y="{y2 - size * 0.95:.1f}" width="3" height="{size * 0.16:.1f}" fill="{BLACK}"/>')
-            out.append(text(x, y2 - 2, dg, size, BLUE, anchor="middle", stroke=BLACK, sw=3.2))
-            out.append(flame(x, y2 - size * 0.92, w * 0.045))
+
+NARROW, WIDE = set("iljI.,'!|ftr"), set("mwMW&")
+SPACING = 0.06  # Luft zwischen den Ballonbuchstaben (in em), damit die dicken Konturen nicht verschmelzen
+
+
+def _em(ch):
+    """Geschätzte Zeichenbreite in em (Jost); reicht für Zentrierung und Schnüre."""
+    if ch == " ":
+        w = 0.28
+    elif ch in NARROW:
+        w = 0.3
+    elif ch in WIDE:
+        w = 0.86
     else:
-        for k in range(5):
-            x = cx - w2 * 0.36 + w2 * 0.72 * k / 4
-            ch = w * 0.2
-            c = (RED, BLUE, GREEN, BLUE, RED)[k]
-            out.append(f'<rect x="{x - w * 0.022:.1f}" y="{y2 - ch:.1f}" width="{w * 0.044:.1f}" height="{ch:.1f}" fill="{c}" stroke="{BLACK}" stroke-width="1.8"/>')
-            for j in range(3):
-                out.append(f'<line x1="{x - w * 0.022:.1f}" y1="{y2 - ch * (0.25 + 0.25 * j):.1f}" x2="{x + w * 0.022:.1f}" '
-                           f'y2="{y2 - ch * (0.15 + 0.25 * j):.1f}" stroke="{WHITE}" stroke-width="2"/>')
-            out.append(flame(x, y2 - ch - 2, w * 0.04))
-    return "".join(out)
+        w = 0.66 if ch.isupper() or ch.isdigit() else 0.56
+    return w + SPACING
 
 
-def confetti(W, H, n, rnd, keep_out=()):
-    out = []
-    cols = (RED, YELLOW, BLUE, GREEN)
-    placed = 0
-    for _ in range(n * 4):
-        if placed >= n:
-            break
-        x, y = rnd.uniform(6, W - 6), rnd.uniform(6, H - 6)
-        if any(x0 <= x <= x1 and y0 <= y <= y1 for x0, y0, x1, y1 in keep_out):
-            continue
-        placed += 1
-        c, kind = rnd.choice(cols), rnd.random()
-        rot = rnd.uniform(0, 180)
-        if kind < 0.45:
-            out.append(f'<rect x="{x - 5:.0f}" y="{y - 2.5:.0f}" width="10" height="5" fill="{c}" transform="rotate({rot:.0f} {x:.0f} {y:.0f})"/>')
-        elif kind < 0.75:
-            out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="3.6" fill="{c}"/>')
-        else:  # Luftschlangen-Schnipsel
-            out.append(f'<path d="M{x - 8:.0f},{y:.0f} q4,-7 8,0 t8,0" fill="none" stroke="{c}" stroke-width="2.6" '
-                       f'stroke-linecap="round" transform="rotate({rot:.0f} {x:.0f} {y:.0f})"/>')
-    return "".join(out)
+def foil_word(cx, y, word, size, colors, bounce):
+    """Ganzes Wort als Folienballons: ein Text, Farbe je Buchstabe, leichtes Auf und Ab.
+
+    Drei Lagen: schwarze Kontur, weißer Glanz (versetzt nach oben links), Farbe."""
+    o = size * 0.03
+    def layer(dx, dy, fill, extra=""):
+        spans, last = [], 0.0
+        for i, ch in enumerate(word):
+            off = (bounce if i % 2 else -bounce) if len(word) > 1 else 0
+            c = fill or colors[i % len(colors)]
+            spans.append(f'<tspan dy="{off - last:.1f}" fill="{c}">{escape(ch)}</tspan>')
+            last = off
+        return (f'<text x="{cx + dx:.1f}" y="{y + dy:.1f}" font-family="{FONT}" font-weight="600" font-size="{size:.0f}" '
+                f'letter-spacing="{size * SPACING:.1f}" text-anchor="middle"{extra}>{"".join(spans)}</text>')
+    return (layer(0, 0, BLACK, f' stroke="{BLACK}" stroke-width="{size * 0.1:.1f}" stroke-linejoin="round"')
+            + layer(-o, -o, WHITE) + layer(o * 0.4, o * 0.4, None))
 
 
 def scene_geburtstag(W, H, names, age=None, seed=0):
+    """Folienballons: der Name in Ballonbuchstaben, das Alter als goldene Zahlen, Schnüre zum Geschenk.
+
+    Bei mehreren Geburtstagen stehen die Initialen da („M & J“), der Gruß nennt alle Namen."""
     rnd = random.Random(seed)
     port = W < H * 1.6
+    names = [n for n in names if n] or ["?"]
+    show_age = bool(age) and len(names) == 1
     out = [f'<svg viewBox="0 0 {W} {H}" class="fest-svg" xmlns="http://www.w3.org/2000/svg">',
-           f'<rect width="{W}" height="{H}" fill="{WHITE}"/>']
-    if not port:
-        cake_c, cake_b, cake_w = W * 0.8, H - 22, W * 0.25
-        bal_x, bal_y = W * 0.14, H * 0.38
-        text_box = (W * 0.25, H * 0.3, W * 0.64, H * 0.82)
-    else:
-        cake_c, cake_b, cake_w = W * 0.68, H - 18, W * 0.42
-        bal_x, bal_y = W * 0.2, H * 0.62
-        text_box = (W * 0.04, H * 0.16, W * 0.96, H * 0.44)
-    keep = [text_box, (cake_c - cake_w * 0.65, cake_b - cake_w * 1.3, cake_c + cake_w * 0.65, H),
-            (bal_x - 60, bal_y - 60, bal_x + 70, H)]
-    out.append(confetti(W, H, int(70 * W / 800) + 10, rnd, keep_out=keep))
-    out.append(bunting(W, -4, 22 if not port else 26, [RED, YELLOW, BLUE, GREEN], n_swags=2 if not port else 1,
-                       per=8 if not port else 9))
-    # Luftballons (gebündelt), auf dem größten die Initiale
-    knot = (bal_x + 6, H - 14)
-    first = names[0] if names else ""
-    for (dx, dy, r, c, letter) in ((-6, 8, 30, BLUE, None), (44, -26, 32, GREEN, None), (-30, -52, 38, RED, first[:1] or None)):
-        out.append(balloon(bal_x + dx, bal_y + dy, r if not port else r * 0.9, c, knot, letter))
-    out.append(f'<path d="M{knot[0] - 9:.0f},{knot[1] - 6:.0f} L{knot[0]:.0f},{knot[1]:.0f} L{knot[0] - 9:.0f},{knot[1] + 6:.0f} Z '
-               f'M{knot[0] + 9:.0f},{knot[1] - 6:.0f} L{knot[0]:.0f},{knot[1]:.0f} L{knot[0] + 9:.0f},{knot[1] + 6:.0f} Z" '
-               f'fill="{RED}" stroke="{BLACK}" stroke-width="1.8"/>')
-    out.append(cake(cake_c, cake_b, cake_w, age if len(names) == 1 else None))
-    # Gruß
-    who = " und ".join(names) if len(names) <= 2 else ", ".join(names[:-1]) + " und " + names[-1]
-    x0, y0, x1, y1 = text_box
-    big = 58 if not port else 46
-    if len(who) > 9:
-        big = max(34, big - (len(who) - 9) * 2.2)
-    cx = (x0 + x1) / 2
-    out.append(text(cx, y0 + 50 if not port else y0 + 40, "Alles Gute,", 40 if not port else 34, BLACK, anchor="middle"))
-    out.append(text(cx, y0 + 50 + big + 4 if not port else y0 + 40 + big + 4, f"{who}!", big, RED, anchor="middle"))
-    if age is not None and len(names) == 1:
-        out.append(text(cx, y0 + 50 + big + 46 if not port else y0 + 40 + big + 40, f"{age} Jahre", 28 if not port else 24, BLACK, anchor="middle"))
+           f'<rect width="{W}" height="{H}" fill="{BLUE}"/>']
+    word = names[0] if len(names) == 1 else " & ".join(n[:1].upper() for n in names)
+    cx = W * 0.36 if (show_age and not port) else W / 2  # Mitte von Gruß, Buchstaben und Geschenk
+    head = "Alles Gute!" if len(names) == 1 else f"Alles Gute, {names_text(names)}!"
+    hsz = min(44 if not port else 36, (W - 40) / (len(head) * 0.5))
+    hy = 50 if not port else 60
+    out.append(text(W / 2 if len(names) > 1 else cx, hy, head, hsz, WHITE, anchor="middle"))
+    # Größe: passend zur Breite und zum Platz unter dem Gruß
+    ems = [_em(ch) for ch in word]
+    ly = H * (0.6 if not port else 0.42)
+    room = W * (0.62 if (show_age and not port) else 0.88)
+    size = min(150 if not port else 120, room / max(sum(ems), 0.5), (ly - hy - 18) / 0.95)
+    bounce = size * 0.06
+    gw, gbase = 96, H - 12
+    gtop = gbase - gw * 0.72 - 14
+    # Schnüre von den geschätzten Buchstabenmitten zum Geschenk
+    x = cx - sum(ems) * size / 2
+    for i, (ch, em) in enumerate(zip(word, ems)):
+        mid = x + em * size / 2
+        x += em * size
+        if ch.strip() and ch != "&":
+            y = ly + ((bounce if i % 2 else -bounce) if len(word) > 1 else 0)
+            out.append(f'<path d="M{mid:.1f},{y + 6:.1f} Q{(mid + cx) / 2 + rnd.uniform(-25, 25):.1f},{(y + gbase) / 2:.1f} {cx:.1f},{gtop:.1f}" '
+                       f'fill="none" stroke="{WHITE}" stroke-width="2"/>')
+    boxes = [(cx - sum(ems) * size / 2 - 10, ly - size * 0.9, cx + sum(ems) * size / 2 + 10, ly + bounce + 10)]
+    if show_age:
+        digits = str(age)
+        ax, ay = (W * 0.83, ly) if not port else (W / 2, H * 0.75)
+        asz = min(150 if not port else 110, (W * 0.3 if not port else W * 0.8) / (len(digits) * 0.66))
+        for k in range(len(digits)):
+            dx = ax + (k - (len(digits) - 1) / 2) * asz * 0.66
+            out.append(f'<path d="M{dx:.1f},{ay + 8:.1f} Q{dx + 20:.1f},{(ay + gbase) / 2:.1f} {cx + gw * 0.4:.1f},{gtop + 10:.1f}" '
+                       f'fill="none" stroke="{WHITE}" stroke-width="2"/>')
+        out.append(foil_word(ax, ay, digits, asz, [YELLOW], asz * 0.04))
+        boxes.append((ax - asz * 0.4 * len(digits) - 10, ay - asz * 0.9, ax + asz * 0.4 * len(digits) + 10, ay + 12))
+    out.append(foil_word(cx, ly, word, size, [RED, YELLOW, GREEN, WHITE], bounce))
+    out.append(gift(cx, gbase, gw))
+    # Funkeln, nie über Buchstaben, Gruß und Geschenk
+    boxes += [(0, 0, W, hy + 12), (cx - gw, gtop - 30, cx + gw, H)]
+    for _ in range(70):
+        px, py = rnd.uniform(10, W - 10), rnd.uniform(10, H - 10)
+        if _free(px, py, 14, boxes):
+            out.append(sparkle(px, py, rnd.choice((6, 8, 11))) if rnd.random() < 0.4 else f'<circle cx="{px:.0f}" cy="{py:.0f}" r="2" fill="{WHITE}"/>')
     out.append("</svg>")
     return "".join(out)
 
@@ -583,7 +546,7 @@ XMAS_VIEW = ((12, 24), _time(17), _time(23))
 NYE_VIEW_START = ((12, 31), _time(22))
 NYE_VIEW_END = ((1, 1), _time(2))
 BDAY_VIEW = (_time(6), _time(10))
-BDAY_VIEW_READY = False  # Geburtstagsbild: Gestaltung noch nicht freigegeben – bis dahin nur der Gruß im Kopf
+BDAY_VIEW_READY = True  # Geburtstagsbild (Folienballons) freigegeben
 NAME_MAX = 24
 
 
