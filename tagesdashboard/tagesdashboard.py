@@ -17,6 +17,7 @@ Was das Dashboard selbst hinzufügt:
   * abends: Wäsche vom Balkon holen? (waesche.py)
   * nachts ein ruhiges Nachtbild, sonntagabends eine Wochenvorschau (ansichten.py)
   * Anfahrt zu Terminen: Rad oder ÖPNV je nach Wetter, und wann man los muss (anfahrt.py)
+  * Festtage: Gruß im Kopf und Festbild an Heiligabend und Silvester; Geburtstage (festtage.py)
 """
 
 import json
@@ -43,9 +44,10 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt
+    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt
+    from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
+                                        festtage)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -105,6 +107,11 @@ DEFAULTS = {
     "tripStart": "",
     "tripPlaces": "",
     "tripSkip": anfahrt.DEFAULT_SKIP,
+    # Festtage und Geburtstage (seit cfgVersion 9)
+    "festXmas": "true",
+    "festNye": "true",
+    "festBday": "true",
+    "birthdays": "",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -115,6 +122,7 @@ SINCE_VERSION.update({k: 5 for k in DEFAULTS if k.startswith(("night", "week"))}
 SINCE_VERSION["nightArt"] = 6
 SINCE_VERSION.update({"trainTarget": 7, "trainAlerts": 7})
 SINCE_VERSION.update({k: 8 for k in DEFAULTS if k.startswith("trip")})
+SINCE_VERSION.update({k: 9 for k in DEFAULTS if k.startswith("fest")})
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -163,7 +171,7 @@ class Tagesdashboard(BasePlugin):
         return datetime.now(tz)
 
     def _opt(self, settings, key):
-        if key in ("newsBonnFilter", "tripStart", "tripPlaces") and key in settings:  # leer ist erlaubt
+        if key in ("newsBonnFilter", "tripStart", "tripPlaces", "birthdays") and key in settings:  # leer ist erlaubt
             return settings[key]
         if "cfgVersion" in settings and DEFAULTS.get(key) in ("true", "false"):
             saved = int(settings["cfgVersion"]) if str(settings["cfgVersion"]).isdigit() else 1
@@ -225,8 +233,12 @@ class Tagesdashboard(BasePlugin):
             a, b = bahn.parse_hhmm(opt(f"{prefix}From")), bahn.parse_hhmm(opt(f"{prefix}To"))
             return (a, b) if a and b and a != b else None
         night_win, week_win = window("night"), window("week")
+        fest_cfg = festtage.read_config(opt, flag)
+        fest_now = festtage.view(now, fest_cfg)
         mode = "normal"
-        if night_win and ansichten.in_window(now, *night_win):
+        if fest_now:  # Festansicht geht Nachtbild und Wochenvorschau vor
+            mode = "fest"
+        elif night_win and ansichten.in_window(now, *night_win):
             mode = "night"
         elif week_win and ansichten.in_window(now, *week_win, weekday=WEEK_DAY):
             mode = "week"
@@ -298,6 +310,7 @@ class Tagesdashboard(BasePlugin):
             "graph": None,
             "calendar": self.calendar_days(events, tz, now, today, settings, flag, records, trips["by_event"]),
             "trip": trips["card"],
+            "greetings": [dict(g, icon=festtage.icon(g["kind"])) for g in festtage.greetings(today, fest_cfg)],
             "show_location": flag("showLocation"),
             "use_colors": use_colors,
             "plugin_settings": settings,
@@ -319,7 +332,9 @@ class Tagesdashboard(BasePlugin):
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
                                         api_key=device_config.load_env_key("DB_API_KEY"))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
-        if mode != "normal":
+        if mode == "fest":
+            self.fest_view(params, fest_now, now, tz, events, weather)
+        elif mode != "normal":
             self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
                               art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None)
 
@@ -344,12 +359,37 @@ class Tagesdashboard(BasePlugin):
             edges += ansichten.boundaries(now, *night_win) if night_win else []
             edges += ansichten.boundaries(now, *week_win) if week_win else []
             edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
+            edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "until": until, "made": now.strftime("%H:%M")}
         return image
+
+    # ==================================================================
+    # Festansicht (Heiligabend, Silvester/Neujahr, später Geburtstag)
+    # ==================================================================
+    def fest_view(self, params, fest, now, tz, events, weather):
+        helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
+        records = weather["records"] if weather else []
+        w = weather["dwd_plugin"] if weather else None
+        d = now.date()
+        portrait = params["orientation"] == "portrait"
+        kind = fest["kind"]
+        label = f"{festtage.VIEW_LABEL.get(kind, WOCHENTAGE[d.weekday()])} · {d.day}. {MONATE[d.month - 1]}"
+        if kind == "neujahr":
+            label += f" {d.year}"
+        items = helper.events_on_day(events, d, tz, now, False) if events else []
+        params["fest"] = {
+            "kind": kind,
+            "label": label,
+            "svg": festtage.scene(kind, 480 if portrait else 800, festtage.ART_H[portrait], seed=d.toordinal(),
+                                  year=fest.get("year"), names=fest.get("names", ()), age=fest.get("age")),
+            "wx": ansichten.day_summary(w, dwd, icons, records, d, "fe-icon") if w and records else None,
+            "events": items[:4 if portrait else 3],
+            "more": max(0, len(items) - (4 if portrait else 3)),
+        }
 
     # ==================================================================
     # Nachtbild und Wochenvorschau

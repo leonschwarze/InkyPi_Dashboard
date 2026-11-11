@@ -441,3 +441,46 @@
 .has-art .nt-temp { font-size: calc(var(--u) * 5.8); }
 .has-art .nt-facts { margin-top: calc(var(--u) * 1.2); }
 .has-art .nt-ev { font-size: calc(var(--u) * 2.4); }
+
+/* ---------------- Festtage ---------------- */
+/* Gruß im Kopf (Variante B): Symbol und roter Text neben dem Datum */
+.h-date { display: inline-flex; align-items: baseline; gap: calc(var(--u) * 1.2); min-width: 0; }
+.h-fest { display: inline-flex; align-items: center; gap: calc(var(--u) * 0.5); font-size: calc(var(--u) * 2.3); color: #E3001B; white-space: nowrap; }
+.fest-ic { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); align-self: center; }
+.portrait .h-date { flex-wrap: wrap; row-gap: 0; }
+
+/* Festansicht (Variante C): großes Bild oben, darunter Datum, Wetter, Termine */
+.fe {
+  --u: min(1vw, 1.667vh);
+  width: 100%; height: 100%; box-sizing: border-box;
+  display: flex; flex-direction: column;
+  color: #000; background: #fff;
+  font-family: "Jost", sans-serif; font-weight: 600;
+}
+.fe.portrait { --u: min(1.45vw, 0.98vh); }
+.fe-art { flex: 0 0 auto; line-height: 0; }
+.fe-art .fest-svg { display: block; width: 100%; height: auto; }
+.fe-bar {
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1.3fr; column-gap: calc(var(--u) * 3);
+  padding: calc(var(--u) * 1.3) calc(var(--u) * 2.6) calc(var(--u) * 1.2);
+  border-top: calc(var(--u) * 0.5) solid #000;
+}
+.fe.portrait .fe-bar { grid-template-columns: 1fr; row-gap: calc(var(--u) * 1.4); align-content: start; }
+.fe-date { font-size: calc(var(--u) * 2.7); line-height: 1.1; }
+.fe-wx { display: flex; align-items: center; gap: calc(var(--u) * 1.2); margin-top: calc(var(--u) * 0.8); }
+.fe-icon { width: calc(var(--u) * 7); height: calc(var(--u) * 7); flex: 0 0 auto; }
+.fe-t { font-size: calc(var(--u) * 4.2); line-height: 1; }
+.fe-t small { font-size: calc(var(--u) * 2.6); }
+.fe-sub { font-size: calc(var(--u) * 2); }
+.fe-evs { display: flex; flex-direction: column; gap: calc(var(--u) * 0.8); min-width: 0; }
+.fe-h { align-self: flex-start; background: #000; color: #fff; padding: 0 calc(var(--u) * 0.6); border-radius: calc(var(--u) * 0.4); font-size: calc(var(--u) * 2.1); }
+.fe-ev { display: flex; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 2.3); line-height: 1.15; white-space: nowrap; overflow: hidden; }
+.fe-ev b { font-weight: 600; flex: 0 0 auto; min-width: calc(var(--u) * 6.5); }
+.fe-ev i { font-style: normal; flex: 0 0 calc(var(--u) * 0.8); border-radius: calc(var(--u) * 0.3); }
+.fe-ev span { overflow: hidden; text-overflow: ellipsis; }
+.fe-more { font-size: calc(var(--u) * 2); }
+.mono .fe-ev i { background: #000 !important; }
+/* Das Festbild geht bis an die Kante: InkyPis Innenabstand (1,5vw) und Rand nur hier aufheben */
+body:has(> .container > .fe) { padding: 0 !important; margin: 0 !important; }
+body:has(> .container > .fe) > .container { width: 100vw; height: 100vh; }

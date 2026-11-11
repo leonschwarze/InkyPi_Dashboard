@@ -1,7 +1,31 @@
 {% extends "plugin.html" %}
 
 {% block content %}
-{% if night %}
+{% if fest %}
+<!-- ===================== Festansicht (Heiligabend, Silvester/Neujahr) ===================== -->
+<div lang="de" class="fe {{ orientation }}">
+  <div class="fe-art">{{ fest.svg | safe }}</div>
+  <div class="fe-bar">
+    <div class="fe-day">
+      <div class="fe-date">{{ fest.label }}</div>
+      {% if fest.wx %}
+      <div class="fe-wx">{{ fest.wx.icon | safe }}<div>
+        <div class="fe-t">{{ fest.wx.tmax }}°<small> / {{ fest.wx.tmin }}°</small></div>
+        <div class="fe-sub">{{ fest.wx.text }}{% if fest.wx.prob is not none %} · Regen {{ fest.wx.prob }} %{% endif %}</div>
+      </div></div>
+      {% endif %}
+    </div>
+    <div class="fe-evs">
+      <span class="fe-h">Heute</span>
+      {% for it in fest.events %}
+      <div class="fe-ev"><i style="background: {{ it.color }};"></i><b>{% if it.all_day %}ganztägig{% else %}{{ it.short }}{% endif %}</b><span>{{ it.title }}</span></div>
+      {% endfor %}
+      {% if not fest.events %}<div class="fe-ev"><span>Keine Termine – genießen!</span></div>{% endif %}
+      {% if fest.more %}<div class="fe-ev fe-more"><span>+ {{ fest.more }} weitere</span></div>{% endif %}
+    </div>
+  </div>
+</div>
+{% elif night %}
 <!-- ===================== Nachtbild ===================== -->
 <div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}">
   <section class="nt-day">
@@ -81,7 +105,7 @@
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
   <header class="head">
-    <span class="h-date">{{ date_str }}</span>
+    <span class="h-date">{{ date_str }}{% for g in greetings[:2] %}<span class="h-fest">{{ g.icon | safe }}{{ g.text }}</span>{% endfor %}</span>
     <span class="h-meta">{% if place %}{{ place }} · {% endif %}KW {{ kw }} · Stand {{ updated }}</span>
   </header>
 

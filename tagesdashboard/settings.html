@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="8" />
+<input type="hidden" name="cfgVersion" value="9" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -116,6 +116,18 @@
 </div>
 
 <div class="form-group">
+    <label class="form-label">Festtage und Geburtstage:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="festXmas" name="festXmas" value="true" data-default="true" data-since="9"><span>Heiligabend und Weihnachten (Gruß 24.–26.12., Festbild an Heiligabend 17–23 Uhr)</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="festNye" name="festNye" value="true" data-default="true" data-since="9"><span>Silvester und Neujahr (Gruß 31.12. und 1.1., Festbild 22–2 Uhr, um Mitternacht „Frohes neues Jahr“)</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="festBday" name="festBday" value="true" data-default="true" data-since="9"><span>Geburtstage im Haushalt (Gruß im Kopf)</span></div>
+    <input type="hidden" id="birthdays" name="birthdays" value="" />
+    <table class="bd-table"><thead><tr><th>Name</th><th>Tag</th><th>Monat</th><th>Jahr (freiwillig)</th><th></th></tr></thead>
+        <tbody id="bdRows"></tbody></table>
+    <button type="button" class="bd-add" id="bdAdd">+ Geburtstag hinzufügen</button>
+    <div class="db-hint">Mit Jahr kennt das Dashboard das Alter. Wer am 29. Februar Geburtstag hat, wird in anderen Jahren am 28. Februar gefeiert. Fehlende Namen, Jahre in der Zukunft und doppelte Einträge werden beim Speichern markiert.</div>
+</div>
+
+<div class="form-group">
     <label class="form-label">Nachrichten am Morgen:</label>
     <div class="form-group"><input type="checkbox" class="db-check" id="newsEnabled" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></div>
     <div class="form-group"><span>Mo–Fr von</span><input type="time" id="newsFrom" name="newsFrom" class="form-input" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input" /></div>
@@ -163,6 +175,16 @@
     .db-day { display: inline-flex; align-items: center; gap: 4px; }
     .db-num { width: 5em; }
     textarea.form-input { flex: 1; min-height: 4.5em; font: inherit; }
+    .bd-table { flex: 1 1 100%; border-collapse: collapse; }
+    .bd-table th { text-align: left; font-weight: normal; font-size: 0.85em; opacity: 0.8; padding: 2px 4px; }
+    .bd-table td { padding: 3px 4px; vertical-align: top; }
+    .bd-table .form-input { width: auto; }
+    .bd-name { width: 11em !important; } .bd-year { width: 5.5em !important; }
+    .bd-del { border: 1px solid var(--border-color, #bbb); background: transparent; color: inherit; border-radius: 6px; cursor: pointer; padding: 3px 9px; }
+    .bd-next { font-size: 0.85em; opacity: 0.85; padding: 0 4px 6px; }
+    .bd-err .form-input { border-color: #d00 !important; }
+    .bd-msg { color: #d00; }
+    .bd-add { border: 1px dashed currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
     .db-results .db-hint, .db-hint { flex: 1 1 100%; opacity: 0.8; font-size: 0.9em; }
 </style>
 
@@ -190,7 +212,86 @@
         }
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lon;
+        if (!collectBirthdays()) {
+            showResponseModal('failure', 'Bitte die markierten Geburtstage korrigieren.');
+            return false;
+        }
         return true;
+    }
+
+    // ---- Geburtstage: Tabelle mit Auswahllisten, gespeichert als JSON im versteckten Feld ----
+    const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const maxDay = m => [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+    const leap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+    const bdRows = () => document.getElementById('bdRows');
+    function nextBirthday(d, m) {
+        for (let y = today.getFullYear(); y <= today.getFullYear() + 1; y++) {
+            const t = new Date(y, m - 1, (m === 2 && d === 29 && !leap(y)) ? 28 : d);
+            if (t >= today) return t;
+        }
+    }
+    function fields(tr) { return tr.querySelectorAll('input, select'); }
+    function showNext(tr) {
+        const [, day, month, year] = fields(tr);
+        const t = nextBirthday(Number(day.value), Number(month.value));
+        const age = year.value.trim() ? t.getFullYear() - Number(year.value) : null;
+        tr.nextElementSibling.firstElementChild.textContent =
+            `Nächster Geburtstag: ${WT[t.getDay()]}, ${t.getDate()}. ${MONATE[t.getMonth()]} ${t.getFullYear()}` + (age > 0 ? ` · wird ${age}` : '');
+    }
+    function fillDays(sel, m, keep) {
+        const n = maxDay(m);
+        sel.innerHTML = Array.from({ length: n }, (_, i) => `<option value="${i + 1}">${i + 1}.</option>`).join('');
+        sel.value = String(Math.min(Number(keep) || 1, n));
+    }
+    function addBirthday(b) {
+        const tr = document.createElement('tr');
+        tr.className = 'bd-row';
+        tr.innerHTML = `<td><input type="text" class="form-input bd-name" maxlength="24" placeholder="Name"></td>
+            <td><select class="form-input bd-day"></select></td>
+            <td><select class="form-input bd-month">${MONATE.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select></td>
+            <td><input type="number" class="form-input bd-year" min="1900" max="${today.getFullYear()}" placeholder="—"></td>
+            <td><button type="button" class="bd-del" title="Entfernen">×</button></td>`;
+        const info = document.createElement('tr');
+        info.innerHTML = '<td colspan="5" class="bd-next"></td>';
+        bdRows().append(tr, info);
+        const [name, day, month, year] = fields(tr);
+        name.value = b.name || '';
+        month.value = String(b.month || 1);
+        fillDays(day, Number(month.value), b.day);
+        year.value = b.year || '';
+        month.addEventListener('change', () => { fillDays(day, Number(month.value), day.value); showNext(tr); });
+        [name, day, year].forEach(el => el.addEventListener('input', () => { tr.classList.remove('bd-err'); showNext(tr); }));
+        tr.querySelector('.bd-del').addEventListener('click', () => { tr.remove(); info.remove(); });
+        showNext(tr);
+    }
+    function collectBirthdays() {
+        const list = [], seen = new Set();
+        let ok = true;
+        bdRows().querySelectorAll('tr.bd-row').forEach(tr => {
+            const [name, day, month, year] = fields(tr);
+            const n = name.value.trim().replace(/\s+/g, ' '), d = Number(day.value), m = Number(month.value);
+            const y = year.value.trim() ? Number(year.value) : null;
+            const msg = [];
+            if (!n) msg.push('Name fehlt');
+            if (y !== null && (!Number.isInteger(y) || y < 1900 || y > today.getFullYear())) msg.push(`Jahr zwischen 1900 und ${today.getFullYear()}`);
+            if (y !== null && m === 2 && d === 29 && !leap(y)) msg.push(`${y} hatte keinen 29. Februar`);
+            const key = `${n.toLowerCase()}|${d}|${m}`;
+            if (n && seen.has(key)) msg.push('doppelt');
+            seen.add(key);
+            const cell = tr.nextElementSibling.firstElementChild;
+            if (msg.length) {
+                ok = false; tr.classList.add('bd-err');
+                cell.innerHTML = '<span class="bd-msg"></span>'; cell.firstChild.textContent = msg.join(' · ');
+            } else {
+                tr.classList.remove('bd-err');
+                showNext(tr);
+                list.push({ name: n, day: d, month: m, year: y });
+            }
+        });
+        if (ok) document.getElementById('birthdays').value = JSON.stringify(list);
+        return ok;
     }
     const baseHandleAction = window.handleAction;
     window.handleAction = async function (action) { if (!validate()) return; return baseHandleAction(action); };
@@ -265,6 +366,10 @@
             document.getElementById(id).value = saved[id] ?? '';
         });
         Object.entries(DEFAULTS).forEach(([id, def]) => { document.getElementById(id).value = saved[id] || def; });
+        let birthdays = [];
+        try { birthdays = JSON.parse(saved.birthdays || '[]'); } catch (e) { birthdays = []; }
+        (Array.isArray(birthdays) ? birthdays : []).forEach(addBirthday);
+        document.getElementById('bdAdd').addEventListener('click', () => addBirthday({ day: today.getDate(), month: today.getMonth() + 1 }));
     });
 })();
 </script>
