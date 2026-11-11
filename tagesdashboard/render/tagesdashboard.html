@@ -174,23 +174,40 @@
   <!-- ===================== Kalender ===================== -->
   <section class="cal">
     {% if train %}
-    <div class="train st-{{ train.state }}">
-      <div class="tr-line">{{ train.label }}</div>
-      <div class="tr-main">
-        <div class="tr-top">
-          {%- if train.delay and train.state not in ('cancelled',) %}<s class="tr-plan">{{ train.planned }}</s> <span class="tr-new">{{ train.actual }}</span>
-          {%- else %}<span class="tr-time">{{ train.planned }}</span>{% endif %}
-          {%- if train.dest %} <span class="tr-dest">nach {{ train.dest }}</span>{% endif %}
+    <div class="train st-{{ train.state }}{% if train.alerts %} has-alerts{% endif %}">
+      <div class="tr-row">
+        <div class="tr-line">{{ train.label }}</div>
+        <div class="tr-main">
+          <div class="tr-top">
+            {%- if train.delay and train.state not in ('cancelled',) %}<s class="tr-plan">{{ train.planned }}</s> <span class="tr-new">{{ train.actual }}</span>
+            {%- else %}<span class="tr-time">{{ train.planned }}</span>{% endif %}
+            {%- if train.dest %} <span class="tr-dest">nach {{ train.dest }}</span>{% endif %}
+          </div>
+          {% set arr = train.arrival %}
+          {% if train.platform or train.note %}
+          <div class="tr-sub">
+            {%- if train.platform %}<span class="tr-pl{% if train.platform_changed %} changed{% endif %}">Gleis {{ train.platform }}{% if train.platform_changed %} statt {{ train.planned_platform }}{% endif %}</span>{% endif %}
+            {%- if train.platform and train.note %} · {% endif %}
+            {%- if train.note %}<span class="tr-note">{{ train.note }}</span>{% endif %}
+          </div>
+          {% endif %}
+          {# Ankunft am Ausstieg in eigener Zeile; "endet in …" erklärt einen ausfallenden Ausstieg schon #}
+          {% if arr and not (arr.cancelled and train.note) %}
+          <div class="tr-sub tr-arr">
+            {%- if arr.cancelled %}<span class="tr-new">Halt {{ arr.name }} entfällt</span>
+            {%- else %}an {{ arr.name }} {% if arr.delay >= 5 %}<span class="tr-new">{{ arr.actual }}</span>{% else %}{{ arr.actual }}{% endif %}{% if arr.delay and arr.delay < 5 %} (+{{ arr.delay }}){% endif %}{% if arr.platform_changed %} · <span class="tr-pl changed">Gleis {{ arr.platform }}</span>{% endif %}{% endif -%}
+          </div>
+          {% endif %}
         </div>
-        {% if train.platform or train.note %}
-        <div class="tr-sub">
-          {%- if train.platform %}<span class="tr-pl{% if train.platform_changed %} changed{% endif %}">Gleis {{ train.platform }}{% if train.platform_changed %} statt {{ train.planned_platform }}{% endif %}</span>{% endif %}
-          {%- if train.platform and train.note %} · {% endif %}
-          {%- if train.note %}<span class="tr-note">{{ train.note }}</span>{% endif %}
-        </div>
-        {% endif %}
+        <div class="tr-badge">{{ train.badge }}</div>
       </div>
-      <div class="tr-badge">{{ train.badge }}</div>
+      {% if train.alerts %}
+      <!-- Störungsmonitor: Meldungen, die an genau dieser Fahrt hängen -->
+      <ul class="tr-alerts">
+        {% for a in train.alerts[:(3 if orientation == 'portrait' else 2)] %}<li class="tr-alert lv-{{ a.level }}"><span class="tr-mark">!</span><span class="tr-atext">{{ a.text }}</span></li>{% endfor %}
+        {% if train.alerts | length > (3 if orientation == 'portrait' else 2) %}<li class="tr-alert tr-more">+ {{ train.alerts | length - (3 if orientation == 'portrait' else 2) }} weitere Meldung{{ 'en' if train.alerts | length - (3 if orientation == 'portrait' else 2) > 1 }}</li>{% endif %}
+      </ul>
+      {% endif %}
     </div>
     {% endif %}
     {% if laundry %}

@@ -43,7 +43,7 @@ Zusätzliche Python-Pakete braucht das Plugin nicht: `requests`, `astral`, `ical
 - **Wäsche auf dem Balkon:** abends 17–23 Uhr eine Karte über den Terminen: „reinholen“ (Regen, Schnee, Sturmböen), „besser rein“ (Regen möglich, Nebel, Tau, Frost) oder „kann bleiben“ – geprüft bis morgen 10 Uhr. Für überdachte Balkone einstellbar.
 - **Nachtbild:** 23–6 Uhr ein ruhiges Bild für den kommenden Tag: Wochentag, Wetter, tiefste Nachttemperatur, Sonnenaufgang, Termine, Zug, Mondphase. Unten ein Band mit der Bonner Silhouette – Münster, Langer Eugen, Post Tower, Kennedybrücke, Siebengebirge –, dessen Himmel das Wetter der Nacht zeigt (Sterne, Wolken, Regen, Schnee, Nebel, Mond), dazu Tageslicht und Countdown zur Sonnenwende. Es wird einmal gezeichnet und bleibt bis zum Morgen stehen.
 - **Wochenvorschau:** sonntags 18–23 Uhr die kommende Woche Mo–So in Zeilen mit Wetter, Regenwahrscheinlichkeit und Terminen.
-- **Zug (optional):** an ausgewählten Wochentagen in einem Zeitfenster eine Karte über den Terminen mit den Live-Daten eines Zuges, z. B. dienstags 6:30–8:15 Uhr der RE 5 ab Bonn Hbf um 8:04 Uhr: Verspätung mit neuer Abfahrtszeit, Gleiswechsel, Ausfall, vorzeitiges Zugende. Daten: Timetables-API der Deutschen Bahn (CC BY 4.0).
+- **Zug (optional):** an ausgewählten Wochentagen in einem Zeitfenster eine Karte über den Terminen mit den Live-Daten eines Zuges, z. B. dienstags 6:30–8:15 Uhr der RE 5 ab Bonn Hbf um 8:04 Uhr: Verspätung mit neuer Abfahrtszeit, Gleiswechsel, Ausfall, vorzeitiges Zugende, Ankunft am Ausstieg und darunter Störungsmeldungen zu genau diesem Zug. Daten: Timetables-API der Deutschen Bahn (CC BY 4.0).
 - **Robust:** Fällt der Kalender oder das Wetter aus, zeigt das Dashboard den anderen Teil trotzdem an.
 - **Layout:** Quer- und Hochformat; optimiert für E-Ink mit halbfetter Schrift und ohne grauen Text. Die Farben werden auf die sechs Displayfarben eingerastet (siehe unten).
 
@@ -66,6 +66,14 @@ done
 3. Optional, aber empfohlen: kostenlos beim [DB API Marketplace](https://developers.deutschebahn.com/) registrieren, eine Anwendung anlegen und die API „Timetables“ abonnieren. Client-ID und API-Key unter **API Keys** als `DB_CLIENT_ID` und `DB_API_KEY` eintragen. Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn (`iris.noncd.db.de`); die ist inoffiziell und kann wegfallen.
 
 Die Karte zeigt: Linie, Abfahrt (bei Verspätung die alte Zeit durchgestrichen, die neue rot), Ziel, Gleis (gelb markiert bei Gleiswechsel), Hinweise wie „endet in Köln Hbf“ und rechts den Status: pünktlich (grün), +1 bis +4 (gelb), ab +5 und „fällt aus“ (rot), „abgefahren“. Fehlen die Live-Daten, ist die Karte gestrichelt umrandet.
+
+### Störungsmonitor
+
+Unter der Abfahrt stehen Meldungen, die genau diesen Zug betreffen: Störungen und Baustellen mit dem Text der Bahn, Ersatzverkehr, fehlende Wagen und – nur wenn der Zug wirklich verspätet ist oder ausfällt – der Grund (z. B. „Defekt an einem Signal“). Rot markiert sind echte Störungen, gelb Hinweise. Quer passen zwei Meldungen, hochkant drei; was nicht passt, steht als „+ 1 weitere Meldung“ da.
+
+Trag dazu unter „Zug“ deinen **Ausstieg** ein (Standard Düsseldorf Hbf). Dann zeigt die zweite Zeile auch die erwartete Ankunft („an Düsseldorf 9:11“, rot ab 5 Minuten Verspätung, gelb ein geändertes Ankunftsgleis). Kommt der Zug nicht bis dorthin, heißt es „Teilausfall“.
+
+Woher die Meldungen kommen: aus derselben Timetables-API, an Abfahrts- und Ausstiegsbahnhof, und nur die an dieser Fahrt. Meldungen zu anderen Zügen oder zum Bahnhof selbst (Aufzüge usw.) bleiben draußen. Die eigens dafür gedachte Störungs-API der Bahn („RIS::Disruptions“) ist kostenpflichtig und nur für Vertriebspartner freigegeben. Wie ausführlich die Texte sind, hängt davon ab, was die Bahn bzw. National Express einträgt; oft gibt es nur den kurzen Grund.
 
 ## Schärfer auf dem Inky Impression
 
@@ -124,7 +132,7 @@ tagesdashboard/
     └── eink.py              #   Farben auf die Displayfarben einrasten
 ```
 
-`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.6. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
+`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.7. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
 
 ## Datenquellen
 
@@ -136,6 +144,6 @@ tagesdashboard/
 
 ## Status
 
-Version 1.6 (Bonner Silhouette im Nachtbild; 1.5: Nachtbild, Wochenvorschau; 1.4: Wäsche-Karte am Abend; 1.3.1: Playlist-Intervall wurde verdoppelt; 1.3: Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
+Version 1.7 (Störungsmonitor und Ankunft am Ausstieg; 1.6: Bonner Silhouette im Nachtbild; 1.5: Nachtbild, Wochenvorschau; 1.4: Wäsche-Karte am Abend; 1.3.1: Playlist-Intervall wurde verdoppelt; 1.3: Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
 
 Lizenz: GPL-3.0 (wie InkyPi).

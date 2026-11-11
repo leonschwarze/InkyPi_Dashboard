@@ -247,11 +247,32 @@
 }
 .st-ok .tr-badge { background: #2E9E3F; color: #fff; }
 .st-slight .tr-badge { background: #FFE500; color: #000; }
-.st-late .tr-badge, .st-cancelled .tr-badge { background: #E3001B; color: #fff; }
-.st-cancelled { border-color: #E3001B; }
+.st-late .tr-badge, .st-cancelled .tr-badge, .st-partial .tr-badge { background: #E3001B; color: #fff; }
+.st-cancelled, .st-partial { border-color: #E3001B; }
 .st-cancelled .tr-time { text-decoration: line-through; text-decoration-thickness: calc(var(--u) * 0.3); }
 .st-gone .tr-badge, .st-unknown .tr-badge { border: calc(var(--u) * 0.25) solid currentColor; }
 .st-unknown { border-style: dashed; }
+
+/* Zugkarte: oben die Abfahrt, darunter der Störungsmonitor */
+.train { flex-direction: column; align-items: stretch; gap: 0; }
+.tr-row { display: flex; align-items: center; gap: calc(var(--u) * 1); min-width: 0; }
+.tr-alerts {
+  list-style: none; margin: calc(var(--u) * 0.5) 0 0; padding: calc(var(--u) * 0.5) 0 0;
+  border-top: calc(var(--u) * 0.2) solid currentColor;
+  display: flex; flex-direction: column; gap: calc(var(--u) * 0.35);
+}
+.tr-alert { display: flex; align-items: flex-start; gap: calc(var(--u) * 0.6); font-size: calc(var(--u) * 1.8); line-height: 1.2; min-width: 0; }
+.tr-mark {
+  flex: 0 0 auto; width: calc(var(--u) * 2.1); height: calc(var(--u) * 2.1); margin-top: calc(var(--u) * 0.05);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: calc(var(--u) * 0.4); font-size: calc(var(--u) * 1.6); line-height: 1;
+}
+.lv-high .tr-mark { background: #E3001B; color: #fff; }
+.lv-info .tr-mark { background: #FFE500; color: #000; }
+/* höchstens zwei Zeilen je Meldung, dann Auslassungspunkte */
+.tr-atext { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.tr-more { font-size: calc(var(--u) * 1.5); padding-left: calc(var(--u) * 2.7); }
+.train.has-alerts:has(.lv-high) { border-color: #E3001B; }
 
 /* ---------------- Nachrichten (morgens, nur im Zeitfenster) ----------------
  * Die rechte Spalte zeigt dann nur die heutigen Termine (höchstens 58 % der Höhe),

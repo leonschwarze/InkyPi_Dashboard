@@ -74,6 +74,9 @@ DEFAULTS = {
     "trainMo": "false", "trainDi": "true", "trainMi": "false", "trainDo": "false",
     "trainFr": "false", "trainSa": "false", "trainSo": "false",
     "quietMinutes": "15",
+    # Ausstieg und Störungsmonitor (seit cfgVersion 7)
+    "trainTarget": "Düsseldorf Hbf",
+    "trainAlerts": "true",
     # Nachrichten (seit cfgVersion 3)
     "newsEnabled": "true",
     "newsFrom": "06:00", "newsTo": "09:30",
@@ -99,6 +102,7 @@ SINCE_VERSION.update({k: 3 for k in DEFAULTS if k.startswith("news")})
 SINCE_VERSION.update({k: 4 for k in DEFAULTS if k.startswith("laundry")})
 SINCE_VERSION.update({k: 5 for k in DEFAULTS if k.startswith(("night", "week"))})
 SINCE_VERSION["nightArt"] = 6
+SINCE_VERSION.update({"trainTarget": 7, "trainAlerts": 7})
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet

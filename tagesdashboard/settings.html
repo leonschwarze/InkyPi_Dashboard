@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="6" />
+<input type="hidden" name="cfgVersion" value="7" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -121,6 +121,9 @@
     <div class="form-group"><span>Planmäßige Abfahrt </span><input type="time" id="trainTime" name="trainTime" class="form-input" /></div>
     <div class="form-group"><span>Anzeigen von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input" /></div>
     <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-since="2">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-since="2">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-since="2">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-since="2">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-since="2">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-since="2">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-since="2">So</label></div>
+    <div class="form-group"><span>Ausstieg </span><input type="text" id="trainTarget" name="trainTarget" class="form-input" placeholder="Düsseldorf Hbf" /></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="trainAlerts" name="trainAlerts" value="true" data-default="true" data-since="7"><span>Störungsmeldungen zu diesem Zug unter der Abfahrt zeigen</span></div>
+    <div class="db-hint">Am Ausstieg zeigt das Dashboard die erwartete Ankunft. Meldungen kommen nur, wenn sie an genau dieser Fahrt hängen (in Abfahrts- oder Ausstiegsbahnhof): Störungen, Baustellen, Ersatzverkehr und – bei Verspätung – der Grund.</div>
     <div class="form-group"><span>Außerhalb des Zeitfensters alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen (dein gewohnter Takt)</span></div>
     <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur im oben eingestellten Takt neu (InkyPi bekommt dazwischen dasselbe Bild und lässt das Display in Ruhe). Ohne Zug gilt einfach das Intervall der Playlist.
     Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
@@ -152,6 +155,7 @@
 (function () {
     const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7',
         trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
+        trainTarget: 'Düsseldorf Hbf',
         quietMinutes: '15',
         laundryFrom: '17:00', laundryTo: '23:00',
         nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00',
