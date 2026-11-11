@@ -71,7 +71,7 @@ DEFAULTS = {
     "trainTo": "08:15",
     "trainMo": "false", "trainDi": "true", "trainMi": "false", "trainDo": "false",
     "trainFr": "false", "trainSa": "false", "trainSo": "false",
-    "quietMinutes": "30",
+    "quietMinutes": "15",
     # Nachrichten (seit cfgVersion 3)
     "newsEnabled": "true",
     "newsFrom": "06:00", "newsTo": "09:30",
@@ -178,11 +178,14 @@ class Tagesdashboard(BasePlugin):
         train_now = bool(train_cfg) and bahn.in_window(now, train_cfg)
         news_cfg = nachrichten.read_config(opt, flag, bahn.parse_hhmm)
         news_now = bool(news_cfg) and nachrichten.in_window(now, news_cfg)
-        use_cache = bool(train_cfg or news_cfg) and not train_now
+        # Nur mit Zug: Nur dafür muss InkyPi schneller laufen als sonst. Ohne Zug gilt allein das
+        # Intervall der Playlist (ein Cache würde es sonst stillschweigend verlängern).
+        use_cache = bool(train_cfg) and not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
         if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
-            if hit and now < hit["until"]:
+            # 1 Minute Toleranz: Kommt InkyPi im eingestellten Takt, wird nie ein fälliges Bild ausgelassen
+            if hit and now < hit["until"] - timedelta(minutes=1):
                 logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet", hit["made"])
                 return hit["image"].copy()
 

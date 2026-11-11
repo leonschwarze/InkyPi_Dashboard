@@ -99,8 +99,8 @@
     <div class="form-group"><span>Planmäßige Abfahrt </span><input type="time" id="trainTime" name="trainTime" class="form-input" /></div>
     <div class="form-group"><span>Anzeigen von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input" /></div>
     <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-since="2">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-since="2">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-since="2">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-since="2">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-since="2">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-since="2">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-since="2">So</label></div>
-    <div class="form-group"><span>Außerhalb des Zeitfensters höchstens alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen</span></div>
-    <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters liefert das Dashboard bis zur oben eingestellten Zeit dasselbe Bild; InkyPi lässt das Display dann in Ruhe.
+    <div class="form-group"><span>Außerhalb des Zeitfensters alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen (dein gewohnter Takt)</span></div>
+    <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur im oben eingestellten Takt neu (InkyPi bekommt dazwischen dasselbe Bild und lässt das Display in Ruhe). Ohne Zug gilt einfach das Intervall der Playlist.
     Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
 </div>
 
@@ -130,7 +130,7 @@
 (function () {
     const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7',
         trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
-        quietMinutes: '30',
+        quietMinutes: '15',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };

@@ -224,12 +224,20 @@
     document.querySelectorAll('.news').forEach(fitNews);
   }
   fitAll();
-  window.addEventListener('load', fitAll);
+  window.addEventListener('load', () => fitAll());
   window.addEventListener('resize', fitAll);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
   if (window.ResizeObserver) {
-    // Nach jeder Größenänderung alles neu verteilen: Termine zuerst, dann die Nachrichten darunter
-    const ro = new ResizeObserver(() => fitAll());
+    // Nach jeder Größenänderung alles neu verteilen: Termine zuerst, dann die Nachrichten darunter.
+    // Größenänderungen, die fitAll selbst verursacht, werden ignoriert (sonst Endlosschleife,
+    // weil die Terminliste im Nachrichtenmodus so hoch ist wie ihr Inhalt).
+    const sizes = new Map();
+    const remember = () => document.querySelectorAll('.fit-box').forEach(b => sizes.set(b, b.clientWidth + 'x' + b.clientHeight));
+    const ro = new ResizeObserver(entries => {
+      if (entries.every(e => sizes.get(e.target) === e.target.clientWidth + 'x' + e.target.clientHeight)) return;
+      fitAll(); remember();
+    });
+    remember();
     document.querySelectorAll('.fit-box').forEach(b => ro.observe(b));
   }
 </script>

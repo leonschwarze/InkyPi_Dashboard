@@ -28,7 +28,7 @@ Danach unter **API Keys** den Schlüssel `NEXTCLOUD_APP_PASSWORD` mit einem App-
 
 Zusätzliche Python-Pakete braucht das Plugin nicht: `requests`, `astral`, `icalendar` und `recurring-ical-events` bringt InkyPi schon mit.
 
-**Empfohlenes Aktualisierungsintervall:** 30 Minuten.
+**Empfohlenes Aktualisierungsintervall:** 15–30 Minuten (mit Zuganzeige 5 Minuten, siehe unten).
 
 ## Funktionen
 
@@ -57,7 +57,7 @@ done
 ## Zug einrichten
 
 1. In den Dashboard-Einstellungen unter „Zug“ das Häkchen setzen und Bahnhof, Linie, planmäßige Abfahrt, Zeitfenster und Wochentage eintragen. Speichern.
-2. Damit die Zugdaten im Zeitfenster aktuell sind: unter **Settings** das Wechselintervall (Plugin Cycle Interval) auf **5 Minuten**, im Playlist-Eintrag des Dashboards die Aktualisierung (Refresh) ebenfalls auf **5 Minuten**. Außerhalb des Zeitfensters liefert das Dashboard bis zu 30 Minuten lang dasselbe Bild (einstellbar). InkyPi vergleicht die Bilder und zeichnet das Display dann nicht neu, es flackert also nicht alle 5 Minuten.
+2. Damit die Zugdaten im Zeitfenster aktuell sind: unter **Settings** das Wechselintervall (Plugin Cycle Interval) auf **5 Minuten**, im Playlist-Eintrag des Dashboards die Aktualisierung (Refresh) ebenfalls auf **5 Minuten**. Außerhalb des Zeitfensters zeichnet das Dashboard nur im eingestellten Takt neu (Standard 15 Minuten, einstellbar unter „Zug“). InkyPi vergleicht die Bilder und zeichnet das Display dann nicht neu, es flackert also nicht alle 5 Minuten.
 3. Optional, aber empfohlen: kostenlos beim [DB API Marketplace](https://developers.deutschebahn.com/) registrieren, eine Anwendung anlegen und die API „Timetables“ abonnieren. Client-ID und API-Key unter **API Keys** als `DB_CLIENT_ID` und `DB_API_KEY` eintragen. Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn (`iris.noncd.db.de`); die ist inoffiziell und kann wegfallen.
 
 Die Karte zeigt: Linie, Abfahrt (bei Verspätung die alte Zeit durchgestrichen, die neue rot), Ziel, Gleis (gelb markiert bei Gleiswechsel), Hinweise wie „endet in Köln Hbf“ und rechts den Status: pünktlich (grün), +1 bis +4 (gelb), ab +5 und „fällt aus“ (rot), „abgefahren“. Fehlen die Live-Daten, ist die Karte gestrichelt umrandet.
@@ -116,7 +116,7 @@ tagesdashboard/
     └── eink.py              #   Farben auf die Displayfarben einrasten
 ```
 
-`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.3. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
+`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.3.1. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
 
 ## Datenquellen
 
@@ -128,6 +128,6 @@ tagesdashboard/
 
 ## Status
 
-Version 1.3 (Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
+Version 1.3.1 (behoben: Playlist-Intervall wurde verdoppelt; 1.3: Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
 
 Lizenz: GPL-3.0 (wie InkyPi).
