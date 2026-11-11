@@ -210,6 +210,21 @@
       {% endif %}
     </div>
     {% endif %}
+    {% if trip %}
+    <!-- Aufbruch: wann los, mit Rad oder ÖPNV (je nach Wetter auf allen Wegen der Terminkette) -->
+    <div class="trip tp-{{ trip.state }}">
+      <div class="lw-icon">
+        {%- if trip.icon == 'bike' %}<svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><circle cx="11" cy="31" r="8" fill="none" stroke="#000" stroke-width="2.8"/><circle cx="37" cy="31" r="8" fill="none" stroke="#000" stroke-width="2.8"/><path d="M11 31 L18 19 L32 19 L37 31 M18 19 L24 31 L32 19 M24 31 L11 31" fill="none" stroke="#2E9E3F" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/><path d="M15 14 L22 14 M18 14 L18 19 M32 19 L30 12 L35 11" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        {%- elif trip.icon == 'walk' %}<svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><circle cx="25" cy="8" r="4.5" fill="#000"/><path d="M24 15 L21 29 L14 42 M21 29 L29 35 L31 43 M23 18 L15 24 L13 30 M24 17 L31 23 L37 24" fill="none" stroke="#0082C9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        {%- else %}<svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="5" width="34" height="33" rx="5" fill="#0082C9" stroke="#000" stroke-width="2.6"/><rect x="11" y="10" width="26" height="12" rx="2" fill="#fff" stroke="#000" stroke-width="2.2"/><rect x="11" y="29" width="6" height="4" fill="#fff"/><rect x="31" y="29" width="6" height="4" fill="#fff"/><rect x="10" y="38" width="7" height="6" rx="1.5" fill="#000"/><rect x="31" y="38" width="7" height="6" rx="1.5" fill="#000"/></svg>
+        {%- endif %}</div>
+      <div class="tr-main">
+        <div class="tr-top">{{ trip.top }}</div>
+        <div class="tr-sub">{{ trip.how }}{% if trip.delay %} <span class="tr-new">+{{ trip.delay }}</span>{% endif %}{{ trip.how_after }}</div>
+        <div class="tr-sub">{{ trip.why }}</div>
+      </div>
+    </div>
+    {% endif %}
     {% if laundry %}
     <div class="laundry lw-{{ laundry.state }}">
       <div class="lw-icon"><svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><path d="M3 9 Q24 15 45 9" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/><path d="M14 12 L9 16 L12 21 L15 19 L15 40 L33 40 L33 19 L36 21 L39 16 L34 12 Q30 15.5 24 15.5 Q18 15.5 14 12 Z" fill="#0082C9" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><rect x="17.5" y="10" width="2.6" height="6" fill="#000"/><rect x="28" y="10" width="2.6" height="6" fill="#000"/></svg></div>
@@ -234,6 +249,8 @@
           <div class="ev-main">
             <div class="ev-title">{{ ev.title }}{% if ev.span %} <span class="ev-span">{{ ev.span }}</span>{% endif %}</div>
             {% set sub = [] %}
+            {# Abfahrt vor dem Ort: Ein langer Ort darf sie nicht verdrängen #}
+            {% if ev.trip %}{% set _ = sub.append(ev.trip) %}{% endif %}
             {% if show_location and ev.location %}{% set _ = sub.append(ev.location) %}{% endif %}
             {% if ev.rain %}{% set _ = sub.append(ev.rain) %}{% endif %}
             {% if ev.now and ev.until %}{% set _ = sub.append(ev.until) %}{% endif %}

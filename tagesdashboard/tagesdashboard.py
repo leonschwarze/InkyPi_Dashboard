@@ -16,6 +16,7 @@ Was das Dashboard selbst hinzufügt:
   * morgens Schlagzeilen für Bonn, NRW und Bund (nachrichten.py)
   * abends: Wäsche vom Balkon holen? (waesche.py)
   * nachts ein ruhiges Nachtbild, sonntagabends eine Wochenvorschau (ansichten.py)
+  * Anfahrt zu Terminen: Rad oder ÖPNV je nach Wetter, und wann man los muss (anfahrt.py)
 """
 
 import json
@@ -42,9 +43,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik
+    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik
+    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -94,6 +95,16 @@ DEFAULTS = {
     "weekEnabled": "true", "weekFrom": "18:00", "weekTo": "23:00",
     # Bonner Silhouette im Nachtbild (seit cfgVersion 6)
     "nightArt": "true",
+    # Anfahrt zu Terminen (seit cfgVersion 8)
+    "tripEnabled": "false",
+    "tripHome": "false",
+    "tripBuffer": "5",
+    "tripRainProb": "30",
+    "tripMaxGap": "90",
+    "tripLead": "120",
+    "tripStart": "",
+    "tripPlaces": "",
+    "tripSkip": anfahrt.DEFAULT_SKIP,
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -103,6 +114,7 @@ SINCE_VERSION.update({k: 4 for k in DEFAULTS if k.startswith("laundry")})
 SINCE_VERSION.update({k: 5 for k in DEFAULTS if k.startswith(("night", "week"))})
 SINCE_VERSION["nightArt"] = 6
 SINCE_VERSION.update({"trainTarget": 7, "trainAlerts": 7})
+SINCE_VERSION.update({k: 8 for k in DEFAULTS if k.startswith("trip")})
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -151,7 +163,7 @@ class Tagesdashboard(BasePlugin):
         return datetime.now(tz)
 
     def _opt(self, settings, key):
-        if key == "newsBonnFilter" and key in settings:  # leer = bewusst kein Filter
+        if key in ("newsBonnFilter", "tripStart", "tripPlaces") and key in settings:  # leer ist erlaubt
             return settings[key]
         if "cfgVersion" in settings and DEFAULTS.get(key) in ("true", "false"):
             saved = int(settings["cfgVersion"]) if str(settings["cfgVersion"]).isdigit() else 1
@@ -264,6 +276,16 @@ class Tagesdashboard(BasePlugin):
             ev["fg"] = nc.contrast_color(ev["color"])
 
         records = weather["records"] if weather else []
+
+        # ---- Anfahrt: Rad oder ÖPNV, wann los? (nur in der normalen Ansicht) ----
+        trip_cfg = anfahrt.read_config(opt, flag, *self.home_position(settings))
+        trips = {"by_event": {}, "card": None, "edges": []}
+        if trip_cfg and mode == "normal" and records and events:
+            try:
+                trips = anfahrt.plan(events, records, now, tz, trip_cfg)
+            except Exception:  # Anfahrt ist Zusatz: nie das ganze Bild verlieren
+                logger.exception("Anfahrt konnte nicht berechnet werden")
+
         params = {
             "date_str": f"{WOCHENTAGE[today.weekday()]}, {today.day}. {MONATE[today.month - 1]}",
             "kw": today.isocalendar()[1],
@@ -274,7 +296,8 @@ class Tagesdashboard(BasePlugin):
             "cal_error": cal_error,
             "wear": None,
             "graph": None,
-            "calendar": self.calendar_days(events, tz, now, today, settings, flag, records),
+            "calendar": self.calendar_days(events, tz, now, today, settings, flag, records, trips["by_event"]),
+            "trip": trips["card"],
             "show_location": flag("showLocation"),
             "use_colors": use_colors,
             "plugin_settings": settings,
@@ -320,6 +343,7 @@ class Tagesdashboard(BasePlugin):
             edges += waesche.boundaries(now, *laundry_win) if laundry_win else []
             edges += ansichten.boundaries(now, *night_win) if night_win else []
             edges += ansichten.boundaries(now, *week_win) if week_win else []
+            edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
@@ -384,7 +408,7 @@ class Tagesdashboard(BasePlugin):
                 logger.warning("Kalender %s nicht lesbar: %s", cal["name"], exc)
         return events, calendars
 
-    def calendar_days(self, events, tz, now, today, settings, flag, records):
+    def calendar_days(self, events, tz, now, today, settings, flag, records, trips=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"}) if nc else None
         if helper is None:
             return []
@@ -396,6 +420,11 @@ class Tagesdashboard(BasePlugin):
             if flag("rainOnEvents"):
                 for it in items:
                     it["rain"] = self.rain_during(records, it["source"]) if not it["all_day"] else None
+            for it in items:
+                # Anfahrt ersetzt den Regenhinweis: ob es während des Termins regnet, ist dann egal
+                it["trip"] = (trips or {}).get(id(it["source"]))
+                if it["trip"]:
+                    it["rain"] = None
             if items or i == 0:
                 label = "Heute" if i == 0 else ("Morgen" if i == 1 else WOCHENTAGE_KURZ[d.weekday()])
                 out.append({
@@ -419,6 +448,15 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Wetter
     # ==================================================================
+    @staticmethod
+    def home_position(settings):
+        """Wetterstandort als (lat, lon) – Startpunkt der Anfahrt, wenn kein eigener gesetzt ist."""
+        try:
+            return (float(str(settings.get("latitude", "")).strip().replace(",", ".")),
+                    float(str(settings.get("longitude", "")).strip().replace(",", ".")))
+        except ValueError:
+            return None, None
+
     def load_weather(self, settings, tz, now, focus, flag, days=2):
         raw_lat = str(settings.get("latitude", "")).strip().replace(",", ".")
         raw_lon = str(settings.get("longitude", "")).strip().replace(",", ".")

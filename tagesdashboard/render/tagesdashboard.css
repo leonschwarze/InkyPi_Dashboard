@@ -207,7 +207,7 @@
 .alert.lvl-2 { border-width: calc(var(--u) * 0.7); }
 
 /* ---------------- Zug (nur im eingestellten Zeitfenster) ---------------- */
-.train, .laundry {
+.train, .laundry, .trip {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -232,6 +232,11 @@
 .lw-besser .tr-badge { background: #FFE500; color: #000; }
 .lw-bleiben .tr-badge { background: #2E9E3F; color: #fff; }
 .lw-rein { border-color: #E3001B; }
+
+/* ---------------- Anfahrt: Aufbruch-Karte ---------------- */
+.trip .tr-top { font-size: calc(var(--u) * 2.2); }
+.tp-bike .tr-badge { background: #2E9E3F; color: #fff; }
+.tp-transit .tr-badge { background: #0082C9; color: #fff; }
 .tr-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .tr-top { font-size: calc(var(--u) * 2.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tr-plan { text-decoration-thickness: calc(var(--u) * 0.3); }

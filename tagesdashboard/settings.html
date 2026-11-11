@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="7" />
+<input type="hidden" name="cfgVersion" value="8" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -102,6 +102,20 @@
 </div>
 
 <div class="form-group">
+    <label class="form-label">Anfahrt zu Terminen:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="tripEnabled" name="tripEnabled" value="true" data-default="false" data-since="8"><span>Zeigen, wann ich los muss – mit dem Rad oder, wenn es nicht sicher trocken ist, mit Bus und Bahn</span></div>
+    <div class="form-group db-wide"><span>Startort </span><input type="text" id="tripStart" name="tripStart" class="form-input" placeholder="leer = Wetter-Ort; sonst Adresse oder 50.7374, 7.0982" /></div>
+    <div class="form-group"><span>Ankunft</span><input type="number" min="0" max="60" step="1" id="tripBuffer" name="tripBuffer" class="form-input db-num" /><span>Minuten vor Terminbeginn</span></div>
+    <div class="form-group"><span>Rad nur unter</span><input type="number" min="5" max="90" step="5" id="tripRainProb" name="tripRainProb" class="form-input db-num" /><span>% Regenrisiko</span></div>
+    <div class="form-group"><span>Termine mit weniger als</span><input type="number" min="0" max="600" step="15" id="tripMaxGap" name="tripMaxGap" class="form-input db-num" /><span>Minuten Pause gehören zusammen (kein Heimweg dazwischen)</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="tripHome" name="tripHome" value="true" data-default="false" data-since="8"><span>Auch das Wetter auf dem Heimweg berücksichtigen</span></div>
+    <div class="form-group"><span>Aufbruch-Karte</span><input type="number" min="15" max="600" step="15" id="tripLead" name="tripLead" class="form-input db-num" /><span>Minuten vor der Abfahrt einblenden</span></div>
+    <div class="form-group db-wide"><span>Ohne Anfahrt bei </span><input type="text" id="tripSkip" name="tripSkip" class="form-input" placeholder="Video, online, Zoom, Teams" /></div>
+    <div class="form-group db-wide"><span>Eigene Orte </span><textarea id="tripPlaces" name="tripPlaces" class="form-input" rows="3" placeholder="Stadthaus = Berliner Platz 2, 53111 Bonn&#10;Landtag = 51.2259, 6.7730"></textarea></div>
+    <div class="db-hint">Termine, zwischen denen die Pause kurz ist, bilden eine Kette. Mit dem <b>Rad</b> nur, wenn es auf allen Wegen der Kette – mit einer Stunde Abstand – trocken ist: kein Niederschlag, Regenrisiko unter der Schwelle, keine Böen ab 50 km/h, keine Glätte. Sonst <b>Bus und Bahn</b> für die ganze Kette. Fahrzeiten und Verbindungen kommen von <a href="https://transitous.org" target="_blank">Transitous</a> (frei, ehrenamtlich betrieben). „Eigene Orte“ hilft, wenn ein Terminort nicht gefunden wird: steht der Name im Ort des Termins, wird die Adresse dahinter verwendet. Termine ohne Ort werden übersprungen.</div>
+</div>
+
+<div class="form-group">
     <label class="form-label">Nachrichten am Morgen:</label>
     <div class="form-group"><input type="checkbox" class="db-check" id="newsEnabled" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></div>
     <div class="form-group"><span>Mo–Fr von</span><input type="time" id="newsFrom" name="newsFrom" class="form-input" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input" /></div>
@@ -148,6 +162,7 @@
     .db-days { display: flex; flex-wrap: wrap; gap: 10px; }
     .db-day { display: inline-flex; align-items: center; gap: 4px; }
     .db-num { width: 5em; }
+    textarea.form-input { flex: 1; min-height: 4.5em; font: inherit; }
     .db-results .db-hint, .db-hint { flex: 1 1 100%; opacity: 0.8; font-size: 0.9em; }
 </style>
 
@@ -158,6 +173,8 @@
         trainTarget: 'Düsseldorf Hbf',
         quietMinutes: '15',
         laundryFrom: '17:00', laundryTo: '23:00',
+        tripBuffer: '5', tripRainProb: '30', tripMaxGap: '90', tripLead: '120',
+        tripSkip: 'Video, online, Zoom, Teams, Webex, Jitsi, Telefon',
         nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
@@ -243,7 +260,8 @@
         });
         // Filter darf bewusst leer sein; nur ohne gespeicherten Wert den Standard eintragen
         document.getElementById('newsBonnFilter').value = ('newsBonnFilter' in saved) ? saved.newsBonnFilter : '/bonn/';
-        ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars'].forEach(id => {
+        ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars',
+         'tripStart', 'tripPlaces'].forEach(id => {
             document.getElementById(id).value = saved[id] ?? '';
         });
         Object.entries(DEFAULTS).forEach(([id, def]) => { document.getElementById(id).value = saved[id] || def; });
