@@ -117,6 +117,16 @@
       <div class="tr-badge">{{ train.badge }}</div>
     </div>
     {% endif %}
+    {% if laundry %}
+    <div class="laundry lw-{{ laundry.state }}">
+      <div class="lw-icon"><svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><path d="M3 9 Q24 15 45 9" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/><path d="M14 12 L9 16 L12 21 L15 19 L15 40 L33 40 L33 19 L36 21 L39 16 L34 12 Q30 15.5 24 15.5 Q18 15.5 14 12 Z" fill="#0082C9" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><rect x="17.5" y="10" width="2.6" height="6" fill="#000"/><rect x="28" y="10" width="2.6" height="6" fill="#000"/></svg></div>
+      <div class="tr-main">
+        <div class="tr-top">{{ laundry.text }}</div>
+        <div class="tr-sub">{{ laundry.details }}</div>
+      </div>
+      <div class="tr-badge">{{ laundry.badge }}</div>
+    </div>
+    {% endif %}
     {% if cal_error %}
     <div class="error-box">Kalender nicht verfügbar<br><span>{{ cal_error }}</span></div>
     {% else %}

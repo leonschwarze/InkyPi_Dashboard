@@ -38,6 +38,7 @@ Zusätzliche Python-Pakete braucht das Plugin nicht: `requests`, `astral`, `ical
 - **Kleidungsempfehlung:** für die Zeit, in der man unterwegs ist, also bis zum Ende des letzten Termins. Das Kälteempfinden ist einstellbar: normal, empfindlich oder sehr empfindlich.
 - **Termine (Nextcloud per CalDAV):** Kalenderfarben, Serientermine, ganztägige und mehrtägige Termine. Steigt das Regenrisiko während eines Termins auf mindestens 50 %, steht es am Termin.
 - **Nachrichten am Morgen:** werktags 6:00–9:30, am Wochenende 8:00–10:30 Uhr zeigt die rechte Spalte nur die heutigen Termine und darunter Schlagzeilen für Bonn (General-Anzeiger), NRW (WDR) und Bund (tagesschau). Ohne Liveblogs und doppelte Themen; quer bis zu zwei, hochkant bis zu drei pro Ebene, je nach Platz. Quellen und Zeiten sind einstellbar.
+- **Wäsche auf dem Balkon:** abends 17–23 Uhr eine Karte über den Terminen: „reinholen“ (Regen, Schnee, Sturmböen), „besser rein“ (Regen möglich, Nebel, Tau, Frost) oder „kann bleiben“ – geprüft bis morgen 10 Uhr. Für überdachte Balkone einstellbar.
 - **Zug (optional):** an ausgewählten Wochentagen in einem Zeitfenster eine Karte über den Terminen mit den Live-Daten eines Zuges, z. B. dienstags 6:30–8:15 Uhr der RE 5 ab Bonn Hbf um 8:04 Uhr: Verspätung mit neuer Abfahrtszeit, Gleiswechsel, Ausfall, vorzeitiges Zugende. Daten: Timetables-API der Deutschen Bahn (CC BY 4.0).
 - **Robust:** Fällt der Kalender oder das Wetter aus, zeigt das Dashboard den anderen Teil trotzdem an.
 - **Layout:** Quer- und Hochformat; optimiert für E-Ink mit halbfetter Schrift und ohne grauen Text. Die Farben werden auf die sechs Displayfarben eingerastet (siehe unten).
@@ -105,6 +106,7 @@ tagesdashboard/
 ├── kleidung.py              # Regeln und Symbole der Kleidungsempfehlung
 ├── bahn.py                  # Live-Daten eines Zuges (DB Timetables-API)
 ├── nachrichten.py           # Morgen-Schlagzeilen aus RSS-Feeds
+├── waesche.py               # Abends: Wäsche reinholen?
 ├── settings.html            # Einstellungsseite (deutsch)
 ├── plugin-info.json
 ├── icon.png
@@ -116,7 +118,7 @@ tagesdashboard/
     └── eink.py              #   Farben auf die Displayfarben einrasten
 ```
 
-`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.3.1. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
+`lib/` enthält Kopien aus den Plugins „DWD Wetter“ und „Nextcloud Kalender“, Stand Version 1.4. Dadurch läuft das Dashboard ohne diese Plugins. Sind sie trotzdem installiert, stören sie sich nicht gegenseitig.
 
 ## Datenquellen
 
@@ -128,6 +130,6 @@ tagesdashboard/
 
 ## Status
 
-Version 1.3.1 (behoben: Playlist-Intervall wurde verdoppelt; 1.3: Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
+Version 1.4 (Wäsche-Karte am Abend; 1.3.1: Playlist-Intervall wurde verdoppelt; 1.3: Nachrichten am Morgen; 1.2: Zug-Live-Daten; 1.1: Farben einrasten, Schrift für E-Ink). Wird aktiv gepflegt; Fehlerberichte und Pull Requests sind willkommen.
 
 Lizenz: GPL-3.0 (wie InkyPi).

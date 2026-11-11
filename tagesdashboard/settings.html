@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="3" />
+<input type="hidden" name="cfgVersion" value="4" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -80,6 +80,14 @@
 </div>
 
 <div class="form-group">
+    <label class="form-label">Wäsche auf dem Balkon:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="laundryEnabled" name="laundryEnabled" value="true" data-default="true" data-since="4"><span>Abends anzeigen, ob die Wäsche rein sollte</span></div>
+    <div class="form-group"><span>Anzeigen von</span><input type="time" id="laundryFrom" name="laundryFrom" class="form-input" /><span>bis</span><input type="time" id="laundryTo" name="laundryTo" class="form-input" /></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="laundryCovered" name="laundryCovered" value="true" data-default="false" data-since="4"><span>Balkon ist überdacht (Regen zählt nur bei Wind)</span></div>
+    <div class="db-hint">Geprüft wird die Vorhersage bis morgen 10 Uhr. <b>Reinholen</b> bei Regen oder Schnee (ab 0,1 mm oder 60 %) und Sturmböen ab 50 km/h; <b>besser rein</b> bei möglichem Regen (ab 30 %), Nebel, Tau oder Frost; sonst <b>kann bleiben</b>.</div>
+</div>
+
+<div class="form-group">
     <label class="form-label">Nachrichten am Morgen:</label>
     <div class="form-group"><input type="checkbox" class="db-check" id="newsEnabled" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></div>
     <div class="form-group"><span>Mo–Fr von</span><input type="time" id="newsFrom" name="newsFrom" class="form-input" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input" /></div>
@@ -131,6 +139,7 @@
     const DEFAULTS = { switchHour: '20', sensitivity: 'empfindlich', calendarDays: '7',
         trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
         quietMinutes: '15',
+        laundryFrom: '17:00', laundryTo: '23:00',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };

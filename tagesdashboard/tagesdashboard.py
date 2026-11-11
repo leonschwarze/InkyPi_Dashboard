@@ -14,6 +14,7 @@ Was das Dashboard selbst hinzufügt:
   * Regenwahrscheinlichkeit direkt an den Terminen
   * Live-Daten eines Pendelzuges in einem Zeitfenster (bahn.py)
   * morgens Schlagzeilen für Bonn, NRW und Bund (nachrichten.py)
+  * abends: Wäsche vom Balkon holen? (waesche.py)
 """
 
 import json
@@ -40,9 +41,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten
+    from . import kleidung, bahn, nachrichten, waesche
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn, nachrichten
+    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -80,11 +81,16 @@ DEFAULTS = {
     "newsBonnFilter": "/bonn/",
     "newsNrwUrl": nachrichten.DEFAULT_FEEDS["nrw"][2],
     "newsBundUrl": nachrichten.DEFAULT_FEEDS["bund"][2],
+    # Wäsche (seit cfgVersion 4)
+    "laundryEnabled": "true",
+    "laundryFrom": "17:00", "laundryTo": "23:00",
+    "laundryCovered": "false",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
 SINCE_VERSION = {k: 2 for k in DEFAULTS if k.startswith("train") or k == "quietMinutes"}
 SINCE_VERSION.update({k: 3 for k in DEFAULTS if k.startswith("news")})
+SINCE_VERSION.update({k: 4 for k in DEFAULTS if k.startswith("laundry")})
 
 # Außerhalb des Zug-Zeitfensters wird ein fertiges Bild wiederverwendet (siehe generate_image)
 _IMAGE_CACHE = {}
@@ -180,6 +186,10 @@ class Tagesdashboard(BasePlugin):
         news_now = bool(news_cfg) and nachrichten.in_window(now, news_cfg)
         # Nur mit Zug: Nur dafür muss InkyPi schneller laufen als sonst. Ohne Zug gilt allein das
         # Intervall der Playlist (ein Cache würde es sonst stillschweigend verlängern).
+        laundry_win = None
+        if flag("laundryEnabled"):
+            lf, lt = bahn.parse_hhmm(opt("laundryFrom")), bahn.parse_hhmm(opt("laundryTo"))
+            laundry_win = (lf, lt) if lf and lt else None
         use_cache = bool(train_cfg) and not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
         if use_cache and not self._manual_refresh():
@@ -239,6 +249,8 @@ class Tagesdashboard(BasePlugin):
                 params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
                                            uv=weather.get("uv"))
 
+        if laundry_win and records and waesche.in_window(now, *laundry_win):
+            params["laundry"] = waesche.check(records, now, covered=flag("laundryCovered"))
         if news_now:
             params["news"] = nachrichten.load(news_cfg, now)
             params["news_sources"] = list(dict.fromkeys(it["source"] for g in params["news"] for it in g["items"]))
@@ -260,6 +272,7 @@ class Tagesdashboard(BasePlugin):
             until = now + timedelta(minutes=int(quiet) if quiet.isdigit() else 30)
             edges = [bahn.next_window_start(now, train_cfg)] if train_cfg else []
             edges += nachrichten.boundaries(now, news_cfg) if news_cfg else []
+            edges += waesche.boundaries(now, *laundry_win) if laundry_win else []
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
