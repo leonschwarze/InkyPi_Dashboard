@@ -97,7 +97,7 @@ def moon_svg(age, cls):
     lit_path = (f"M{c},{c - r} A{r},{r} 0 0 {side} {c},{c + r} "
                 f"A{rx:.2f},{r} 0 0 {sweep_back} {c},{c - r} Z")
     return (f'<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true">'
-            f'<circle cx="{c}" cy="{c}" r="{r}" fill="#000"/>'
+            f'<circle cx="{c}" cy="{c}" r="{r}" fill="#0B3D91"/>'
             f'<path d="{lit_path}" fill="#FFE500"/>'
             f'<circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="#000" stroke-width="2.4"/></svg>')
 

@@ -3,7 +3,7 @@
 {% block content %}
 {% if night %}
 <!-- ===================== Nachtbild ===================== -->
-<div lang="de" class="nt {{ orientation }}">
+<div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}">
   <section class="nt-day">
     <div class="nt-wd">{{ night.weekday }}</div>
     <div class="nt-date">{{ night.date }} · KW {{ night.kw }}</div>
@@ -18,8 +18,12 @@
     </div>
     {% endif %}
     <div class="nt-facts">
+      {% if night.art %}
+      <div>{% if night.night_low %}<span class="{% if night.frost %}nt-frost{% endif %}">Nacht tiefst {{ night.night_low }}°{% if night.frost %}, Frost{% endif %}</span>{% endif %}{% if night.night_low and night.sunrise %} · {% endif %}{% if night.sunrise %}Sonnenaufgang {{ night.sunrise }}{% endif %}</div>
+      {% else %}
       {% if night.night_low %}<div class="{% if night.frost %}nt-frost{% endif %}">Nacht: tiefst {{ night.night_low }}°{% if night.frost %} · Frost{% endif %}</div>{% endif %}
       {% if night.sunrise %}<div>Sonnenaufgang {{ night.sunrise }}</div>{% endif %}
+      {% endif %}
     </div>
     <div class="nt-moon">{{ night.moon.svg | safe }}<span>{{ night.moon.name }}</span></div>
   </section>
@@ -34,6 +38,16 @@
     {% if night.more %}<div class="nt-more">+ {{ night.more }} weitere</div>{% endif %}
     {% if view_error %}<div class="nt-err">{{ view_error }}</div>{% endif %}
   </section>
+  {% if night.art %}
+  <!-- Bonner Silhouette mit dem Himmel der Nacht, darüber Wetter und Tageslicht -->
+  <section class="nt-art">
+    <div class="nt-art-cap">
+      <span>Nacht: {% if night.art.weather %}{{ night.art.weather }} · {% endif %}{{ night.moon.name }}</span>
+      {% if night.art.daylight %}<span>{{ night.art.daylight }}</span>{% endif %}
+    </div>
+    {{ night.art.svg | safe }}
+  </section>
+  {% endif %}
 </div>
 {% elif week %}
 <!-- ===================== Wochenvorschau ===================== -->

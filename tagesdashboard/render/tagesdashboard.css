@@ -389,3 +389,29 @@
 .wk-more, .wk-free { font-size: calc(var(--u) * 1.8); }
 .wk-err { font-size: calc(var(--u) * 1.7); }
 .portrait .wk-chip { font-size: calc(var(--u) * 2.1); }
+
+/* ---------- Bonner Silhouette im Nachtbild ---------- */
+.nt.has-art { grid-template-rows: minmax(0, 1fr) auto; }
+.nt.portrait.has-art { grid-template-rows: auto minmax(0, 1fr) auto; }
+.nt-art {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; gap: calc(var(--u) * 0.5);
+  margin: calc(var(--u) * 1) calc(var(--u) * -2.6) calc(var(--u) * -2.2);
+}
+.nt-art-cap {
+  display: flex; justify-content: space-between; gap: calc(var(--u) * 2);
+  padding: 0 calc(var(--u) * 2.6);
+  font-size: calc(var(--u) * 1.75); line-height: 1.2;
+  white-space: nowrap;
+}
+.portrait .nt-art-cap { flex-direction: column; gap: calc(var(--u) * 0.2); }
+.nt-art .art-svg { display: block; width: 100%; height: calc(var(--u) * 15); }
+.portrait .nt-art .art-svg { height: calc(var(--u) * 17); }
+/* Mit Silhouette: Mond steht in der Bildunterschrift, oben etwas kompakter */
+.has-art .nt-moon { display: none; }
+.has-art .nt-wd { font-size: calc(var(--u) * 6.4); }
+.has-art .nt-wx { margin-top: calc(var(--u) * 1.2); }
+.has-art .nt-icon { width: calc(var(--u) * 10); height: calc(var(--u) * 10); }
+.has-art .nt-temp { font-size: calc(var(--u) * 5.8); }
+.has-art .nt-facts { margin-top: calc(var(--u) * 1.2); }
+.has-art .nt-ev { font-size: calc(var(--u) * 2.4); }

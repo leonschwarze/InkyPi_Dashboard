@@ -42,9 +42,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten
+    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten
+    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -89,6 +89,8 @@ DEFAULTS = {
     # Nachtbild und Wochenvorschau (seit cfgVersion 5)
     "nightEnabled": "true", "nightFrom": "23:00", "nightTo": "06:00", "nightFreeze": "true",
     "weekEnabled": "true", "weekFrom": "18:00", "weekTo": "23:00",
+    # Bonner Silhouette im Nachtbild (seit cfgVersion 6)
+    "nightArt": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -96,6 +98,7 @@ SINCE_VERSION = {k: 2 for k in DEFAULTS if k.startswith("train") or k == "quietM
 SINCE_VERSION.update({k: 3 for k in DEFAULTS if k.startswith("news")})
 SINCE_VERSION.update({k: 4 for k in DEFAULTS if k.startswith("laundry")})
 SINCE_VERSION.update({k: 5 for k in DEFAULTS if k.startswith(("night", "week"))})
+SINCE_VERSION["nightArt"] = 6
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -290,7 +293,8 @@ class Tagesdashboard(BasePlugin):
                                         api_key=device_config.load_env_key("DB_API_KEY"))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
         if mode != "normal":
-            self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error)
+            self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
+                              art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None)
 
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
         if not image:
@@ -322,7 +326,7 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Nachtbild und Wochenvorschau
     # ==================================================================
-    def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error):
+    def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -334,6 +338,13 @@ class Tagesdashboard(BasePlugin):
             d = now.date() if now.hour < 12 else now.date() + timedelta(days=1)
             params["night"] = ansichten.night(now, records if w else [], items_on(d), w, dwd, icons, train_cfg,
                                               weather["sun_cache"] if weather else None)
+            if art:
+                wx = nachtgrafik.night_weather(records, now, night_end or now + timedelta(hours=7)) if records else None
+                params["night"]["art"] = {
+                    "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800),
+                    "weather": nachtgrafik.describe(wx),
+                    "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
+                }
         else:
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,

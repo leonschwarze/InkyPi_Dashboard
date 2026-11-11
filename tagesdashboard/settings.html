@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="5" />
+<input type="hidden" name="cfgVersion" value="6" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -84,6 +84,7 @@
     <div class="form-group"><input type="checkbox" class="db-check" id="nightEnabled" name="nightEnabled" value="true" data-default="true" data-since="5"><span>Nachts ein ruhiges Bild für den kommenden Tag zeigen</span></div>
     <div class="form-group"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input" /></div>
     <div class="form-group"><input type="checkbox" class="db-check" id="nightFreeze" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nachts nur einmal zeichnen (kein Flackern bis zum Morgen)</span></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="nightArt" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht und Tageslicht zeigen</span></div>
 </div>
 
 <div class="form-group">
