@@ -2,7 +2,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
-<input type="hidden" name="cfgVersion" value="4" />
+<input type="hidden" name="cfgVersion" value="5" />
 
 <div class="form-group">
     <label class="form-label">Wetter-Ort:</label>
@@ -80,6 +80,19 @@
 </div>
 
 <div class="form-group">
+    <label class="form-label">Nachtbild:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="nightEnabled" name="nightEnabled" value="true" data-default="true" data-since="5"><span>Nachts ein ruhiges Bild für den kommenden Tag zeigen</span></div>
+    <div class="form-group"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input" /></div>
+    <div class="form-group"><input type="checkbox" class="db-check" id="nightFreeze" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nachts nur einmal zeichnen (kein Flackern bis zum Morgen)</span></div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Wochenvorschau:</label>
+    <div class="form-group"><input type="checkbox" class="db-check" id="weekEnabled" name="weekEnabled" value="true" data-default="true" data-since="5"><span>Sonntags die kommende Woche zeigen</span></div>
+    <div class="form-group"><span>von</span><input type="time" id="weekFrom" name="weekFrom" class="form-input" /><span>bis</span><input type="time" id="weekTo" name="weekTo" class="form-input" /></div>
+</div>
+
+<div class="form-group">
     <label class="form-label">Wäsche auf dem Balkon:</label>
     <div class="form-group"><input type="checkbox" class="db-check" id="laundryEnabled" name="laundryEnabled" value="true" data-default="true" data-since="4"><span>Abends anzeigen, ob die Wäsche rein sollte</span></div>
     <div class="form-group"><span>Anzeigen von</span><input type="time" id="laundryFrom" name="laundryFrom" class="form-input" /><span>bis</span><input type="time" id="laundryTo" name="laundryTo" class="form-input" /></div>
@@ -140,6 +153,7 @@
         trainStation: 'Bonn Hbf', trainLine: 'RE 5', trainTime: '08:04', trainFrom: '06:30', trainTo: '08:15',
         quietMinutes: '15',
         laundryFrom: '17:00', laundryTo: '23:00',
+        nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };

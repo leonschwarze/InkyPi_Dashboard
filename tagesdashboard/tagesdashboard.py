@@ -15,6 +15,7 @@ Was das Dashboard selbst hinzufügt:
   * Live-Daten eines Pendelzuges in einem Zeitfenster (bahn.py)
   * morgens Schlagzeilen für Bonn, NRW und Bund (nachrichten.py)
   * abends: Wäsche vom Balkon holen? (waesche.py)
+  * nachts ein ruhiges Nachtbild, sonntagabends eine Wochenvorschau (ansichten.py)
 """
 
 import json
@@ -41,9 +42,9 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche
+    from . import kleidung, bahn, nachrichten, waesche, ansichten
 except ImportError:  # pragma: no cover
-    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche
+    from plugins.tagesdashboard import kleidung, bahn, nachrichten, waesche, ansichten
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -85,12 +86,20 @@ DEFAULTS = {
     "laundryEnabled": "true",
     "laundryFrom": "17:00", "laundryTo": "23:00",
     "laundryCovered": "false",
+    # Nachtbild und Wochenvorschau (seit cfgVersion 5)
+    "nightEnabled": "true", "nightFrom": "23:00", "nightTo": "06:00", "nightFreeze": "true",
+    "weekEnabled": "true", "weekFrom": "18:00", "weekTo": "23:00",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
 SINCE_VERSION = {k: 2 for k in DEFAULTS if k.startswith("train") or k == "quietMinutes"}
 SINCE_VERSION.update({k: 3 for k in DEFAULTS if k.startswith("news")})
 SINCE_VERSION.update({k: 4 for k in DEFAULTS if k.startswith("laundry")})
+SINCE_VERSION.update({k: 5 for k in DEFAULTS if k.startswith(("night", "week"))})
+WEEK_DAY = 6  # Wochenvorschau sonntags
+
+# Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
+_NIGHT_CACHE = {}
 
 # Außerhalb des Zug-Zeitfensters wird ein fertiges Bild wiederverwendet (siehe generate_image)
 _IMAGE_CACHE = {}
@@ -190,8 +199,28 @@ class Tagesdashboard(BasePlugin):
         if flag("laundryEnabled"):
             lf, lt = bahn.parse_hhmm(opt("laundryFrom")), bahn.parse_hhmm(opt("laundryTo"))
             laundry_win = (lf, lt) if lf and lt else None
+        # ---- Ansicht: Nacht > Wochenvorschau > normal ---------------------
+        def window(prefix):
+            if not flag(f"{prefix}Enabled"):
+                return None
+            a, b = bahn.parse_hhmm(opt(f"{prefix}From")), bahn.parse_hhmm(opt(f"{prefix}To"))
+            return (a, b) if a and b and a != b else None
+        night_win, week_win = window("night"), window("week")
+        mode = "normal"
+        if night_win and ansichten.in_window(now, *night_win):
+            mode = "night"
+        elif week_win and ansichten.in_window(now, *week_win, weekday=WEEK_DAY):
+            mode = "week"
+        if mode != "normal":
+            news_now = train_now = False  # Sonderansichten zeigen weder Nachrichten noch Live-Zug
+
         use_cache = bool(train_cfg) and not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
+        if mode == "night" and flag("nightFreeze") and not self._manual_refresh():
+            hit = _NIGHT_CACHE.get(cache_key)
+            if hit and now < hit["until"]:
+                logger.info("Nachtbild von %s wiederverwendet (bis %s)", hit["made"], hit["until"].strftime("%H:%M"))
+                return hit["image"].copy()
         if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
             # 1 Minute Toleranz: Kommt InkyPi im eingestellten Takt, wird nie ein fälliges Bild ausgelassen
@@ -205,7 +234,8 @@ class Tagesdashboard(BasePlugin):
         # ---- Kalender (darf ausfallen, dann nur Wetter) -------------------
         events, calendars, cal_error = [], [], None
         try:
-            events, calendars = self.load_calendar(settings, device_config, tz, today, flag)
+            events, calendars = self.load_calendar(settings, device_config, tz, today, flag,
+                                                   min_days=8 if mode == "week" else 0)
         except RuntimeError as exc:
             cal_error = str(exc)
             logger.warning("Kalender nicht verfügbar: %s", exc)
@@ -213,7 +243,7 @@ class Tagesdashboard(BasePlugin):
         # ---- Wetter (darf ausfallen, dann nur Kalender) ------------------
         weather, wx_error = None, None
         try:
-            weather = self.load_weather(settings, tz, now, focus, flag)
+            weather = self.load_weather(settings, tz, now, focus, flag, days=8 if mode == "week" else 2)
         except RuntimeError as exc:
             wx_error = str(exc)
             logger.warning("Wetter nicht verfügbar: %s", exc)
@@ -259,12 +289,19 @@ class Tagesdashboard(BasePlugin):
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
                                         api_key=device_config.load_env_key("DB_API_KEY"))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        if mode != "normal":
+            self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error)
 
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
         if eink is not None:
             image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
+        if mode == "night" and flag("nightFreeze"):
+            # Einmal pro Nacht zeichnen: bis zum Ende des Nachtfensters bleibt das Bild stehen
+            _NIGHT_CACHE.clear()
+            _NIGHT_CACHE[cache_key] = {"image": image.copy(), "made": now.strftime("%H:%M"),
+                                       "until": ansichten.window_end(now, *night_win)}
         if use_cache:
             # Bild höchstens quietMinutes lang wiederverwenden und nie über eine Fenstergrenze
             # hinweg (Zugfenster beginnt, Nachrichten erscheinen oder verschwinden).
@@ -273,6 +310,8 @@ class Tagesdashboard(BasePlugin):
             edges = [bahn.next_window_start(now, train_cfg)] if train_cfg else []
             edges += nachrichten.boundaries(now, news_cfg) if news_cfg else []
             edges += waesche.boundaries(now, *laundry_win) if laundry_win else []
+            edges += ansichten.boundaries(now, *night_win) if night_win else []
+            edges += ansichten.boundaries(now, *week_win) if week_win else []
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
@@ -281,9 +320,30 @@ class Tagesdashboard(BasePlugin):
         return image
 
     # ==================================================================
+    # Nachtbild und Wochenvorschau
+    # ==================================================================
+    def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error):
+        helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
+        records = weather["records"] if weather else []
+        w = weather["dwd_plugin"] if weather else None
+
+        def items_on(d):
+            return helper.events_on_day(events, d, tz, now, False) if events else []
+
+        if mode == "night":
+            d = now.date() if now.hour < 12 else now.date() + timedelta(days=1)
+            params["night"] = ansichten.night(now, records if w else [], items_on(d), w, dwd, icons, train_cfg,
+                                              weather["sun_cache"] if weather else None)
+        else:
+            portrait = params["orientation"] == "portrait"
+            params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,
+                                            per_row=4 if portrait else 3)
+        params["view_error"] = cal_error or params.get("wx_error")
+
+    # ==================================================================
     # Kalender
     # ==================================================================
-    def load_calendar(self, settings, device_config, tz, today, flag):
+    def load_calendar(self, settings, device_config, tz, today, flag, min_days=0):
         user = (settings.get("username") or "").strip()
         url = (settings.get("nextcloudUrl") or "").strip()
         if not user or not url:
@@ -295,7 +355,7 @@ class Tagesdashboard(BasePlugin):
 
         days = int(self._opt(settings, "calendarDays")) if self._opt(settings, "calendarDays").isdigit() else 7
         start = datetime.combine(today, time.min, tz)
-        end = start + timedelta(days=max(days, 2) + 1)
+        end = start + timedelta(days=max(days, 2, min_days) + 1)
 
         client = nc.CalDavClient(nc.dav_root(url), user, password, verify=flag("verifySSL"))
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
@@ -344,7 +404,7 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Wetter
     # ==================================================================
-    def load_weather(self, settings, tz, now, focus, flag):
+    def load_weather(self, settings, tz, now, focus, flag, days=2):
         raw_lat = str(settings.get("latitude", "")).strip().replace(",", ".")
         raw_lon = str(settings.get("longitude", "")).strip().replace(",", ".")
         try:
@@ -355,7 +415,7 @@ class Tagesdashboard(BasePlugin):
         w = dwd.DwdWetter({"id": "dwd_wetter"})
         opts = {
             "show_alerts": flag("showAlerts"), "show_graph": False, "night_shading": True,
-            "graph_icons": True, "hours": 24, "days": 2,
+            "graph_icons": True, "hours": 24, "days": days,
             # Platz 5 wird durch den UV-Index ersetzt; Bewölkung ist der Ersatz ohne UV-Daten
             "tiles": ["wind", "gust", "precip", "humidity", "cloudcover", "sun"],
         }
@@ -393,6 +453,7 @@ class Tagesdashboard(BasePlugin):
             "alerts_more": base["alerts_more"],
             "records": records,
             "sun_cache": sun_cache,
+            "dwd_plugin": w,
         }
         if focus == now.date():
             cur = base["current"]

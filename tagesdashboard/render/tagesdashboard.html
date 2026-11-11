@@ -1,6 +1,68 @@
 {% extends "plugin.html" %}
 
 {% block content %}
+{% if night %}
+<!-- ===================== Nachtbild ===================== -->
+<div lang="de" class="nt {{ orientation }}">
+  <section class="nt-day">
+    <div class="nt-wd">{{ night.weekday }}</div>
+    <div class="nt-date">{{ night.date }} · KW {{ night.kw }}</div>
+    {% if night.wx %}
+    <div class="nt-wx">
+      {{ night.wx.icon | safe }}
+      <div class="nt-wx-txt">
+        <div class="nt-temp">{{ night.wx.tmax }}°<span class="nt-low"> / {{ night.wx.tmin }}°</span></div>
+        <div class="nt-cond">{{ night.wx.text }}</div>
+        {% if night.wx.prob is not none %}<div class="nt-sub">Regen {{ night.wx.prob }} % · {{ night.wx.precip }} mm</div>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="nt-facts">
+      {% if night.night_low %}<div class="{% if night.frost %}nt-frost{% endif %}">Nacht: tiefst {{ night.night_low }}°{% if night.frost %} · Frost{% endif %}</div>{% endif %}
+      {% if night.sunrise %}<div>Sonnenaufgang {{ night.sunrise }}</div>{% endif %}
+    </div>
+    <div class="nt-moon">{{ night.moon.svg | safe }}<span>{{ night.moon.name }}</span></div>
+  </section>
+  <section class="nt-agenda">
+    <div class="nt-h">Termine</div>
+    {% if night.train %}<div class="nt-ev"><span class="nt-pill">{{ night.train }}</span><span class="nt-title">{{ night.train_from }}</span></div>{% endif %}
+    {% for it in night.all_day %}<div class="nt-allday" style="background: {{ it.color }}; color: {{ it.fg }};">{{ it.title }}</div>{% endfor %}
+    {% for it in night.events %}
+    <div class="nt-ev"><span class="nt-bar" style="background: {{ it.color }};"></span><span class="nt-time">{{ it.short }}</span><span class="nt-title">{{ it.title }}{% if it.location %}<small>{{ it.location }}</small>{% endif %}</span></div>
+    {% endfor %}
+    {% if not night.events and not night.all_day and not night.train %}<div class="nt-none">Keine Termine</div>{% endif %}
+    {% if night.more %}<div class="nt-more">+ {{ night.more }} weitere</div>{% endif %}
+    {% if view_error %}<div class="nt-err">{{ view_error }}</div>{% endif %}
+  </section>
+</div>
+{% elif week %}
+<!-- ===================== Wochenvorschau ===================== -->
+<div lang="de" class="wk {{ orientation }}">
+  <header class="wk-head">
+    <span class="wk-title">Woche {{ week.kw }} · {{ week.span }}</span>
+    <span class="wk-sum">{{ week.summary }}</span>
+    {% if laundry %}<span class="wk-laundry lw-{{ laundry.state }}">Wäsche: <b>{{ laundry.badge }}</b></span>{% endif %}
+  </header>
+  <div class="wk-rows">
+    {% for r in week.rows %}
+    <div class="wk-row{% if r.weekend %} we{% endif %}">
+      <div class="wk-day"><b>{{ r.name }}</b><span>{{ r.date }}</span></div>
+      <div class="wk-wx">{% if r.wx %}{{ r.wx.icon | safe }}<div class="wk-t"><b>{{ r.wx.tmax }}°</b> {{ r.wx.tmin }}°{% if r.wx.prob is not none %}<span class="wk-p{% if r.wx.rainy %} rainy{% endif %}">{{ r.wx.prob }} %</span>{% endif %}</div>{% endif %}</div>
+      <div class="wk-evs">
+        {% if r.train %}<span class="wk-chip wk-train">{{ r.train }}</span>{% endif %}
+        {% for it in r["items"] %}
+          {% if it.all_day %}<span class="wk-chip wk-all" style="background: {{ it.color }}; color: {{ it.fg }};">{{ it.title }}</span>
+          {% else %}<span class="wk-chip" style="--c: {{ it.color }};"><b>{{ it.short }}</b>&nbsp;{{ it.title }}</span>{% endif %}
+        {% endfor %}
+        {% if r.more %}<span class="wk-more">+{{ r.more }}</span>{% endif %}
+        {% if not r["items"] and not r.train %}<span class="wk-free">frei</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
+</div>
+{% else %}
 <div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}"
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
@@ -171,6 +233,8 @@
     {% endif %}
   </section>
 </div>
+
+{% endif %}
 
 <script>
   /* Termine, die nicht mehr passen, ausblenden und zählen (wie im Kalender-Plugin). */
