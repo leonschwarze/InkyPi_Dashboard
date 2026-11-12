@@ -1,37 +1,56 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-<!-- Markiert gespeicherte Einstellungen: nicht angehakte Checkboxen gelten dann als "aus" -->
+<!-- Markiert gespeicherte Einstellungen und ihr Format. Ist cfgVersion vorhanden, gelten nicht angehakte
+     Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
+     Seit 1.10 neu gegliederte Seite, aber dieselben Schlüssel wie in Version 9 – keine Migration nötig. -->
 <input type="hidden" name="cfgVersion" value="9" />
 
-<div class="form-group">
-    <label class="form-label">Wetter-Ort:</label>
-    <div class="form-group db-wide">
+<div class="st">
+
+<section class="st-sec">
+    <h3 class="st-h">Wetter-Ort</h3>
+    <div class="st-row">
         <input type="text" id="dbSearch" class="form-input" placeholder="Ort suchen, z. B. Bonn" />
         <button type="button" id="dbSearchBtn" class="action-button compact">Suchen</button>
     </div>
-    <div id="dbResults" class="db-results"></div>
-    <div class="form-group"><span>Breitengrad </span><input type="text" id="latitude" name="latitude" class="form-input" placeholder="50.7374" /></div>
-    <div class="form-group"><span>Längengrad </span><input type="text" id="longitude" name="longitude" class="form-input" placeholder="7.0982" /></div>
-    <button type="button" id="openMap" class="action-button compact">Auf Karte wählen</button>
-    <div class="form-group db-wide"><span>Ortsname im Kopf (optional) </span><input type="text" id="customTitle" name="customTitle" class="form-input" placeholder="leer = Ortsname vom DWD" /></div>
-</div>
+    <div id="dbResults" class="st-results"></div>
+    <div class="st-row st-coords">
+        <label for="latitude">Breite</label>
+        <input type="text" id="latitude" name="latitude" class="form-input" placeholder="50.7374" inputmode="decimal" />
+        <label for="longitude">Länge</label>
+        <input type="text" id="longitude" name="longitude" class="form-input" placeholder="7.0982" inputmode="decimal" />
+        <button type="button" id="openMap" class="action-button compact">Karte</button>
+    </div>
+    <div class="st-field">
+        <label for="customTitle">Ortsname im Kopf</label>
+        <input type="text" id="customTitle" name="customTitle" class="form-input" placeholder="leer = Ortsname vom DWD" />
+    </div>
+    <div class="st-hint">Der Wetter-Ort ist auch der Startort für die Anfahrt, sofern dort nichts anderes steht.</div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Nextcloud:</label>
-    <div class="form-group db-wide"><span>Adresse </span><input type="text" id="nextcloudUrl" name="nextcloudUrl" class="form-input" placeholder="https://cloud.example.de" /></div>
-    <div class="form-group"><span>Benutzername </span><input type="text" id="username" name="username" class="form-input" autocomplete="off" /></div>
-    <div class="form-group"><span>Schlüssel für App-Passwort </span><input type="text" id="passwordKey" name="passwordKey" class="form-input" placeholder="NEXTCLOUD_APP_PASSWORD" /></div>
-    <div class="form-group db-wide"><span>Kalender </span><input type="text" id="calendars" name="calendars" class="form-input" placeholder="leer = alle, sonst z. B.: Persönlich, Arbeit" /></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="verifySSL" name="verifySSL" value="true" data-default="true"><span>SSL-Zertifikat prüfen</span></div>
-    <div class="db-hint">Das App-Passwort gehört unter <b>API Keys</b> (Schlüssel <code>NEXTCLOUD_APP_PASSWORD</code>), wie beim Kalender-Plugin.</div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Nextcloud</h3>
+    <div class="st-field">
+        <label for="nextcloudUrl">Adresse</label>
+        <input type="text" id="nextcloudUrl" name="nextcloudUrl" class="form-input" placeholder="https://cloud.example.de" inputmode="url" />
+    </div>
+    <div class="st-field">
+        <label for="username">Benutzername</label>
+        <input type="text" id="username" name="username" class="form-input" autocomplete="off" />
+    </div>
+    <div class="st-hint">Das App-Passwort steht nicht hier, sondern unter <b>API Keys</b> als <code id="keyHint">NEXTCLOUD_APP_PASSWORD</code> (wie beim Kalender-Plugin).</div>
+    <div class="st-field">
+        <label for="calendars">Kalender</label>
+        <input type="text" id="calendars" name="calendars" class="form-input" placeholder="leer = alle, sonst z. B.: Persönlich, Arbeit" />
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Wetter:</label>
-    <div class="form-group">
-        <span>Ab</span>
-        <select id="switchHour" name="switchHour" class="form-input">
+<section class="st-sec">
+    <h3 class="st-h">Wetter</h3>
+    <div class="st-line">
+        <span>Wetter für morgen ab</span>
+        <select id="switchHour" name="switchHour" class="form-input st-select">
             <option value="18">18 Uhr</option>
             <option value="19">19 Uhr</option>
             <option value="20">20 Uhr</option>
@@ -39,120 +58,167 @@
             <option value="22">22 Uhr</option>
             <option value="never">nie</option>
         </select>
-        <span>das Wetter für morgen zeigen</span>
     </div>
-    <div class="form-group db-wide"><span>Ort für den UV-Index </span><input type="text" id="uvCity" name="uvCity" class="form-input" placeholder="leer = Ortsname vom DWD, z. B. Bonn" /></div>
-    <div class="db-hint">Der DWD berechnet den UV-Index nur für ausgewählte Orte. Liegt dein Ort nicht dabei, trag den nächstgelegenen ein (z. B. Köln). Ohne Treffer zeigt die Kachel die Bewölkung.</div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="einkSnap" name="einkSnap" value="true" data-default="true"><span>Schärfer auf Inky-Displays (Farben einrasten statt rastern)</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="showAlerts" name="showAlerts" value="true" data-default="true"><span>Amtliche DWD-Warnungen</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="showGraph" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></div>
-</div>
-
-<div class="form-group">
-    <label class="form-label">Kleidung:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="showWear" name="showWear" value="true" data-default="true"><span>Kleidungsempfehlung</span></div>
-    <div class="form-group">
-        <span>Kälteempfinden</span>
-        <select id="sensitivity" name="sensitivity" class="form-input">
-            <option value="normal">normal</option>
-            <option value="empfindlich">kälteempfindlich (+3 °C)</option>
-            <option value="sehr">sehr kälteempfindlich (+5 °C)</option>
-        </select>
+    <label class="st-check"><input type="checkbox" class="db-check" name="showAlerts" value="true" data-default="true"><span>Amtliche DWD-Warnungen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="showWear" value="true" data-default="true"><span>Kleidungsempfehlung</span></label>
+    <div class="st-sub" data-parent="showWear">
+        <div class="st-line">
+            <span>Kälteempfinden</span>
+            <select id="sensitivity" name="sensitivity" class="form-input st-select">
+                <option value="normal">normal</option>
+                <option value="empfindlich">kälteempfindlich (+3 °C)</option>
+                <option value="sehr">sehr kälteempfindlich (+5 °C)</option>
+            </select>
+        </div>
     </div>
-</div>
+    <div class="st-field">
+        <label for="uvCity">Ort für den UV-Index</label>
+        <input type="text" id="uvCity" name="uvCity" class="form-input" placeholder="leer = Ortsname vom DWD, z. B. Bonn" />
+    </div>
+    <div class="st-hint">Der DWD berechnet den UV-Index nur für ausgewählte Orte. Liegt dein Ort nicht dabei, trag den nächstgelegenen ein (z. B. Köln). Ohne Treffer zeigt die Kachel die Bewölkung.</div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Termine:</label>
-    <div class="form-group">
+<section class="st-sec">
+    <h3 class="st-h">Termine</h3>
+    <div class="st-line">
         <span>Bis zu</span>
-        <select id="calendarDays" name="calendarDays" class="form-input">
-            <option value="3">3</option>
-            <option value="5">5</option>
-            <option value="7">7</option>
-            <option value="14">14</option>
+        <select id="calendarDays" name="calendarDays" class="form-input st-select">
+            <option value="3">3 Tage</option>
+            <option value="5">5 Tage</option>
+            <option value="7">7 Tage</option>
+            <option value="14">14 Tage</option>
         </select>
-        <span>Tage (was nicht passt, wird gekürzt)</span>
+        <span class="st-note">was nicht passt, wird gekürzt</span>
     </div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="rainOnEvents" name="rainOnEvents" value="true" data-default="true"><span>Regenrisiko an Terminen</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="showLocation" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="useColors" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="showPast" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></div>
-</div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="rainOnEvents" value="true" data-default="true"><span>Regenrisiko an Terminen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></label>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Nachtbild:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="nightEnabled" name="nightEnabled" value="true" data-default="true" data-since="5"><span>Nachts ein ruhiges Bild für den kommenden Tag zeigen</span></div>
-    <div class="form-group"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input" /></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="nightFreeze" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nachts nur einmal zeichnen (kein Flackern bis zum Morgen)</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="nightArt" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht und Tageslicht zeigen</span></div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Nachrichten am Morgen</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></label>
+    <div class="st-sub" data-parent="newsEnabled">
+        <div class="st-line"><span class="st-lbl">Mo–Fr</span><input type="time" id="newsFrom" name="newsFrom" class="form-input st-time" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input st-time" /></div>
+        <div class="st-line"><span class="st-lbl">Sa/So</span><input type="time" id="newsWeekendFrom" name="newsWeekendFrom" class="form-input st-time" /><span>bis</span><input type="time" id="newsWeekendTo" name="newsWeekendTo" class="form-input st-time" /></div>
+        <div class="st-field"><label for="newsBonnUrl">Bonn (Feed)</label><input type="text" id="newsBonnUrl" name="newsBonnUrl" class="form-input" inputmode="url" /></div>
+        <div class="st-line"><span>… nur Links mit</span><input type="text" id="newsBonnFilter" name="newsBonnFilter" class="form-input st-grow" placeholder="leer = alle Artikel" /></div>
+        <div class="st-field"><label for="newsNrwUrl">NRW (Feed)</label><input type="text" id="newsNrwUrl" name="newsNrwUrl" class="form-input" inputmode="url" /></div>
+        <div class="st-field"><label for="newsBundUrl">Bund (Feed)</label><input type="text" id="newsBundUrl" name="newsBundUrl" class="form-input" inputmode="url" /></div>
+        <div class="st-hint">Standard: General-Anzeiger (nur Bonner Artikel), WDR, tagesschau. Pro Ebene bis zu zwei Schlagzeilen der letzten 24 Stunden, ohne Liveblogs, Podcasts und doppelte Themen. Findet der GA zu wenig, ergänzt das Dashboard WDR-Meldungen mit „Bonn“.</div>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Wochenvorschau:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="weekEnabled" name="weekEnabled" value="true" data-default="true" data-since="5"><span>Sonntags die kommende Woche zeigen</span></div>
-    <div class="form-group"><span>von</span><input type="time" id="weekFrom" name="weekFrom" class="form-input" /><span>bis</span><input type="time" id="weekTo" name="weekTo" class="form-input" /></div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Zug (Live-Daten der Bahn)</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="trainEnabled" value="true" data-default="false" data-since="2"><span>Zug im Zeitfenster über den Terminen einblenden</span></label>
+    <div class="st-sub" data-parent="trainEnabled">
+        <div class="st-pairs">
+            <label for="trainStation">Bahnhof</label><input type="text" id="trainStation" name="trainStation" class="form-input" placeholder="Bonn Hbf" />
+            <label for="trainLine">Linie</label><input type="text" id="trainLine" name="trainLine" class="form-input" placeholder="RE 5" />
+            <label for="trainTime">Abfahrt</label><input type="time" id="trainTime" name="trainTime" class="form-input st-time" />
+            <label for="trainTarget">Ausstieg</label><input type="text" id="trainTarget" name="trainTarget" class="form-input" placeholder="Düsseldorf Hbf" />
+        </div>
+        <div class="st-days" role="group" aria-label="Wochentage">
+            <label><input type="checkbox" class="db-check" name="trainMo" value="true" data-default="false" data-since="2"><span>Mo</span></label>
+            <label><input type="checkbox" class="db-check" name="trainDi" value="true" data-default="true" data-since="2"><span>Di</span></label>
+            <label><input type="checkbox" class="db-check" name="trainMi" value="true" data-default="false" data-since="2"><span>Mi</span></label>
+            <label><input type="checkbox" class="db-check" name="trainDo" value="true" data-default="false" data-since="2"><span>Do</span></label>
+            <label><input type="checkbox" class="db-check" name="trainFr" value="true" data-default="false" data-since="2"><span>Fr</span></label>
+            <label><input type="checkbox" class="db-check" name="trainSa" value="true" data-default="false" data-since="2"><span>Sa</span></label>
+            <label><input type="checkbox" class="db-check" name="trainSo" value="true" data-default="false" data-since="2"><span>So</span></label>
+        </div>
+        <div class="st-line"><span>von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input st-time" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input st-time" /></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="trainAlerts" value="true" data-default="true" data-since="7"><span>Störungsmeldungen zu diesem Zug unter der Abfahrt zeigen</span></label>
+        <div class="st-hint">Am Ausstieg zeigt das Dashboard die erwartete Ankunft. Meldungen nur, wenn sie an genau dieser Fahrt hängen: Störungen, Baustellen, Ersatzverkehr und – bei Verspätung – der Grund.</div>
+        <div class="st-line"><span>Sonst alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input st-num" /><span>min neu zeichnen</span></div>
+        <details class="st-why">
+            <summary>Aktualisierung und API-Schlüssel</summary>
+            <div class="st-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur im Takt „Sonst alle … min“ neu (dein gewohnter Takt; InkyPi bekommt dazwischen dasselbe Bild und lässt das Display in Ruhe). Ohne Zug gilt einfach das Intervall der Playlist.</div>
+            <div class="st-hint">Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
+        </details>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Wäsche auf dem Balkon:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="laundryEnabled" name="laundryEnabled" value="true" data-default="true" data-since="4"><span>Abends anzeigen, ob die Wäsche rein sollte</span></div>
-    <div class="form-group"><span>Anzeigen von</span><input type="time" id="laundryFrom" name="laundryFrom" class="form-input" /><span>bis</span><input type="time" id="laundryTo" name="laundryTo" class="form-input" /></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="laundryCovered" name="laundryCovered" value="true" data-default="false" data-since="4"><span>Balkon ist überdacht (Regen zählt nur bei Wind)</span></div>
-    <div class="db-hint">Geprüft wird die Vorhersage bis morgen 10 Uhr. <b>Reinholen</b> bei Regen oder Schnee (ab 0,1 mm oder 60 %) und Sturmböen ab 50 km/h; <b>besser rein</b> bei möglichem Regen (ab 30 %), Nebel, Tau oder Frost; sonst <b>kann bleiben</b>.</div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Anfahrt zu Terminen</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="tripEnabled" value="true" data-default="false" data-since="8"><span>Zeigen, wann ich los muss – mit dem Rad oder, wenn es nicht sicher trocken ist, mit Bus und Bahn</span></label>
+    <div class="st-sub" data-parent="tripEnabled">
+        <div class="st-field"><label for="tripStart">Startort</label><input type="text" id="tripStart" name="tripStart" class="form-input" placeholder="leer = Wetter-Ort; sonst Adresse oder 50.7374, 7.0982" /></div>
+        <div class="st-line"><span>Ankunft</span><input type="number" min="0" max="60" step="1" id="tripBuffer" name="tripBuffer" class="form-input st-num" /><span>min vor Beginn</span></div>
+        <div class="st-line"><span>Rad nur unter</span><input type="number" min="5" max="90" step="5" id="tripRainProb" name="tripRainProb" class="form-input st-num" /><span>% Regenrisiko</span></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="tripHome" value="true" data-default="false" data-since="8"><span>Auch das Wetter auf dem Heimweg berücksichtigen</span></label>
+        <div class="st-line"><span>Pause unter</span><input type="number" min="0" max="600" step="15" id="tripMaxGap" name="tripMaxGap" class="form-input st-num" /><span>min = eine Kette</span></div>
+        <div class="st-hint">Termine mit kürzerer Pause gehören zusammen: kein Heimweg dazwischen, ein Verkehrsmittel für alle Wege.</div>
+        <div class="st-line"><span>Aufbruch-Karte</span><input type="number" min="15" max="600" step="15" id="tripLead" name="tripLead" class="form-input st-num" /><span>min vorher</span></div>
+        <div class="st-field"><label for="tripSkip">Ohne Anfahrt bei</label><input type="text" id="tripSkip" name="tripSkip" class="form-input" placeholder="Video, online, Zoom, Teams" /></div>
+        <div class="st-field"><label for="tripPlaces">Eigene Orte</label><textarea id="tripPlaces" name="tripPlaces" class="form-input" rows="3" placeholder="Stadthaus = Berliner Platz 2, 53111 Bonn&#10;Landtag = 51.2259, 6.7730"></textarea></div>
+        <div class="st-hint">„Eigene Orte“ hilft, wenn ein Terminort nicht gefunden wird: Steht der Name im Ort des Termins, wird die Adresse dahinter verwendet.</div>
+        <details class="st-why">
+            <summary>So wird entschieden</summary>
+            <div class="st-hint">Termine, zwischen denen die Pause kurz ist, bilden eine Kette. Mit dem <b>Rad</b> nur, wenn es auf allen Wegen der Kette – mit einer Stunde Abstand – trocken ist: kein Niederschlag, Regenrisiko unter der Schwelle, keine Böen ab 50 km/h, keine Glätte. Sonst <b>Bus und Bahn</b> für die ganze Kette. Termine ohne Ort werden übersprungen. Fahrzeiten und Verbindungen kommen von <a href="https://transitous.org" target="_blank">Transitous</a> (frei, ehrenamtlich betrieben).</div>
+        </details>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Anfahrt zu Terminen:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="tripEnabled" name="tripEnabled" value="true" data-default="false" data-since="8"><span>Zeigen, wann ich los muss – mit dem Rad oder, wenn es nicht sicher trocken ist, mit Bus und Bahn</span></div>
-    <div class="form-group db-wide"><span>Startort </span><input type="text" id="tripStart" name="tripStart" class="form-input" placeholder="leer = Wetter-Ort; sonst Adresse oder 50.7374, 7.0982" /></div>
-    <div class="form-group"><span>Ankunft</span><input type="number" min="0" max="60" step="1" id="tripBuffer" name="tripBuffer" class="form-input db-num" /><span>Minuten vor Terminbeginn</span></div>
-    <div class="form-group"><span>Rad nur unter</span><input type="number" min="5" max="90" step="5" id="tripRainProb" name="tripRainProb" class="form-input db-num" /><span>% Regenrisiko</span></div>
-    <div class="form-group"><span>Termine mit weniger als</span><input type="number" min="0" max="600" step="15" id="tripMaxGap" name="tripMaxGap" class="form-input db-num" /><span>Minuten Pause gehören zusammen (kein Heimweg dazwischen)</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="tripHome" name="tripHome" value="true" data-default="false" data-since="8"><span>Auch das Wetter auf dem Heimweg berücksichtigen</span></div>
-    <div class="form-group"><span>Aufbruch-Karte</span><input type="number" min="15" max="600" step="15" id="tripLead" name="tripLead" class="form-input db-num" /><span>Minuten vor der Abfahrt einblenden</span></div>
-    <div class="form-group db-wide"><span>Ohne Anfahrt bei </span><input type="text" id="tripSkip" name="tripSkip" class="form-input" placeholder="Video, online, Zoom, Teams" /></div>
-    <div class="form-group db-wide"><span>Eigene Orte </span><textarea id="tripPlaces" name="tripPlaces" class="form-input" rows="3" placeholder="Stadthaus = Berliner Platz 2, 53111 Bonn&#10;Landtag = 51.2259, 6.7730"></textarea></div>
-    <div class="db-hint">Termine, zwischen denen die Pause kurz ist, bilden eine Kette. Mit dem <b>Rad</b> nur, wenn es auf allen Wegen der Kette – mit einer Stunde Abstand – trocken ist: kein Niederschlag, Regenrisiko unter der Schwelle, keine Böen ab 50 km/h, keine Glätte. Sonst <b>Bus und Bahn</b> für die ganze Kette. Fahrzeiten und Verbindungen kommen von <a href="https://transitous.org" target="_blank">Transitous</a> (frei, ehrenamtlich betrieben). „Eigene Orte“ hilft, wenn ein Terminort nicht gefunden wird: steht der Name im Ort des Termins, wird die Adresse dahinter verwendet. Termine ohne Ort werden übersprungen.</div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Wäsche auf dem Balkon</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="laundryEnabled" value="true" data-default="true" data-since="4"><span>Abends anzeigen, ob die Wäsche rein sollte</span></label>
+    <div class="st-sub" data-parent="laundryEnabled">
+        <div class="st-line"><span>von</span><input type="time" id="laundryFrom" name="laundryFrom" class="form-input st-time" /><span>bis</span><input type="time" id="laundryTo" name="laundryTo" class="form-input st-time" /></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="laundryCovered" value="true" data-default="false" data-since="4"><span>Balkon ist überdacht (Regen zählt nur bei Wind)</span></label>
+        <details class="st-why">
+            <summary>So wird entschieden</summary>
+            <div class="st-hint">Geprüft wird die Vorhersage bis morgen 10 Uhr. <b>Reinholen</b> bei Regen oder Schnee (ab 0,1 mm oder 60 %) und Sturmböen ab 50 km/h; <b>besser rein</b> bei möglichem Regen (ab 30 %), Nebel, Tau oder Frost; sonst <b>kann bleiben</b>.</div>
+        </details>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Festtage und Geburtstage:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="festXmas" name="festXmas" value="true" data-default="true" data-since="9"><span>Heiligabend und Weihnachten (Gruß 24.–26.12., Festbild an Heiligabend 17–23 Uhr)</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="festNye" name="festNye" value="true" data-default="true" data-since="9"><span>Silvester und Neujahr (Gruß 31.12. und 1.1., Festbild 22–2 Uhr, um Mitternacht „Frohes neues Jahr“)</span></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="festBday" name="festBday" value="true" data-default="true" data-since="9"><span>Geburtstage im Haushalt (Gruß im Kopf, Festbild mit Folienballons 6–10 Uhr)</span></div>
-    <input type="hidden" id="birthdays" name="birthdays" value="" />
-    <table class="bd-table"><thead><tr><th>Name</th><th>Tag</th><th>Monat</th><th>Jahr (freiwillig)</th><th></th></tr></thead>
-        <tbody id="bdRows"></tbody></table>
-    <button type="button" class="bd-add" id="bdAdd">+ Geburtstag hinzufügen</button>
-    <div class="db-hint">Mit Jahr kennt das Dashboard das Alter. Wer am 29. Februar Geburtstag hat, wird in anderen Jahren am 28. Februar gefeiert. Fehlende Namen, Jahre in der Zukunft und doppelte Einträge werden beim Speichern markiert.</div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Wochenvorschau</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="weekEnabled" value="true" data-default="true" data-since="5"><span>Sonntags die kommende Woche zeigen</span></label>
+    <div class="st-sub" data-parent="weekEnabled">
+        <div class="st-line"><span>von</span><input type="time" id="weekFrom" name="weekFrom" class="form-input st-time" /><span>bis</span><input type="time" id="weekTo" name="weekTo" class="form-input st-time" /></div>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Nachrichten am Morgen:</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="newsEnabled" name="newsEnabled" value="true" data-default="true" data-since="3"><span>Schlagzeilen für Bonn, NRW und Bund zeigen (dann nur die heutigen Termine)</span></div>
-    <div class="form-group"><span>Mo–Fr von</span><input type="time" id="newsFrom" name="newsFrom" class="form-input" /><span>bis</span><input type="time" id="newsTo" name="newsTo" class="form-input" /></div>
-    <div class="form-group"><span>Sa/So von</span><input type="time" id="newsWeekendFrom" name="newsWeekendFrom" class="form-input" /><span>bis</span><input type="time" id="newsWeekendTo" name="newsWeekendTo" class="form-input" /></div>
-    <div class="form-group db-wide"><span>Bonn (Feed) </span><input type="text" id="newsBonnUrl" name="newsBonnUrl" class="form-input" /></div>
-    <div class="form-group db-wide"><span>… nur Links mit </span><input type="text" id="newsBonnFilter" name="newsBonnFilter" class="form-input" placeholder="leer = alle Artikel" /></div>
-    <div class="form-group db-wide"><span>NRW (Feed) </span><input type="text" id="newsNrwUrl" name="newsNrwUrl" class="form-input" /></div>
-    <div class="form-group db-wide"><span>Bund (Feed) </span><input type="text" id="newsBundUrl" name="newsBundUrl" class="form-input" /></div>
-    <div class="db-hint">Standard: General-Anzeiger (nur Bonner Artikel), WDR, tagesschau. Pro Ebene bis zu zwei Schlagzeilen der letzten 24 Stunden, ohne Liveblogs, Podcasts und doppelte Themen. Findet der GA zu wenig, ergänzt das Dashboard WDR-Meldungen mit „Bonn“.</div>
-</div>
+<section class="st-sec">
+    <h3 class="st-h">Nachtbild</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="nightEnabled" value="true" data-default="true" data-since="5"><span>Nachts ein ruhiges Bild für den kommenden Tag zeigen</span></label>
+    <div class="st-sub" data-parent="nightEnabled">
+        <div class="st-line"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input st-time" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input st-time" /></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht und Tageslicht</span></label>
+        <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
+    </div>
+</section>
 
-<div class="form-group">
-    <label class="form-label">Zug (Live-Daten der Bahn):</label>
-    <div class="form-group"><input type="checkbox" class="db-check" id="trainEnabled" name="trainEnabled" value="true" data-default="false" data-since="2"><span>Zug im Zeitfenster über den Terminen einblenden</span></div>
-    <div class="form-group"><span>Bahnhof </span><input type="text" id="trainStation" name="trainStation" class="form-input" placeholder="Bonn Hbf" /></div>
-    <div class="form-group"><span>Linie </span><input type="text" id="trainLine" name="trainLine" class="form-input" placeholder="RE 5" /></div>
-    <div class="form-group"><span>Planmäßige Abfahrt </span><input type="time" id="trainTime" name="trainTime" class="form-input" /></div>
-    <div class="form-group"><span>Anzeigen von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input" /></div>
-    <div class="form-group db-days"><label class="db-day"><input type="checkbox" class="db-check" id="trainMo" name="trainMo" value="true" data-default="false" data-since="2">Mo</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDi" name="trainDi" value="true" data-default="true" data-since="2">Di</label><label class="db-day"><input type="checkbox" class="db-check" id="trainMi" name="trainMi" value="true" data-default="false" data-since="2">Mi</label><label class="db-day"><input type="checkbox" class="db-check" id="trainDo" name="trainDo" value="true" data-default="false" data-since="2">Do</label><label class="db-day"><input type="checkbox" class="db-check" id="trainFr" name="trainFr" value="true" data-default="false" data-since="2">Fr</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSa" name="trainSa" value="true" data-default="false" data-since="2">Sa</label><label class="db-day"><input type="checkbox" class="db-check" id="trainSo" name="trainSo" value="true" data-default="false" data-since="2">So</label></div>
-    <div class="form-group"><span>Ausstieg </span><input type="text" id="trainTarget" name="trainTarget" class="form-input" placeholder="Düsseldorf Hbf" /></div>
-    <div class="form-group"><input type="checkbox" class="db-check" id="trainAlerts" name="trainAlerts" value="true" data-default="true" data-since="7"><span>Störungsmeldungen zu diesem Zug unter der Abfahrt zeigen</span></div>
-    <div class="db-hint">Am Ausstieg zeigt das Dashboard die erwartete Ankunft. Meldungen kommen nur, wenn sie an genau dieser Fahrt hängen (in Abfahrts- oder Ausstiegsbahnhof): Störungen, Baustellen, Ersatzverkehr und – bei Verspätung – der Grund.</div>
-    <div class="form-group"><span>Außerhalb des Zeitfensters alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input db-num" /><span>Minuten neu zeichnen (dein gewohnter Takt)</span></div>
-    <div class="db-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur im oben eingestellten Takt neu (InkyPi bekommt dazwischen dasselbe Bild und lässt das Display in Ruhe). Ohne Zug gilt einfach das Intervall der Playlist.
-    Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
+<section class="st-sec">
+    <h3 class="st-h">Festtage und Geburtstage</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="festXmas" value="true" data-default="true" data-since="9"><span>Heiligabend und Weihnachten <span class="st-note">Gruß 24.–26.12., Festbild an Heiligabend 17–23 Uhr</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="festNye" value="true" data-default="true" data-since="9"><span>Silvester und Neujahr <span class="st-note">Gruß 31.12. und 1.1., Festbild 22–2 Uhr</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="festBday" value="true" data-default="true" data-since="9"><span>Geburtstage im Haushalt <span class="st-note">Gruß im Kopf, Festbild mit Folienballons 6–10 Uhr</span></span></label>
+    <div class="st-sub" data-parent="festBday">
+        <input type="hidden" id="birthdays" name="birthdays" value="" />
+        <table class="bd-table"><thead><tr><th>Name</th><th>Tag</th><th>Monat</th><th>Jahr (freiwillig)</th><th></th></tr></thead>
+            <tbody id="bdRows"></tbody></table>
+        <button type="button" class="bd-add" id="bdAdd">+ Geburtstag hinzufügen</button>
+        <div class="st-hint">Mit Jahr kennt das Dashboard das Alter. Wer am 29. Februar Geburtstag hat, wird in anderen Jahren am 28. Februar gefeiert. Fehlende Namen, Jahre in der Zukunft und doppelte Einträge werden beim Speichern markiert.</div>
+    </div>
+</section>
+
+<details class="st-more" id="moreBox">
+    <summary>Erweitert</summary>
+    <div class="st-field">
+        <label for="passwordKey">Name des Schlüssels für das App-Passwort</label>
+        <input type="text" id="passwordKey" name="passwordKey" class="form-input" placeholder="NEXTCLOUD_APP_PASSWORD" />
+    </div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="verifySSL" value="true" data-default="true"><span>SSL-Zertifikat prüfen</span></label>
+    <div class="st-hint">Nur bei selbst signierten Zertifikaten abschalten.</div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="einkSnap" value="true" data-default="true"><span>Schärfer auf Inky-Displays (Farben einrasten statt rastern)</span></label>
+</details>
+
 </div>
 
 <div id="mapModal" class="modal">
@@ -166,26 +232,91 @@
 </div>
 
 <style>
-    .db-wide { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; }
-    .db-wide .form-input { flex: 1; }
-    .db-results { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
-    .db-results button { text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    /* Gemeinsames Gerüst der Einstellungsseiten (gleich in dwd_wetter, nextcloud_kalender, tagesdashboard) */
+    .st { display: flex; flex-direction: column; gap: 4px; color: var(--text-primary); }
+    .st-sec { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 10px; }
+    .st-h { margin: 6px 0 2px; padding-bottom: 4px; font-size: 1.05rem; font-weight: 600;
+        border-bottom: 1px solid var(--border-color); }
+    .st-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .st-row > .form-input { flex: 1 1 8em; min-width: 0; }
+    .st-coords label, .st-pairs label { font-weight: 600; white-space: nowrap; }
+    .st-field label { font-weight: 600; }
+    .st-coords .form-input { flex: 1 1 5em; }
+    .st-field { display: flex; flex-direction: column; gap: 4px; }
+    .st-line { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+    .st-line .st-check { flex: 0 1 auto; }
+    .st-select { flex: 0 0 auto; width: auto; }
+    .st-grow { flex: 1 1 8em; min-width: 0; }
+    .st-num { flex: 0 0 auto; width: 4.2em; }
+    .st-time { flex: 0 0 auto; width: auto; }
+    .st-lbl { min-width: 3.2em; font-weight: 600; }
+    .st-note { color: var(--text-secondary); font-size: 0.9em; }
+    .st-check .st-note { display: block; }
+    /* Checkbox mit hängendem Einzug: lange Texte laufen neben der Box weiter, nicht darunter */
+    .st-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; line-height: 1.35; }
+    .st-check input { flex: 0 0 auto; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent-primary); }
+    .st-sub { display: flex; flex-direction: column; gap: 8px; margin-left: 28px; padding-left: 12px;
+        border-left: 2px solid var(--border-color); transition: opacity 0.2s; }
+    /* Nur optisch abschwächen, NICHT disabled setzen: disabled-Felder schickt der Browser beim Speichern nicht mit,
+       die Werte wären dann weg. */
+    .st-off { opacity: 0.45; }
+    .st-hint { font-size: 0.9em; color: var(--text-secondary); line-height: 1.4; }
+    .st-hint code { font-size: 0.95em; }
+    .st-check + .st-hint { margin: -4px 0 0 28px; }
+    /* Zweispaltige Paare Beschriftung | Feld (Zug) */
+    .st-pairs { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+    .st-pairs .form-input { min-width: 0; }
+    .st-pairs .st-time { justify-self: start; }
+    /* Wochentage als kleine Schalter */
+    .st-days { display: flex; flex-wrap: wrap; gap: 6px; }
+    .st-days label { cursor: pointer; }
+    .st-days input { position: absolute; opacity: 0; pointer-events: none; }
+    .st-days span { display: inline-block; min-width: 2.4em; text-align: center; padding: 5px 6px; font-weight: 600;
+        border: 1px solid var(--border-color); border-radius: 6px; }
+    .st-days input:checked + span { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+    .st-days input:focus-visible + span { outline: 2px solid var(--accent-hover); }
+    /* Kleine Aufklapper für längere Erklärungen */
+    .st-why > summary { cursor: pointer; font-size: 0.9em; color: var(--accent-primary); }
+    .st-why[open] { display: flex; flex-direction: column; gap: 6px; }
+    .st-more { margin: 4px 0 6px; }
+    .st-more > summary { cursor: pointer; padding: 10px; background: var(--collapsible-bg); list-style: none; }
+    .st-more > summary::-webkit-details-marker { display: none; }
+    .st-more > summary::after { content: "▼"; float: right; opacity: 0.5; }
+    .st-more[open] > summary::after { content: "▲"; }
+    .st-more[open] { display: flex; flex-direction: column; gap: 8px; }
+    .st-results { display: flex; flex-direction: column; gap: 4px; }
+    .st-results:empty { display: none; }
+    .st-results button { text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer;
         border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; font: inherit; }
-    .db-days { display: flex; flex-wrap: wrap; gap: 10px; }
-    .db-day { display: inline-flex; align-items: center; gap: 4px; }
-    .db-num { width: 5em; }
-    textarea.form-input { flex: 1; min-height: 4.5em; font: inherit; }
-    .bd-table { flex: 1 1 100%; border-collapse: collapse; }
-    .bd-table th { text-align: left; font-weight: normal; font-size: 0.85em; opacity: 0.8; padding: 2px 4px; }
+    .st-results button:hover { background: rgba(127, 127, 127, 0.15); }
+    textarea.form-input { min-height: 4.5em; font: inherit; resize: vertical; }
+    /* Geburtstage: Tabelle am Desktop, auf schmalen Bildschirmen eine Karte je Eintrag */
+    .bd-table { width: auto; align-self: flex-start; border-collapse: collapse; }
+    .bd-table th { text-align: left; font-weight: 600; font-size: 0.85em; color: var(--text-secondary); padding: 2px 4px; }
     .bd-table td { padding: 3px 4px; vertical-align: top; }
     .bd-table .form-input { width: auto; }
     .bd-name { width: 11em !important; } .bd-year { width: 5.5em !important; }
-    .bd-del { border: 1px solid var(--border-color, #bbb); background: transparent; color: inherit; border-radius: 6px; cursor: pointer; padding: 3px 9px; }
-    .bd-next { font-size: 0.85em; opacity: 0.85; padding: 0 4px 6px; }
+    .bd-del { border: 1px solid var(--border-color, #bbb); background: transparent; color: inherit; border-radius: 6px; cursor: pointer; padding: 5px 10px; }
+    .bd-next { font-size: 0.85em; color: var(--text-secondary); padding: 0 4px 8px; }
     .bd-err .form-input { border-color: #d00 !important; }
     .bd-msg { color: #d00; }
-    .bd-add { border: 1px dashed currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
-    .db-results .db-hint, .db-hint { flex: 1 1 100%; opacity: 0.8; font-size: 0.9em; }
+    .bd-add { align-self: flex-start; border: 1px dashed currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+    @media (max-width: 480px) {
+        .st-sub { margin-left: 6px; }
+    }
+    @media (max-width: 560px) {
+        .bd-table thead { display: none; }
+        .bd-table, .bd-table tbody { display: block; }
+        .bd-table tr.bd-row { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+        .bd-table tr.bd-row td { padding: 0; }
+        .bd-table tr.bd-row td:first-child { flex: 1 1 calc(100% - 52px); display: flex; }
+        .bd-table tr.bd-row td:last-child { order: 1; }
+        .bd-table tr.bd-row td:nth-child(2) { order: 2; } .bd-table tr.bd-row td:nth-child(3) { order: 3; }
+        .bd-table tr.bd-row td:nth-child(4) { order: 4; }
+        .bd-table tr.bd-row td:first-child .form-input { width: 100% !important; }
+        .bd-table tr:not(.bd-row) { display: block; border-bottom: 1px solid var(--border-color); }
+        .bd-table tr:not(.bd-row) td { display: block; padding: 4px 0 8px; }
+    }
 </style>
 
 <script>
@@ -201,6 +332,7 @@
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };
+    const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 
     function validate() {
@@ -248,11 +380,11 @@
     function addBirthday(b) {
         const tr = document.createElement('tr');
         tr.className = 'bd-row';
-        tr.innerHTML = `<td><input type="text" class="form-input bd-name" maxlength="24" placeholder="Name"></td>
-            <td><select class="form-input bd-day"></select></td>
-            <td><select class="form-input bd-month">${MONATE.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select></td>
-            <td><input type="number" class="form-input bd-year" min="1900" max="${today.getFullYear()}" placeholder="—"></td>
-            <td><button type="button" class="bd-del" title="Entfernen">×</button></td>`;
+        tr.innerHTML = `<td><input type="text" class="form-input bd-name" maxlength="24" placeholder="Name" aria-label="Name"></td>
+            <td><select class="form-input bd-day" aria-label="Tag"></select></td>
+            <td><select class="form-input bd-month" aria-label="Monat">${MONATE.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select></td>
+            <td><input type="number" class="form-input bd-year" min="1900" max="${today.getFullYear()}" placeholder="Jahr" aria-label="Jahr (freiwillig)"></td>
+            <td><button type="button" class="bd-del" title="Entfernen" aria-label="Entfernen">×</button></td>`;
         const info = document.createElement('tr');
         info.innerHTML = '<td colspan="5" class="bd-next"></td>';
         bdRows().append(tr, info);
@@ -303,28 +435,40 @@
         document.getElementById('longitude').value = Number(lon).toFixed(4);
     }
 
+    // Unteroptionen abschwächen, wenn die Hauptoption aus ist (Werte bleiben gespeichert)
+    function syncSubs() {
+        document.querySelectorAll('.st-sub[data-parent]').forEach(sub => {
+            const parent = document.querySelector(`input[name="${sub.dataset.parent}"]`);
+            sub.classList.toggle('st-off', !!parent && !parent.checked);
+        });
+    }
+
     async function searchPlace() {
         const q = document.getElementById('dbSearch').value.trim();
         const box = document.getElementById('dbResults');
         if (!q) return;
-        box.innerHTML = '<span class="db-hint">Suche …</span>';
+        box.innerHTML = '<span class="st-hint">Suche …</span>';
         try {
             const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=de'
                 + '&countrycodes=de,at,ch,lu,li,be,nl,dk,pl,cz,fr&q=' + encodeURIComponent(q);
             const items = await (await fetch(url, { headers: { 'Accept': 'application/json' } })).json();
-            box.innerHTML = items.length ? '' : '<span class="db-hint">Kein Ort gefunden.</span>';
+            box.innerHTML = items.length ? '' : '<span class="st-hint">Kein Ort gefunden.</span>';
             items.forEach(item => {
                 const b = document.createElement('button');
                 b.type = 'button';
                 b.textContent = item.display_name;
                 b.addEventListener('click', () => {
                     setLocation(item.lat, item.lon);
-                    box.innerHTML = '<span class="db-hint">Übernommen: ' + item.display_name + '</span>';
+                    box.innerHTML = '';
+                    const hint = document.createElement('span');
+                    hint.className = 'st-hint';
+                    hint.textContent = 'Übernommen: ' + item.display_name;
+                    box.appendChild(hint);
                 });
                 box.appendChild(b);
             });
         } catch (e) {
-            box.innerHTML = '<span class="db-hint">Suche fehlgeschlagen – bitte Koordinaten eingeben.</span>';
+            box.innerHTML = '<span class="st-hint">Suche fehlgeschlagen – bitte Koordinaten eingeben.</span>';
         }
     }
 
@@ -355,9 +499,16 @@
         const saved = loadPluginSettings ? pluginSettings : {};
         const configured = loadPluginSettings && saved.cfgVersion !== undefined;
         document.querySelectorAll('.db-check').forEach(cb => {
-            // Felder, die es bei Einstellungen von Version 1 noch nicht gab, starten mit dem Standardwert
+            // Felder, die es in der gespeicherten Version noch nicht gab, starten mit dem Standardwert
             const known = configured && Number(saved.cfgVersion || 1) >= Number(cb.dataset.since || 1);
-            cb.checked = known ? saved[cb.name] === 'true' : cb.dataset.default === 'true';
+            if (known) {
+                cb.checked = saved[cb.name] === 'true';
+            } else if (loadPluginSettings && saved[cb.name] !== undefined) {
+                cb.checked = saved[cb.name] === 'true';      // sehr alte Einstellungen ohne cfgVersion
+            } else {
+                cb.checked = cb.dataset.default === 'true';
+            }
+            cb.addEventListener('change', syncSubs);
         });
         // Filter darf bewusst leer sein; nur ohne gespeicherten Wert den Standard eintragen
         document.getElementById('newsBonnFilter').value = ('newsBonnFilter' in saved) ? saved.newsBonnFilter : '/bonn/';
@@ -370,6 +521,17 @@
         try { birthdays = JSON.parse(saved.birthdays || '[]'); } catch (e) { birthdays = []; }
         (Array.isArray(birthdays) ? birthdays : []).forEach(addBirthday);
         document.getElementById('bdAdd').addEventListener('click', () => addBirthday({ day: today.getDate(), month: today.getMonth() + 1 }));
+
+        // Hinweis zeigt den tatsächlich genutzten Schlüssel; Abweichungen vom Standard klappen "Erweitert" auf
+        const keyInput = document.getElementById('passwordKey');
+        const showKey = () => { document.getElementById('keyHint').textContent = keyInput.value.trim() || DEFAULT_KEY; };
+        keyInput.addEventListener('input', showKey);
+        showKey();
+        const off = n => !document.querySelector(`input[name="${n}"]`).checked;
+        if ((keyInput.value.trim() && keyInput.value.trim() !== DEFAULT_KEY) || off('verifySSL') || off('einkSnap')) {
+            document.getElementById('moreBox').open = true;
+        }
+        syncSubs();
     });
 })();
 </script>

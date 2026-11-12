@@ -62,6 +62,23 @@ DEFAULTS = {
     "einkSnap": "true",
 }
 
+# Format der gespeicherten Einstellungen (verstecktes Feld cfgVersion in settings.html).
+# 0 = ohne cfgVersion (fehlender Schlüssel = Standard), 1 = aktuell. Seit 1.10 neu gegliederte
+# Einstellungsseite, aber dieselben Schlüssel – deshalb keine Migration nötig.
+CFG_VERSION = 1
+# Ab welcher cfgVersion es eine Checkbox gibt (Gegenstück in settings.html: data-since). Bisher keine.
+SINCE_VERSION = {}
+
+
+def cfg_version(settings):
+    raw = settings.get("cfgVersion")
+    if raw is None:
+        return 0
+    try:
+        return max(int(str(raw).strip()), 1)
+    except ValueError:
+        return 1
+
 
 # --------------------------------------------------------------------------
 # CalDAV-Client
@@ -250,8 +267,8 @@ class NextcloudKalender(BasePlugin):
         return params
 
     def _opt(self, settings, key):
-        if "cfgVersion" in settings and DEFAULTS.get(key) in ("true", "false"):
-            return settings.get(key, "false")
+        if DEFAULTS.get(key) in ("true", "false") and cfg_version(settings) >= max(SINCE_VERSION.get(key, 1), 1):
+            return settings.get(key, "false")   # gespeichert und Checkbox schon bekannt: fehlt = aus
         return settings.get(key) or DEFAULTS[key]
 
     # ------------------------------------------------------------------

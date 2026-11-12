@@ -1,4 +1,4 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.9.1
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.10
 
 Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau – und neu: **Anfahrt zu Terminen**.
 
@@ -7,6 +7,18 @@ Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Z
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.10: aufgeräumte Einstellungen
+
+Die Einstellungsseite ist neu gegliedert, das Bild auf dem Display bleibt gleich.
+
+- Abschnitte mit Überschrift in der Reihenfolge des Tages: Wetter-Ort, Nextcloud, Wetter, Termine, dann Nachrichten am Morgen, Zug, Anfahrt, Wäsche, Wochenvorschau, Nachtbild, Festtage und Geburtstage.
+- Jede Funktion hat einen Hauptschalter; ihre Einstellungen stehen eingerückt darunter und werden blass, wenn sie aus ist. Die Werte bleiben dabei gespeichert.
+- Längere Erklärungen (wie Wäsche und Anfahrt entscheiden, Takt und API-Schlüssel beim Zug) stehen hinter „So wird entschieden“ bzw. „Aktualisierung und API-Schlüssel“.
+- Wochentage des Zuges als Schalter, Geburtstage auf dem Handy als Karten statt als zu breite Tabelle.
+- Name des Schlüssels, SSL-Prüfung und „Schärfer auf Inky-Displays“ stehen unter **Erweitert**. Der Bereich klappt von selbst auf, wenn dort etwas vom Standard abweicht.
+
+**Deine Einstellungen bleiben erhalten:** Alle Schlüssel heißen wie vorher (cfgVersion 9), nichts muss neu eingestellt werden. Behoben: Bei sehr alten Einstellungen ohne Versionsnummer zeigte die Seite ein gespeichertes „aus“ als „an“.
 
 ## Neu in 1.8: Anfahrt zu Terminen
 

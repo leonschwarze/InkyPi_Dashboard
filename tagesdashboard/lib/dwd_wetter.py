@@ -84,7 +84,6 @@ TILES = [
 ]
 
 DEFAULTS = {
-    "titleSelection": "auto",
     "showAlerts": "true",
     "showMetrics": "true",
     "showGraph": "true",
@@ -98,6 +97,40 @@ DEFAULTS = {
 }
 for _key, _on in TILES:
     DEFAULTS[f"tile_{_key}"] = "true" if _on else "false"
+
+# Format der gespeicherten Einstellungen (verstecktes Feld cfgVersion in settings.html).
+#   0 = sehr alte Einstellungen ohne cfgVersion (fehlender Schlüssel = Standardwert)
+#   1 = bis 1.7: Titel über titleSelection ("auto"/"custom") + customTitle
+#   2 = seit 1.10: nur customTitle, leer = Ortsname vom DWD
+CFG_VERSION = 2
+# Ab welcher cfgVersion es eine Checkbox gibt. Ist die gespeicherte Version älter, gilt für sie der
+# Standardwert statt "fehlt = aus" (Gegenstück in settings.html: data-since). Bisher keine.
+SINCE_VERSION = {}
+
+
+def cfg_version(settings):
+    raw = settings.get("cfgVersion")
+    if raw is None:
+        return 0
+    try:
+        return max(int(str(raw).strip()), 1)
+    except ValueError:
+        return 1
+
+
+def migrate_settings(settings):
+    """Bringt gespeicherte Einstellungen älterer Versionen ins aktuelle Format.
+
+    Gibt eine Kopie zurück und ändert InkyPis gespeicherte Daten nicht: Beim nächsten Speichern
+    schreibt die Einstellungsseite das neue Format selbst. Gleiche Regeln wie migrate() in settings.html.
+    """
+    s = dict(settings or {})
+    if cfg_version(s) < 2:
+        # Früher galt ein eingetippter Titel nur, wenn "Eigener Titel" gewählt war (Standard: "auto").
+        if s.get("titleSelection", "auto") != "custom":
+            s["customTitle"] = ""
+        s.pop("titleSelection", None)
+    return s
 
 
 # --------------------------------------------------------------------------
@@ -275,6 +308,7 @@ class DwdWetter(BasePlugin):
 
     # ------------------------------------------------------------------
     def generate_image(self, settings, device_config):
+        settings = migrate_settings(settings)
         opts = self._options(settings)
 
         raw_lat = str(settings.get("latitude", "")).strip().replace(",", ".")
@@ -319,9 +353,11 @@ class DwdWetter(BasePlugin):
 
     # ------------------------------------------------------------------
     def _options(self, settings):
-        configured = "cfgVersion" in settings
+        version = cfg_version(settings)
+
         def flag(key):
-            if configured:
+            # Gespeicherte Einstellungen: fehlende Checkbox = aus – außer die Checkbox ist neuer als die Einstellungen
+            if version >= max(SINCE_VERSION.get(key, 1), 1):
                 return settings.get(key) == "true"
             return settings.get(key, DEFAULTS[key]) == "true"
 
@@ -529,8 +565,9 @@ class DwdWetter(BasePlugin):
             src_id = cur.get("source_id") or nearest.get("source_id")
             station = next((s for s in sources if s.get("id") == src_id), sources[0])
 
-        if settings.get("titleSelection", "auto") == "custom" and settings.get("customTitle", "").strip():
-            title = settings.get("customTitle").strip()
+        custom_title = (settings.get("customTitle") or "").strip()   # Format nach migrate_settings()
+        if custom_title:
+            title = custom_title
         else:
             title = (location.get("name_short") or short_place_name(location.get("name"))
                      or (station or {}).get("station_name", "").title() or "Wetter")
