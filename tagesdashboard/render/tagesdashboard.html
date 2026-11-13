@@ -131,7 +131,7 @@
 
     <div class="tiles">
       {% for t in weather.tiles %}
-      <div class="tile">
+      <div class="tile{% if t.extra_class %} {{ t.extra_class }}{% endif %}">
         <div class="tile-icon">{{ t.icon | safe }}</div>
         <div class="tile-body">
           <div class="tile-label">{{ t.label }}</div>

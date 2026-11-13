@@ -46,10 +46,10 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze)
+                   katze, pollen)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage, radar, luft, katze)
+                                        festtage, radar, luft, katze, pollen)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -130,6 +130,12 @@ DEFAULTS = {
     "catEnabled": "true",
     "catWeather": "true",       # Pose passt sich dem Wetter an
     "catNight": "true",         # schläft im Nachtbild auf dem Mond (seit cfgVersion 14)
+    # Pollenflug (seit cfgVersion 15)
+    "pollenEnabled": "true",
+    "pollenLevel": "1",         # 1 = ab gering, 2 = ab mittel, 3 = ab hoch
+    "pollenRegion": "",         # leer = Bonn (Teilregion 41, Rhein.-Westf. Tiefland)
+    "pollenHasel": "true", "pollenErle": "true", "pollenEsche": "true", "pollenBirke": "true",
+    "pollenGraeser": "true", "pollenRoggen": "true", "pollenBeifuss": "true", "pollenAmbrosia": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -146,7 +152,8 @@ SINCE_VERSION.update({k: 11 for k in DEFAULTS if k.startswith("air")})
 SINCE_VERSION["trainRoute"] = 12
 SINCE_VERSION.update({k: 13 for k in DEFAULTS if k.startswith("cat")})
 SINCE_VERSION["catNight"] = 14
-CFG_VERSION = 14  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({k: 15 for k in DEFAULTS if k.startswith("pollen")})
+CFG_VERSION = 15  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -340,6 +347,16 @@ class Tagesdashboard(BasePlugin):
                 air = luft.load(air_cfg, now, records)
             except Exception as exc:  # Luft ist Zusatz: nie das ganze Bild verlieren
                 logger.warning("Luftqualität nicht verfügbar: %s", exc)
+
+        # ---- Pollenflug: zusätzliche Wetter-Kachel, nur wenn eine ausgewählte Art die Schwelle erreicht ----
+        pollen_cfg = pollen.read_config(opt, flag)
+        if pollen_cfg and mode == "normal" and weather:
+            try:
+                pollen_data = pollen.load(pollen_cfg, now)
+                if pollen_data:
+                    weather["tiles"] = weather["tiles"] + [self.pollen_tile(pollen_data)]
+            except Exception as exc:  # Pollen ist Zusatz: nie das ganze Bild verlieren
+                logger.warning("Pollenflug nicht verfügbar: %s", exc)
 
         params = {
             "date_str": f"{WOCHENTAGE[today.weekday()]}, {today.day}. {MONATE[today.month - 1]}",
@@ -668,6 +685,16 @@ class Tagesdashboard(BasePlugin):
                  f'font-size="13" fill="{fg}">UV</text></svg>')
         return {"icon": badge, "label": "UV " + ("heute" if offset == 0 else "morgen"),
                 "value": str(int(round(value))), "unit": name, "key": "uv"}
+
+    @staticmethod
+    def pollen_tile(data):
+        """Siebte, breite Kachel aus den Rohdaten von pollen.load(): Art + Stufe, Gelb/Rot ab mittel."""
+        extra_class = "tile-wide"
+        if data["word"] != "gering":
+            extra_class += f" lvl-{data['word']}"
+        return {"icon": icons.metric_icon("pollen"), "label": "Pollen", "value": data["lead"],
+                "unit": data["word"], "extra": f"+{data['more']} weitere" if data["more"] else "",
+                "extra_class": extra_class}
 
     @staticmethod
     def today_tiles(tiles, records, d):

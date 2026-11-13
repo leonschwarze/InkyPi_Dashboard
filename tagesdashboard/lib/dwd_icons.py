@@ -394,6 +394,18 @@ def _mi_station():
     )
 
 
+def _mi_pollen():
+    """Blüte (fünf Blütenblätter, dunklerer Kern) mit zwei abdriftenden Pollenkörnern – für die
+    Pollen-Kachel des Tagesdashboards (tagesdashboard/pollen.py)."""
+    petal = lambda cx, cy: f'<circle cx="{cx}" cy="{cy}" r="5.2" fill="{SUN}" stroke="{INK}" stroke-width="{S}"/>'
+    return (
+        petal(16, 7) + petal(25.4, 12.7) + petal(21.6, 22.9) + petal(10.4, 22.9) + petal(6.6, 12.7) +
+        f'<circle cx="16" cy="16" r="5" fill="{SUN_DARK}" stroke="{INK}" stroke-width="{S}"/>'
+        f'<circle cx="27.5" cy="4" r="1.6" fill="{SUN}" stroke="{INK}" stroke-width="1.4"/>'
+        f'<circle cx="30.5" cy="9.5" r="1.1" fill="{SUN}" stroke="{INK}" stroke-width="1.2"/>'
+    )
+
+
 METRIC_ICONS = {
     "wind": _mi_wind,
     "gust": _mi_gust,
@@ -409,6 +421,7 @@ METRIC_ICONS = {
     "cloudcover": _mi_cloudcover,
     "thermometer": _mi_thermometer,
     "station": _mi_station,
+    "pollen": _mi_pollen,
 }
 
 
