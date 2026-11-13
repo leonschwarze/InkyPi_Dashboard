@@ -45,10 +45,10 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar
+    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage, radar)
+                                        festtage, radar, luft)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -118,6 +118,12 @@ DEFAULTS = {
     "birthdays": "",
     # Regenradar (seit cfgVersion 10)
     "radarEnabled": "true",
+    # Luftqualität (seit cfgVersion 11)
+    "airEnabled": "true",
+    "airLevel": "3",            # 3 = ab mäßig, 4 = ab schlecht
+    "airRadius": "3",           # km um den Wetter-Ort
+    "airGases": "false",        # Ozon und NO2 der Messstation mitbewerten
+    "airStation": luft.DEFAULT_STATION,
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -130,6 +136,8 @@ SINCE_VERSION.update({"trainTarget": 7, "trainAlerts": 7})
 SINCE_VERSION.update({k: 8 for k in DEFAULTS if k.startswith("trip")})
 SINCE_VERSION.update({k: 9 for k in DEFAULTS if k.startswith("fest")})
 SINCE_VERSION.update({"radarEnabled": 10, "newsFrEnabled": 10, "newsFrUrl": 10})
+SINCE_VERSION.update({k: 11 for k in DEFAULTS if k.startswith("air")})
+CFG_VERSION = 11  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -315,6 +323,15 @@ class Tagesdashboard(BasePlugin):
             except Exception as exc:  # Radar ist Zusatz: nie das ganze Bild verlieren
                 logger.warning("Regenradar nicht verfügbar: %s", exc)
 
+        # ---- Luftqualität: Karte nur, wenn die Luft mäßig oder schlechter ist (nur normale Ansicht) ----
+        air = None
+        air_cfg = luft.read_config(opt, flag, *self.home_position(settings))
+        if air_cfg and mode == "normal":
+            try:
+                air = luft.load(air_cfg, now, records)
+            except Exception as exc:  # Luft ist Zusatz: nie das ganze Bild verlieren
+                logger.warning("Luftqualität nicht verfügbar: %s", exc)
+
         params = {
             "date_str": f"{WOCHENTAGE[today.weekday()]}, {today.day}. {MONATE[today.month - 1]}",
             "kw": today.isocalendar()[1],
@@ -328,6 +345,7 @@ class Tagesdashboard(BasePlugin):
             "calendar": self.calendar_days(events, tz, now, today, settings, flag, records, trips["by_event"]),
             "trip": trips["card"],
             "nowcast": nowcast,
+            "air": air,
             "greetings": [dict(g, icon=festtage.icon(g["kind"])) for g in festtage.greetings(today, fest_cfg)],
             "show_location": flag("showLocation"),
             "use_colors": use_colors,

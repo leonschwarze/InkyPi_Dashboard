@@ -3,8 +3,9 @@
 
 <!-- Markiert gespeicherte Einstellungen und ihr Format. Ist cfgVersion vorhanden, gelten nicht angehakte
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
-     Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled. -->
-<input type="hidden" name="cfgVersion" value="10" />
+     Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
+     Version 11 (1.12): Luftqualität (airEnabled, airGases). -->
+<input type="hidden" name="cfgVersion" value="11" />
 
 <div class="st">
 
@@ -63,6 +64,28 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="radarEnabled" value="true" data-default="true" data-since="10"><span>Regenradar: Hinweis, wenn es in den nächsten zwei Stunden regnet</span></label>
     <div class="st-hint">Aus dem Radar des DWD: wann der Regen am Wetter-Ort beginnt und endet, in 5-Minuten-Schritten. Die Karte erscheint nur, wenn es nass wird, und nur in der normalen Ansicht.</div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="airEnabled" value="true" data-default="true" data-since="11"><span>Luftqualität: Hinweis, wenn die Luft draußen nicht gut ist</span></label>
+    <div class="st-sub" data-parent="airEnabled">
+        <div class="st-line">
+            <span>Zeigen ab</span>
+            <select id="airLevel" name="airLevel" class="form-input st-select">
+                <option value="3">mäßig</option>
+                <option value="4">schlecht</option>
+            </select>
+        </div>
+        <div class="st-line"><span>Sensoren im Umkreis</span><input type="number" min="1" max="10" step="1" id="airRadius" name="airRadius" class="form-input st-num" /><span>km</span></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="airGases" value="true" data-default="false" data-since="11"><span>Auch Ozon und Stickstoffdioxid der Messstation bewerten</span></label>
+        <div class="st-field">
+            <label for="airStation">Messstation (Code beim Umweltbundesamt)</label>
+            <input type="text" id="airStation" name="airStation" class="form-input" placeholder="DENW062 = Bonn-Auerberg" autocapitalize="characters" />
+        </div>
+        <details class="st-why">
+            <summary>So wird entschieden</summary>
+            <div class="st-hint">Feinstaub kommt von den Bürgersensoren auf <b>sensor.community</b> im Umkreis: nur Außensensoren, der mittlere Wert (Median) aus mindestens drei, gemittelt über die letzte Stunde. Eingestuft wird nach dem Luftqualitätsindex des Umweltbundesamts (sehr gut, gut, mäßig, schlecht, sehr schlecht).</div>
+            <div class="st-hint">Ab 80 % Luftfeuchte zählen diese Sensoren Wassertröpfchen mit und zeigen zu viel. Dann – und wenn zu wenige Sensoren melden – gilt der Stundenwert der amtlichen <b>Messstation</b>. Ist auch die nicht erreichbar, zeigt die Karte den Sensorwert gestrichelt mit Hinweis.</div>
+            <div class="st-hint">Ozon und Stickstoffdioxid misst nur die Station. Mit dem Schalter oben zählen sie mit; im Sommer meldet sich die Karte dann auch bei hohem Ozon.</div>
+        </details>
+    </div>
     <label class="st-check"><input type="checkbox" class="db-check" name="showWear" value="true" data-default="true"><span>Kleidungsempfehlung</span></label>
     <div class="st-sub" data-parent="showWear">
         <div class="st-line">
@@ -339,7 +362,8 @@
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml',
-        newsFrUrl: 'https://www.francetvinfo.fr/titres.rss' };
+        newsFrUrl: 'https://www.francetvinfo.fr/titres.rss',
+        airLevel: '3', airRadius: '3', airStation: 'DENW062' };
     const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 

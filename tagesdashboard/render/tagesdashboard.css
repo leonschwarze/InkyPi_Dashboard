@@ -207,7 +207,7 @@
 .alert.lvl-2 { border-width: calc(var(--u) * 0.7); }
 
 /* ---------------- Zug (nur im eingestellten Zeitfenster) ---------------- */
-.train, .laundry, .trip {
+.train, .laundry, .trip, .air {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -258,6 +258,23 @@
 .rd-tick:first-child::before { left: 0; }
 /* Morgens teilt sich die Spalte mit den Schlagzeilen: dann nur die zwei Textzeilen */
 .has-news .rd-stripbox { display: none; }
+
+/* ---------------- Luftqualität: nur ab „mäßig“ ----------------
+ * Karte wie Wäsche/Radar; Stufe als Plakette in der Kopfzeile, damit die Messwertzeile die volle Breite hat.
+ * Gelb = mäßig, Rot = schlecht, dicker roter Rahmen = sehr schlecht. Gestrichelt: Sensorwert bei feuchter Luft. */
+.air .tr-main { gap: calc(var(--u) * 0.1); }
+.aq-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 0.8); min-width: 0; }
+.air .tr-top { font-size: calc(var(--u) * 2.2); min-width: 0; }
+.air .tr-badge { font-size: calc(var(--u) * 1.9); padding: calc(var(--u) * 0.1) calc(var(--u) * 0.6); }
+.aq-dot { stroke: #000; stroke-width: 1.6; fill: #FFC400; }
+.aq-maessig .tr-badge { background: #FFE500; color: #000; }
+.aq-schlecht .tr-badge, .aq-sehr-schlecht .tr-badge { background: #E3001B; color: #fff; }
+.aq-schlecht .aq-dot, .aq-sehr-schlecht .aq-dot { fill: #E3001B; }
+.aq-schlecht { border-color: #E3001B; }
+.aq-sehr-schlecht { border-color: #E3001B; border-width: calc(var(--u) * 0.6); }
+.aq-unsure { border-style: dashed; }
+/* Morgens teilt sich die Spalte mit den Schlagzeilen: ohne Verhaltenshinweis */
+.has-news .aq-advice { display: none; }
 
 /* ---------------- Anfahrt: Aufbruch-Karte ---------------- */
 .trip .tr-top { font-size: calc(var(--u) * 2.2); }
