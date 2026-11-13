@@ -5,10 +5,12 @@ Das Band zeigt Münster, Langer Eugen, Post Tower, die Kennedybrücke und das Si
 mit Petersberg, Drachenfels und Ölberg, davor den Rhein. Der Himmel zeigt die kommende Nacht:
   * Sterne bei klarem Himmel (Anzahl nach Bewölkung, Lage wechselt jeden Tag)
   * Wolken, Regen- oder Schneestriche, Nebelbänder
-  * den Mond in seiner Phase; seine Lage wechselt täglich
+  * den Mond in seiner Phase; seine Lage wechselt täglich; bei einer totalen Mondfinsternis in der
+    Nacht selbst rötlich statt gelb (Blutmond, seit 1.18, finsternisse.py)
   * Sternschnuppen bei starken Strömen im Maximum und klarem Himmel (seit 1.17, meteore.py)
 Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonnenwende) und, wenn
-ein Meteorstrom aktiv ist, eine weitere Zeile dazu (immer sichtbar, unabhängig vom Wetter).
+ein Meteorstrom aktiv oder eine Mondfinsternis nah ist, je eine weitere Zeile dazu (immer sichtbar,
+unabhängig vom Wetter).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -19,6 +21,7 @@ import random
 from datetime import date, datetime, timedelta, timezone
 
 SKY, STAR, INK, WHITE, CLOUD = "#0B3D91", "#FFE500", "#000000", "#FFFFFF", "#BFDCFF"
+BLOOD = "#E3001B"  # Mondfarbe bei einer totalen Mondfinsternis (seit 1.18), dieselbe Rottönung wie überall sonst
 WATER, H = 104, 130
 SYNODIC = 29.530588853
 NEW_MOON_REF = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
@@ -97,15 +100,16 @@ def daylight(sun_times, d):
 # ----------------------------------------------------------------------
 # Zeichnen
 # ----------------------------------------------------------------------
-def _moon(cx, cy, r, when):
+def _moon(cx, cy, r, when, blood=False):
     age = ((when - NEW_MOON_REF).total_seconds() / 86400) % SYNODIC
     phase = age / SYNODIC
     rx = abs(math.cos(2 * math.pi * phase)) * r
     waxing, gibbous = phase < 0.5, 0.25 < phase < 0.75
     side = 1 if waxing else 0
     back = (1 if gibbous else 0) if waxing else (0 if gibbous else 1)
-    return (f'<path d="M{cx},{cy - r} A{r},{r} 0 0 {side} {cx},{cy + r} A{rx:.2f},{r} 0 0 {back} {cx},{cy - r} Z" fill="{STAR}"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{STAR}" stroke-width="1.6"/>')
+    fill = BLOOD if blood else STAR
+    return (f'<path d="M{cx},{cy - r} A{r},{r} 0 0 {side} {cx},{cy + r} A{rx:.2f},{r} 0 0 {back} {cx},{cy - r} Z" fill="{fill}"/>'
+            f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{fill}" stroke-width="1.6"/>')
 
 
 # Stadt in eigenen Koordinaten (0–400 breit, Grundlinie WATER). Einfache Umrisse.
@@ -134,11 +138,13 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None, meteors=0):
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
-    Maximum und klarem Himmel > 0, sonst bleibt das Nachtbild unverändert."""
+    Maximum und klarem Himmel > 0, sonst bleibt das Nachtbild unverändert.
+    blood_moon: Mond rötlich statt gelb (seit 1.18, finsternisse.show_blood_moon); nur in der Nacht
+    einer totalen Mondfinsternis, sonst unverändert."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -174,7 +180,7 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0):
     if not (wet and cloud >= 85):
         # Mit Katze etwas größer und tiefer, damit sie oben auf dem Mond Platz hat
         my, mr = (48, 18) if cat else (26, 14)
-        out.append(_moon(mx, my, mr, now))
+        out.append(_moon(mx, my, mr, now, blood=blood_moon))
 
     # Wolken (hell, werden auf dem Display fein gerastert)
     if cloud >= 45:
@@ -209,9 +215,12 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0):
         for k in range(1, 4):
             px = bx0 + (bx1 - bx0) * k / 4
             out.append(f'<rect x="{px - 1.5:.0f}" y="{WATER - 6}" width="3" height="6" fill="{INK}"/>')
-    for x in [222 * s, 281 * s, 330 * s] + ([mx] if not (wet and cloud >= 85) else []):
+    reflections = [(x, STAR) for x in (222 * s, 281 * s, 330 * s)]
+    if not (wet and cloud >= 85):
+        reflections.append((mx, BLOOD if blood_moon else STAR))
+    for x, colour in reflections:
         for k in range(3):
-            out.append(f'<rect x="{x - 9 + k * 5:.0f}" y="{WATER + 5 + k * 6}" width="{18 - k * 5}" height="2" fill="{STAR}"/>')
+            out.append(f'<rect x="{x - 9 + k * 5:.0f}" y="{WATER + 5 + k * 6}" width="{18 - k * 5}" height="2" fill="{colour}"/>')
 
     # Niederschlag und Nebel vor allem
     if wet:

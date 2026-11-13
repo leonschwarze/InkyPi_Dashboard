@@ -69,7 +69,8 @@
       <span>Nacht: {% if night.art.weather %}{{ night.art.weather }} · {% endif %}{{ night.moon.name }}</span>
       {% if night.art.daylight %}<span>{{ night.art.daylight }}</span>{% endif %}
     </div>
-    {% if night.art.meteors %}<div class="nt-art-met">{{ night.art.meteors }}</div>{% endif %}
+    {% if night.art.meteors %}<div class="nt-art-line">{{ night.art.meteors }}</div>{% endif %}
+    {% if night.art.eclipse %}<div class="nt-art-line">{{ night.art.eclipse }}</div>{% endif %}
     {{ night.art.svg | safe }}
   </section>
   {% endif %}
