@@ -26,6 +26,11 @@ try:  # Schärfere Darstellung auf Inky-Displays (Kopie von shared/eink.py)
 except ImportError:  # pragma: no cover
     eink = None
 
+try:  # Seite immer als UTF-8 rendern (Kopie von shared/zeichensatz.py)
+    from . import zeichensatz
+except ImportError:  # pragma: no cover
+    zeichensatz = None
+
 try:  # relativer Import, damit der Ordnername frei bleibt
     from . import dwd_icons as icons
 except ImportError:  # pragma: no cover - Fallback, falls ohne Paketkontext geladen
@@ -340,6 +345,8 @@ class DwdWetter(BasePlugin):
         params["fc_compact"] = dimensions[0] / max(len(params["forecast"]), 1) < 125
         params["plugin_settings"] = settings
 
+        if zeichensatz is not None:
+            zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz
         image = self.render_image(dimensions, "dwd_wetter.html", "dwd_wetter.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")

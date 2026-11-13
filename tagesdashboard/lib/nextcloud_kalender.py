@@ -31,6 +31,11 @@ try:  # Schärfere Darstellung auf Inky-Displays (Kopie von shared/eink.py)
 except ImportError:  # pragma: no cover
     eink = None
 
+try:  # Seite immer als UTF-8 rendern (Kopie von shared/zeichensatz.py)
+    from . import zeichensatz
+except ImportError:  # pragma: no cover
+    zeichensatz = None
+
 logger = logging.getLogger(__name__)
 
 NS = {
@@ -387,6 +392,8 @@ class NextcloudKalender(BasePlugin):
             dimensions = dimensions[::-1]
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
 
+        if zeichensatz is not None:
+            zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz
         image = self.render_image(dimensions, "nextcloud_kalender.html", "nextcloud_kalender.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")

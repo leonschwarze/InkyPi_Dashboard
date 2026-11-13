@@ -3,8 +3,8 @@
 
 <!-- Markiert gespeicherte Einstellungen und ihr Format. Ist cfgVersion vorhanden, gelten nicht angehakte
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
-     Seit 1.10 neu gegliederte Seite, aber dieselben Schlüssel wie in Version 9 – keine Migration nötig. -->
-<input type="hidden" name="cfgVersion" value="9" />
+     Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled. -->
+<input type="hidden" name="cfgVersion" value="10" />
 
 <div class="st">
 
@@ -61,6 +61,8 @@
     </div>
     <label class="st-check"><input type="checkbox" class="db-check" name="showAlerts" value="true" data-default="true"><span>Amtliche DWD-Warnungen</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="showGraph" value="true" data-default="true"><span>Tageskurve 6–24 Uhr</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="radarEnabled" value="true" data-default="true" data-since="10"><span>Regenradar: Hinweis, wenn es in den nächsten zwei Stunden regnet</span></label>
+    <div class="st-hint">Aus dem Radar des DWD: wann der Regen am Wetter-Ort beginnt und endet, in 5-Minuten-Schritten. Die Karte erscheint nur, wenn es nass wird, und nur in der normalen Ansicht.</div>
     <label class="st-check"><input type="checkbox" class="db-check" name="showWear" value="true" data-default="true"><span>Kleidungsempfehlung</span></label>
     <div class="st-sub" data-parent="showWear">
         <div class="st-line">
@@ -108,6 +110,11 @@
         <div class="st-field"><label for="newsNrwUrl">NRW (Feed)</label><input type="text" id="newsNrwUrl" name="newsNrwUrl" class="form-input" inputmode="url" /></div>
         <div class="st-field"><label for="newsBundUrl">Bund (Feed)</label><input type="text" id="newsBundUrl" name="newsBundUrl" class="form-input" inputmode="url" /></div>
         <div class="st-hint">Standard: General-Anzeiger (nur Bonner Artikel), WDR, tagesschau. Pro Ebene bis zu zwei Schlagzeilen der letzten 24 Stunden, ohne Liveblogs, Podcasts und doppelte Themen. Findet der GA zu wenig, ergänzt das Dashboard WDR-Meldungen mit „Bonn“.</div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="newsFrEnabled" value="true" data-default="false" data-since="10"><span>Dazu eine Schlagzeile aus Frankreich, auf Französisch</span></label>
+        <div class="st-sub" data-parent="newsFrEnabled">
+            <div class="st-field"><label for="newsFrUrl">France (Feed)</label><input type="text" id="newsFrUrl" name="newsFrUrl" class="form-input" inputmode="url" /></div>
+            <div class="st-hint">Standard: franceinfo, „Les titres“. Quer eine Schlagzeile, hochkant bis zu zwei; ohne Liveticker („DIRECT“) und Videos. Andere Quelle z. B. Le Monde: <code>https://www.lemonde.fr/rss/une.xml</code></div>
+        </div>
     </div>
 </section>
 
@@ -331,7 +338,8 @@
         nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
-        newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml' };
+        newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml',
+        newsFrUrl: 'https://www.francetvinfo.fr/titres.rss' };
     const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 

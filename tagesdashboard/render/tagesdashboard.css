@@ -233,6 +233,32 @@
 .lw-bleiben .tr-badge { background: #2E9E3F; color: #fff; }
 .lw-rein { border-color: #E3001B; }
 
+/* ---------------- Regenradar: Regen in den nächsten zwei Stunden ----------------
+ * Karte wie Wäsche/Anfahrt, blauer Rahmen (rot bei starkem Regen), darunter ein Balken je 5 Minuten. */
+.nowcast {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; gap: calc(var(--u) * 0.4);
+  margin-bottom: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 0.8);
+  border: calc(var(--u) * 0.3) solid #1E6FD9;
+  border-radius: calc(var(--u) * 1);
+}
+.nowcast.rd-lv-stark { border-color: #E3001B; }
+.rd-row { display: flex; align-items: center; gap: calc(var(--u) * 1); min-width: 0; }
+.nowcast .tr-top { font-size: calc(var(--u) * 2.2); }
+.rd-stripbox { position: relative; padding-bottom: calc(var(--u) * 2); }
+.rd-strip { display: block; width: 100%; height: calc(var(--u) * 2.6); }
+.rd-bar { fill: #1E6FD9; }
+.rd-bar.stark { fill: #E3001B; }
+.rd-axis { stroke: #000; stroke-width: 2; }
+.rd-ticks { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--u) * 1.9); }
+.rd-tick { position: absolute; transform: translateX(-50%); font-size: calc(var(--u) * 1.7); white-space: nowrap; }
+.rd-tick:first-child { transform: none; }
+.rd-tick::before { content: ""; position: absolute; left: 50%; top: calc(var(--u) * -0.5); height: calc(var(--u) * 0.5); border-left: calc(var(--u) * 0.3) solid #000; }
+.rd-tick:first-child::before { left: 0; }
+/* Morgens teilt sich die Spalte mit den Schlagzeilen: dann nur die zwei Textzeilen */
+.has-news .rd-stripbox { display: none; }
+
 /* ---------------- Anfahrt: Aufbruch-Karte ---------------- */
 .trip .tr-top { font-size: calc(var(--u) * 2.2); }
 .tp-bike .tr-badge { background: #2E9E3F; color: #fff; }
@@ -309,6 +335,16 @@
 }
 .nw-item + .nw-item { border-top: calc(var(--u) * 0.2) dotted currentColor; padding-top: calc(var(--u) * 0.3); }
 .nw-credit { flex: 0 0 auto; font-size: calc(var(--u) * 1.5); text-align: right; padding-top: calc(var(--u) * 0.2); }
+/* Frankreich: Etikett „France“ mit kleiner Trikolore darunter (Blau, Weiß, Rot sind Displayfarben).
+   „France“ braucht etwas mehr Platz; alle Etiketten werden dann gleich breit, damit die Zeilen fluchten. */
+.news:has(.nw-fr) .nw-lvl { flex-basis: calc(var(--u) * 6); }
+.nw-fr .nw-lvl { position: relative; padding-bottom: calc(var(--u) * 0.75); }
+.nw-fr .nw-lvl::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--u) * 0.6);
+  background: linear-gradient(90deg, #0082C9 0 33.4%, #fff 33.4% 66.6%, #E3001B 66.6%);
+  border: calc(var(--u) * 0.15) solid #000; border-top: none;
+  border-radius: 0 0 calc(var(--u) * 0.5) calc(var(--u) * 0.5);
+}
 /* Hochkant ist die Spalte breiter: Termine dürfen weniger Anteil haben */
 .portrait.has-news .cal-list { max-height: 50%; }
 

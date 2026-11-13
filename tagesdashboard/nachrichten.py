@@ -32,6 +32,7 @@ DEFAULT_FEEDS = {
     "bonn": ("Bonn", "GA", "https://ga.de/feed.rss"),
     "nrw": ("NRW", "WDR", "https://www1.wdr.de/uebersicht-100.feed"),
     "bund": ("Bund", "tagesschau", "https://www.tagesschau.de/index~rss2.xml"),
+    "fr": ("France", "franceinfo", "https://www.francetvinfo.fr/titres.rss"),
 }
 PER_LEVEL = 3  # geladen; angezeigt werden quer bis zu 2, hochkant bis zu 3 (je nach Platz)
 MAX_AGE_H = 24
@@ -48,7 +49,21 @@ STOPWORDS = set("""aber alle als also auch auf aus bei beim bis das dass dem den
 durch ein eine einem einen einer eines für gegen hat haben ihre im in ins ist jetzt kann mehr mit nach nicht
 noch nun oder sich sie sind so soll über um und uns unter vom von vor war was weil wie will wird wo zu zum zur""".split())
 
+# Französische Feeds: Liveticker und Videos überspringen, Gattungsetiketten vorn abschneiden
+SKIP_TITLE_FR = re.compile(r"^(en )?direct\b|^vid[ée]o\b|^podcast\b|^replay\b|^live\b|^carte\b|^grand format\b",
+                           re.IGNORECASE)
+LABEL_FR = re.compile(r"^(?:info franceinfo|enqu[êe]te|r[ée]cit|t[ée]moignages?|reportage|entretien|interview|"
+                      r"d[ée]cryptage|analyse|tribune|chronique|portrait|vrai ou fake|infographie|exclusif)\s*[.:]\s+",
+                      re.IGNORECASE)
+
 _cache = {}  # url -> (zeitpunkt, liste)
+
+
+def fr_typo(title):
+    """Französische Typografie: vor : ; ? ! und in « » ein geschütztes Leerzeichen,
+    damit das Satzzeichen nie allein am Zeilenanfang steht."""
+    title = re.sub(r"\s+([:;?!»])", "\u00a0\\1", title)
+    return re.sub(r"«\s+", "«\u00a0", title)
 
 
 # ----------------------------------------------------------------------
@@ -215,7 +230,16 @@ def load(cfg, now, session=None):
             extra = pick(feeds["nrw"], chosen, now, PER_LEVEL - len(items), must_contain="Bonn")
             items += [dict(it, source=cfg["feeds"]["nrw"][1]) for it in extra]
         picked[key] = {"label": label, "items": items}
-    return [picked[k] for k in ("bonn", "nrw", "bund") if picked[k]["items"]]
+    out = [picked[k] for k in ("bonn", "nrw", "bund") if picked[k]["items"]]
+    if "fr" in cfg["feeds"] and feeds.get("fr"):
+        # Frankreich: eigene Dublettenprüfung (Wortvergleich geht nicht über Sprachgrenzen)
+        label, source, _ = cfg["feeds"]["fr"]
+        items = [dict(it, title=fr_typo(LABEL_FR.sub("", it["title"]))) for it in feeds["fr"]
+                 if not SKIP_TITLE_FR.search(it["title"])]
+        items = [dict(it, source=source) for it in pick(items, [], now, PER_LEVEL)]
+        if items:
+            out.append({"label": label, "items": items, "lang": "fr"})
+    return out
 
 
 # ----------------------------------------------------------------------
@@ -230,7 +254,10 @@ def read_config(opt, flag, parse_hhmm):
         logger.warning("Nachrichten: Zeitfenster unvollständig")
         return None
     feeds = {}
-    for key, setting in (("bonn", "newsBonnUrl"), ("nrw", "newsNrwUrl"), ("bund", "newsBundUrl")):
+    keys = [("bonn", "newsBonnUrl"), ("nrw", "newsNrwUrl"), ("bund", "newsBundUrl")]
+    if flag("newsFrEnabled"):
+        keys.append(("fr", "newsFrUrl"))
+    for key, setting in keys:
         label, source, url = DEFAULT_FEEDS[key]
         custom = (opt(setting) or "").strip()
         if custom and custom != url:

@@ -37,17 +37,18 @@ try:
     from .lib import dwd_icons as icons
     from .lib import nextcloud_kalender as nc
     from .lib import eink
+    from .lib import zeichensatz
     IMPORT_ERROR = None
 except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     logger.exception("Bausteine des Tagesdashboards konnten nicht geladen werden")
-    dwd = icons = nc = eink = None
+    dwd = icons = nc = eink = zeichensatz = None
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage
+    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage)
+                                        festtage, radar)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -88,6 +89,9 @@ DEFAULTS = {
     "newsBonnFilter": "/bonn/",
     "newsNrwUrl": nachrichten.DEFAULT_FEEDS["nrw"][2],
     "newsBundUrl": nachrichten.DEFAULT_FEEDS["bund"][2],
+    # Frankreich (seit cfgVersion 10)
+    "newsFrEnabled": "false",
+    "newsFrUrl": nachrichten.DEFAULT_FEEDS["fr"][2],
     # Wäsche (seit cfgVersion 4)
     "laundryEnabled": "true",
     "laundryFrom": "17:00", "laundryTo": "23:00",
@@ -112,6 +116,8 @@ DEFAULTS = {
     "festNye": "true",
     "festBday": "true",
     "birthdays": "",
+    # Regenradar (seit cfgVersion 10)
+    "radarEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -123,6 +129,7 @@ SINCE_VERSION["nightArt"] = 6
 SINCE_VERSION.update({"trainTarget": 7, "trainAlerts": 7})
 SINCE_VERSION.update({k: 8 for k in DEFAULTS if k.startswith("trip")})
 SINCE_VERSION.update({k: 9 for k in DEFAULTS if k.startswith("fest")})
+SINCE_VERSION.update({"radarEnabled": 10, "newsFrEnabled": 10, "newsFrUrl": 10})
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -155,6 +162,7 @@ def hm(dt):
 
 
 class Tagesdashboard(BasePlugin):
+
 
     def generate_settings_template(self):
         params = super().generate_settings_template()
@@ -298,6 +306,15 @@ class Tagesdashboard(BasePlugin):
             except Exception:  # Anfahrt ist Zusatz: nie das ganze Bild verlieren
                 logger.exception("Anfahrt konnte nicht berechnet werden")
 
+        # ---- Regenradar: Regen in den nächsten zwei Stunden (nur normale Ansicht) ----
+        nowcast = None
+        if flag("radarEnabled") and mode == "normal" and records:
+            try:
+                frames = radar.fetch(*self.home_position(settings), now)
+                nowcast = radar.summary(frames, now, word=self.precip_word(records, now))
+            except Exception as exc:  # Radar ist Zusatz: nie das ganze Bild verlieren
+                logger.warning("Regenradar nicht verfügbar: %s", exc)
+
         params = {
             "date_str": f"{WOCHENTAGE[today.weekday()]}, {today.day}. {MONATE[today.month - 1]}",
             "kw": today.isocalendar()[1],
@@ -310,6 +327,7 @@ class Tagesdashboard(BasePlugin):
             "graph": None,
             "calendar": self.calendar_days(events, tz, now, today, settings, flag, records, trips["by_event"]),
             "trip": trips["card"],
+            "nowcast": nowcast,
             "greetings": [dict(g, icon=festtage.icon(g["kind"])) for g in festtage.greetings(today, fest_cfg)],
             "show_location": flag("showLocation"),
             "use_colors": use_colors,
@@ -338,6 +356,7 @@ class Tagesdashboard(BasePlugin):
             self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
                               art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None)
 
+        zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
         if not image:
             raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
@@ -740,6 +759,16 @@ class Tagesdashboard(BasePlugin):
                 "tlabels": tlabels, "now_left": now_left, "rain": rain,
                 "rain_levels": [lv for _, lv in RAIN_LEVELS if lv in used_levels],
                 "rain_summary": self.rain_summary(pts, now, d)}
+
+    @staticmethod
+    def precip_word(records, now):
+        """Regen, Schnee oder Niederschlag in den nächsten zwei Stunden – das Radar kennt die Art nicht."""
+        near = [r for r in records if now - timedelta(hours=1) <= r["dt"] <= now + timedelta(hours=3)]
+        snowy = sum(1 for r in near if r.get("icon") in ("snow", "sleet") or r.get("condition") in ("snow", "sleet"))
+        wet = sum(1 for r in near if (r.get("precipitation") or 0) >= 0.1 or r.get("icon") in ("rain", "snow", "sleet"))
+        if not snowy:
+            return "Regen"
+        return "Schnee" if snowy >= max(wet, 1) * 0.6 else "Niederschlag"
 
     @staticmethod
     def rain_summary(pts, now, d):

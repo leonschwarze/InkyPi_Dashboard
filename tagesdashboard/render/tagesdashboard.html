@@ -249,6 +249,23 @@
       </div>
     </div>
     {% endif %}
+    {% if nowcast %}
+    {% set rc = nowcast %}
+    <!-- Regenradar: nur wenn es in den nächsten zwei Stunden regnet (oder gerade regnet) -->
+    <div class="nowcast rd-{{ rc.state }} rd-lv-{{ rc.level }}">
+      <div class="rd-row">
+        <div class="lw-icon"><svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 24 Q6 8 24 8 Q42 8 42 24 Q38 20 33 24 Q29 20 24 24 Q19 20 15 24 Q10 20 6 24 Z" fill="#1E6FD9" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 24 L24 38 Q24 42 20.5 42 Q17 42 17 38.5" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round"/><path d="M10 31 l-2 5 M36 31 l-2 5 M30 37 l-2 5" stroke="#1E6FD9" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <div class="tr-main">
+          <div class="tr-top">{{ rc.top }}</div>
+          <div class="tr-sub">{{ rc.level_text }}{% if rc.after %} · {{ rc.after }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="rd-stripbox">
+        {{ rc.strip.svg | safe }}
+        <div class="rd-ticks"><span class="rd-tick" style="left: 0%;">jetzt</span>{% for t in rc.strip.ticks %}<span class="rd-tick" style="left: {{ '%.1f' | format(t.x) }}%;">{{ t.text }} Uhr</span>{% endfor %}</div>
+      </div>
+    </div>
+    {% endif %}
     {% if laundry %}
     <div class="laundry lw-{{ laundry.state }}">
       <div class="lw-icon"><svg class="lw-svg" viewBox="0 0 48 48" aria-hidden="true"><path d="M3 9 Q24 15 45 9" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/><path d="M14 12 L9 16 L12 21 L15 19 L15 40 L33 40 L33 19 L36 21 L39 16 L34 12 Q30 15.5 24 15.5 Q18 15.5 14 12 Z" fill="#0082C9" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><rect x="17.5" y="10" width="2.6" height="6" fill="#000"/><rect x="28" y="10" width="2.6" height="6" fill="#000"/></svg></div>
@@ -292,7 +309,7 @@
     <div class="news-wrap">
       <div class="news" data-max="{{ 3 if orientation == 'portrait' else 2 }}">
         {% for grp in news %}
-        <div class="nw-grp">
+        <div class="nw-grp{% if grp.lang %} nw-{{ grp.lang }}{% endif %}"{% if grp.lang %} lang="{{ grp.lang }}" data-max="{{ 2 if orientation == 'portrait' else 1 }}"{% endif %}>
           <span class="nw-lvl">{{ grp.label }}</span>
           <div class="nw-items">
             {% for it in grp["items"] %}<div class="nw-item" data-src="{{ it.source }}">{{ it.title }}</div>{% endfor %}
@@ -351,8 +368,9 @@
       return items.flat().every(e => e.style.display === 'none' || e.getBoundingClientRect().bottom <= limit);
     };
     for (let rank = 0; rank < max; rank++) {
-      items.forEach(list => {
+      items.forEach((list, gi) => {
         const el = list[rank];
+        if (rank >= Number(groups[gi].dataset.max || max)) return;
         if (!el || (rank > 0 && list[rank - 1].style.display === 'none')) return;
         el.style.display = '';
         if (!fits()) el.style.display = 'none';
