@@ -338,6 +338,93 @@
 
 {% endif %}
 
+{% if cat %}
+<script>
+  /* Katze (seit 1.14, katze.py): Versteckspiel auf den Linien des fertigen Layouts.
+     Python legt Pose, Ersatzpose (flach) und die Reihenfolge der Plätze fest; hier wird gemessen,
+     wo sie stehen kann, ohne Text, Symbole, Karten oder andere Linien zu berühren. */
+  window.CAT = {{ cat | tojson }};
+  window.placeCat = function () {
+    const C = window.CAT, db = document.querySelector('.db');
+    if (!C || !db) return;
+    let box = document.querySelector('body > .cat-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'cat-box' + (db.classList.contains('mono') ? ' mono' : '');
+      document.body.appendChild(box);   // außerhalb von .db: darf in InkyPis Rand ragen
+    }
+    box.style.display = 'none';
+    const probe = document.createElement('i');           // --u in px messen
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:calc(var(--u) * 100)';
+    db.appendChild(probe); const u = probe.getBoundingClientRect().width / 100; probe.remove();
+    const cs = getComputedStyle(db);
+    box.style.color = cs.color;
+    box.style.setProperty('--bg', cs.getPropertyValue('--bg') || '#fff');
+    box.style.setProperty('--u', u + 'px');
+
+    const visible = el => el && el.offsetParent !== null && el.getClientRects().length > 0;
+    const borderTop = el => { const r = el.getBoundingClientRect();   // Oberkante der unteren Linie
+      return r.bottom - parseFloat(getComputedStyle(el).borderBottomWidth || 0); };
+    const lines = [];
+    const head = db.querySelector(':scope > .head');
+    if (visible(head)) lines.push({kind: 'kopf', el: head, y: borderTop(head)});
+    db.querySelectorAll('.cal-list .day-head').forEach(el => {
+      if (visible(el)) lines.push({kind: 'tag', el, y: borderTop(el)});
+    });
+    const more = db.querySelector('.more:not([hidden])');
+    if (visible(more)) lines.push({kind: 'mehr', el: more, y: more.getBoundingClientRect().top});
+
+    // Hindernisse: gesetzter Text, Symbole, Karten und die Linien selbst
+    const obs = [];
+    const walker = document.createTreeWalker(db, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim()) continue;
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) if (r.width && r.height) obs.push(r);
+    }
+    db.querySelectorAll('svg, img, .train, .laundry, .trip, .air, .nowcast, .alert, .wear, .error-box, .news')
+      .forEach(el => { if (visible(el)) obs.push(el.getBoundingClientRect()); });
+    lines.forEach(l => { const r = l.el.getBoundingClientRect();
+      obs.push({left: r.left, right: r.right, top: l.y - 1, bottom: l.y + u * 0.4}); });
+    const D = db.getBoundingClientRect();
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+    const poses = [C.main]; if (C.flat.name !== C.main.name) poses.push(C.flat);
+    const pad = u * 1.0;                                  // Abstand zu Text und Symbolen
+    for (const kind of C.spots) {
+      const own = lines.filter(l => l.kind === kind);
+      for (let li = 0; li < own.length; li++) {
+        const l = own[(li + C.seed) % own.length];
+        const R = l.el.getBoundingClientRect();
+        const left = Math.max(R.left, D.left), right = Math.min(R.right, D.right);
+        for (const p of poses) {
+          for (const k of [1, 0.9, 0.8]) {
+            const w = p.w * u / 8 * k, h = p.h * u / 8 * k;
+            const n = Math.floor((right - left - w) / u);
+            if (n < 0) continue;
+            const start = C.seed % (n + 1);
+            for (let i = 0; i <= n; i++) {
+              const x = left + ((start + i) % (n + 1)) * u;
+              const y = l.y - h + u * 0.15;              // Pfoten berühren die Linie
+              if (y < 1) continue;                        // nicht über den Bildrand hinaus
+              const rect = {left: x - pad, right: x + w + pad, top: y - pad, bottom: l.y - u * 0.3};
+              if (obs.some(o => hit(rect, o))) continue;
+              box.innerHTML = p.svg;
+              box.firstElementChild.style.cssText = `--w:${p.w};--h:${p.h}`;
+              box.style.setProperty('--k', k);
+              box.style.left = x + 'px'; box.style.top = y + 'px';
+              box.style.display = '';
+              box.dataset.spot = kind + ':' + p.name;
+              return;
+            }
+          }
+        }
+      }
+    }
+  };
+</script>
+{% endif %}
 <script>
   /* Termine, die nicht mehr passen, ausblenden und zählen (wie im Kalender-Plugin). */
   function fitBox(box) {
@@ -399,6 +486,7 @@
   function fitAll() {
     document.querySelectorAll('.fit-box').forEach(fitBox);
     document.querySelectorAll('.news').forEach(fitNews);
+    if (window.placeCat) window.placeCat();  // Katze erst setzen, wenn das Layout feststeht
   }
   fitAll();
   window.addEventListener('load', () => fitAll());

@@ -540,3 +540,18 @@
 /* Das Festbild geht bis an die Kante: InkyPis Innenabstand (1,5vw) und Rand nur hier aufheben */
 body:has(> .container > .fe) { padding: 0 !important; margin: 0 !important; }
 body:has(> .container > .fe) > .container { width: 100vw; height: 100vh; }
+
+/* ---------------- Katze (seit 1.14, katze.py) ----------------
+   Sitzt außerhalb von .db (direkt in body), damit sie in InkyPis Rand ragen darf. Größe in
+   Einheiten der Pose (--w/--h bei --u = 8 px) mal --k; Linien immer 0,3 × --u, egal wie groß. */
+.cat-box {
+  --cat-red: #E3001B; --cat-yellow: #FFC400; --cat-blue: #0082C9;
+  position: fixed; z-index: 5; line-height: 0;
+}
+.cat-box.mono { --cat-red: currentColor; --cat-yellow: var(--bg); --cat-blue: currentColor; }
+.cat-box .cat {
+  display: block; overflow: visible;
+  width: calc(var(--u) * var(--w) / 8 * var(--k, 1));
+  height: calc(var(--u) * var(--h) / 8 * var(--k, 1));
+}
+.cat-box .cat * { vector-effect: non-scaling-stroke; stroke-width: calc(var(--u) * 0.3); }

@@ -45,10 +45,11 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
     IMPORT_ERROR = exc
 
 try:
-    from . import kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft
+    from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
+                   katze)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage, radar, luft)
+                                        festtage, radar, luft, katze)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -125,6 +126,9 @@ DEFAULTS = {
     "airRadius": "3",           # km um den Wetter-Ort
     "airGases": "false",        # Ozon und NO2 der Messstation mitbewerten
     "airStation": luft.DEFAULT_STATION,
+    # Katze (seit cfgVersion 13)
+    "catEnabled": "true",
+    "catWeather": "true",       # Pose passt sich dem Wetter an
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -139,7 +143,8 @@ SINCE_VERSION.update({k: 9 for k in DEFAULTS if k.startswith("fest")})
 SINCE_VERSION.update({"radarEnabled": 10, "newsFrEnabled": 10, "newsFrUrl": 10})
 SINCE_VERSION.update({k: 11 for k in DEFAULTS if k.startswith("air")})
 SINCE_VERSION["trainRoute"] = 12
-CFG_VERSION = 12  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({k: 13 for k in DEFAULTS if k.startswith("cat")})
+CFG_VERSION = 13  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -352,6 +357,7 @@ class Tagesdashboard(BasePlugin):
             "show_location": flag("showLocation"),
             "use_colors": use_colors,
             "plugin_settings": settings,
+            "cat": None,
         }
         if weather:
             if flag("showGraph"):
@@ -370,6 +376,14 @@ class Tagesdashboard(BasePlugin):
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
                                         api_key=device_config.load_env_key("DB_API_KEY"))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        if flag("catEnabled") and mode == "normal":
+            try:
+                params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
+                                             feels_like=dwd.feels_like)
+                logger.info("Katze: %s%s", params["cat"]["main"]["name"],
+                            f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
+            except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
+                logger.exception("Katze konnte nicht gewählt werden")
         if mode == "fest":
             self.fest_view(params, fest_now, now, tz, events, weather)
         elif mode != "normal":
