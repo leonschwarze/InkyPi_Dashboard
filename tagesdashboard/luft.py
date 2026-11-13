@@ -49,7 +49,7 @@ UBA_URLS = [  # API v4 (Proxy der Luftdaten-Seite); Rückfall auf v3, falls der 
     "https://luftdaten.umweltbundesamt.de/api-proxy/airquality/json",
     "https://luftdaten.umweltbundesamt.de/api/air-data/v3/airquality/json",
 ]
-HEADERS = {"User-Agent": "InkyPi-Tagesdashboard/1.12 (privates E-Ink-Display; github.com/leonschwarze/InkyPi_Dashboard)"}
+HEADERS = {"User-Agent": "InkyPi-Tagesdashboard/1.13 (privates E-Ink-Display; github.com/leonschwarze/InkyPi_Dashboard)"}
 TIMEOUT = 12
 
 DEFAULT_STATION = "DENW062"   # Bonn-Auerberg

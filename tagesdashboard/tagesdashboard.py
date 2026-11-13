@@ -81,6 +81,7 @@ DEFAULTS = {
     # Ausstieg und Störungsmonitor (seit cfgVersion 7)
     "trainTarget": "Düsseldorf Hbf",
     "trainAlerts": "true",
+    "trainRoute": "true",       # Streckenmeldungen der VRR-Auskunft (seit cfgVersion 12)
     # Nachrichten (seit cfgVersion 3)
     "newsEnabled": "true",
     "newsFrom": "06:00", "newsTo": "09:30",
@@ -137,7 +138,8 @@ SINCE_VERSION.update({k: 8 for k in DEFAULTS if k.startswith("trip")})
 SINCE_VERSION.update({k: 9 for k in DEFAULTS if k.startswith("fest")})
 SINCE_VERSION.update({"radarEnabled": 10, "newsFrEnabled": 10, "newsFrUrl": 10})
 SINCE_VERSION.update({k: 11 for k in DEFAULTS if k.startswith("air")})
-CFG_VERSION = 11  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["trainRoute"] = 12
+CFG_VERSION = 12  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet

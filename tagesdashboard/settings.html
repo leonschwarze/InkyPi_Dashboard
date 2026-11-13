@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). -->
-<input type="hidden" name="cfgVersion" value="11" />
+<input type="hidden" name="cfgVersion" value="12" />
 
 <div class="st">
 
@@ -162,7 +162,14 @@
         </div>
         <div class="st-line"><span>von</span><input type="time" id="trainFrom" name="trainFrom" class="form-input st-time" /><span>bis</span><input type="time" id="trainTo" name="trainTo" class="form-input st-time" /></div>
         <label class="st-check"><input type="checkbox" class="db-check" name="trainAlerts" value="true" data-default="true" data-since="7"><span>Störungsmeldungen zu diesem Zug unter der Abfahrt zeigen</span></label>
-        <div class="st-hint">Am Ausstieg zeigt das Dashboard die erwartete Ankunft. Meldungen nur, wenn sie an genau dieser Fahrt hängen: Störungen, Baustellen, Ersatzverkehr und – bei Verspätung – der Grund.</div>
+        <div class="st-hint">Am Ausstieg zeigt das Dashboard die erwartete Ankunft. Mit „!“: Meldungen der Bahn, die an genau dieser Fahrt hängen – Störungen, Baustellen, Ersatzverkehr und bei Verspätung der Grund.</div>
+        <div class="st-sub" data-parent="trainAlerts">
+            <label class="st-check"><input type="checkbox" class="db-check" name="trainRoute" value="true" data-default="true" data-since="12"><span>Auch Störungen und Baustellen auf der Strecke bis zum Ausstieg, bevor sie den Zug erreichen</span></label>
+            <details class="st-why">
+                <summary>So wird entschieden</summary>
+                <div class="st-hint">Quelle ist die Fahrplanauskunft des VRR (Open Service, ganz NRW). Gezeigt werden Meldungen zu deiner Linie, die einen Bahnhof oder eine Stadt auf dem Weg deines Zuges bis zum Ausstieg nennen – auch vor deinem Einstieg (z. B. Koblenz–Remagen). Abschnitte hinter dem Ausstieg und gleichnamige Linien anderswo bleiben draußen. Die Zeile mit dem Gleis-Symbol ist eine Vorwarnung und immer gelb; rot wird es erst, wenn die Bahn den Zug selbst als verspätet meldet. „Störung beendet“ steht eine Stunde lang da. Der Ausstieg muss eingetragen sein.</div>
+            </details>
+        </div>
         <div class="st-line"><span>Sonst alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input st-num" /><span>min neu zeichnen</span></div>
         <details class="st-why">
             <summary>Aktualisierung und API-Schlüssel</summary>

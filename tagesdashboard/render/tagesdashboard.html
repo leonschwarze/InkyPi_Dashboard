@@ -226,9 +226,11 @@
         <div class="tr-badge">{{ train.badge }}</div>
       </div>
       {% if train.alerts %}
-      <!-- Störungsmonitor: Meldungen, die an genau dieser Fahrt hängen -->
+      <!-- Störungsmonitor: Meldungen an genau dieser Fahrt (!) und Störungen auf der Strecke (Gleis-Symbol, VRR) -->
       <ul class="tr-alerts">
-        {% for a in train.alerts[:(3 if orientation == 'portrait' else 2)] %}<li class="tr-alert lv-{{ a.level }}"><span class="tr-mark">!</span><span class="tr-atext">{{ a.text }}</span></li>{% endfor %}
+        {% for a in train.alerts[:(3 if orientation == 'portrait' else 2)] %}<li class="tr-alert lv-{{ a.level }}{% if a.source == 'route' %} tr-route{% endif %}">
+          {%- if a.source == 'route' %}<span class="tr-mark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 1 2.4 15M9.4 1l4.2 14M1.6 12.6h12.8M3.6 7.8h8.8M5.2 3.8h5.6"/></svg></span>
+          {%- else %}<span class="tr-mark">!</span>{% endif %}<span class="tr-atext">{{ a.text }}</span></li>{% endfor %}
         {% if train.alerts | length > (3 if orientation == 'portrait' else 2) %}<li class="tr-alert tr-more">+ {{ train.alerts | length - (3 if orientation == 'portrait' else 2) }} weitere Meldung{{ 'en' if train.alerts | length - (3 if orientation == 'portrait' else 2) > 1 }}</li>{% endif %}
       </ul>
       {% endif %}

@@ -33,6 +33,11 @@ from urllib.parse import quote
 
 import requests
 
+try:
+    from . import strecke
+except ImportError:  # Tests importieren die Module ohne Paket
+    import strecke
+
 logger = logging.getLogger(__name__)
 
 OFFICIAL = "https://apis.deutschebahn.com/db-api-marketplace/apis/timetables/v1"
@@ -131,7 +136,9 @@ def read_config(opt, flag):
     return {"station": station, "cat": line[0], "num": line[1], "label": f"{line[0]} {line[1]}",
             "dep": dep, "start": start, "end": end, "days": days,
             # Ausstieg: dort wird die Ankunft gezeigt und nach weiteren Meldungen gesucht
-            "target": (opt("trainTarget") or "").strip(), "alerts": flag("trainAlerts")}
+            "target": (opt("trainTarget") or "").strip(), "alerts": flag("trainAlerts"),
+            # Streckenmeldungen der VRR-Auskunft (strecke.py): Vorwarnung, bevor der Zug betroffen ist
+            "route": flag("trainRoute")}
 
 
 def in_window(now, cfg):
@@ -199,7 +206,7 @@ def find_planned(xml_bytes, cat, num, pt):
     """Sucht im Sollfahrplan den Halt der Linie cat/num mit Abfahrt pt (yyMMddHHmm)."""
     root = ET.fromstring(xml_bytes)
     for s in root.iter("s"):
-        dp, tl = s.find("dp"), s.find("tl")
+        dp, tl, ar = s.find("dp"), s.find("tl"), s.find("ar")
         if dp is None or tl is None or dp.get("pt") != pt:
             continue
         if (tl.get("c") or "").upper() != cat:
@@ -210,6 +217,8 @@ def find_planned(xml_bytes, cat, num, pt):
             "id": s.get("id"),
             "platform": dp.get("pp") or "",
             "path": [p for p in (dp.get("ppth") or "").split("|") if p],
+            # Halte vor diesem Bahnhof (für die Streckenmeldungen: Störungen vor dem Einstieg zählen auch)
+            "before": [p for p in ((ar.get("ppth") if ar is not None else "") or "").split("|") if p],
             "number": tl.get("n") or "",
         }
     return None
@@ -299,20 +308,34 @@ def alerts(msgs, now, until, tz, delayed):
                 reasons.append((m["ts"], code))
         elif m["t"] in ("f", "q"):
             if code in QUALITY_SHOWN:
-                found.append((CODES[code], "high" if code in SEVERE_CODES else "info"))
+                found.append((CODES[code], "high" if code in SEVERE_CODES else "info", "quality"))
         elif m["t"] in ("h", "r"):
             text = clean(m["ext"]) or CODES.get(code, "") or clean(m["cat"])
             if text and text.lower() not in ("information", "info", "hinweis"):
-                found.append((text, "high" if m["t"] == "r" or m["pr"] == "1" else "info"))
+                found.append((text, "high" if m["t"] == "r" or m["pr"] == "1" else "info", "notice"))
     if reasons:
         code = max(reasons)[1]
-        found.append((CODES[code], "high" if code in SEVERE_CODES else "info"))
+        found.append((CODES[code], "high" if code in SEVERE_CODES else "info", "reason"))
     out, seen = [], set()
-    for text, level in sorted(found, key=lambda x: x[1] != "high"):  # stabil: Reihenfolge bleibt sonst
+    for text, level, kind in sorted(found, key=lambda x: x[1] != "high"):  # stabil: Reihenfolge bleibt sonst
         if text.lower() not in seen:
             seen.add(text.lower())
-            out.append({"text": text, "level": level})
+            out.append({"text": text, "level": level, "kind": kind})
     return out
+
+
+def merge(train, route):
+    """Meldungen am Zug (IRIS) und auf der Strecke (VRR) in eine Reihenfolge: rote Meldungen am Zug,
+    dann Freitext der Bahn zu diesem Zug (der kennt die Störung schon und ist genauer), dann akute
+    Streckenstörungen (die Vorwarnung), dann übrige Hinweise am Zug, zuletzt Baustellen auf der Strecke."""
+    def rank(a):
+        if a["source"] == "route":
+            return {"acute": 2, "done": 3, "build": 5}.get(a["kind"], 5)
+        if a["level"] == "high":
+            return 0
+        return 1 if a.get("kind") == "notice" else 4
+    items = [dict(a, source="train") for a in train] + [dict(a, source="route") for a in route]
+    return sorted(items, key=rank)  # stabil: innerhalb einer Stufe bleibt die bisherige Reihenfolge
 
 
 def short_name(name):
@@ -441,7 +464,8 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
             arr = out["arrival"] or {}
             delayed = out["delay"] >= 1 or out["state"] == "cancelled" or arr.get("delay", 0) >= 1 \
                 or arr.get("cancelled", False)
-            out["alerts"] = alerts(msgs, now, until, tz, delayed)
+            route = strecke.load(cfg, plan, now, until, tz, session) if cfg.get("route") else []
+            out["alerts"] = merge(alerts(msgs, now, until, tz, delayed), route)
         if out["state"] == "cancelled":
             out["arrival"] = None  # fällt ganz aus: Ankunft ist dann bedeutungslos
         elif out["arrival"] and out["arrival"]["cancelled"] and out["state"] != "gone":

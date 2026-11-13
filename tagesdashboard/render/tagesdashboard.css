@@ -320,6 +320,9 @@
 /* höchstens zwei Zeilen je Meldung, dann Auslassungspunkte */
 .tr-atext { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tr-more { font-size: calc(var(--u) * 1.5); padding-left: calc(var(--u) * 2.7); }
+/* Streckenmeldung (VRR): Gleis statt Ausrufezeichen – Vorwarnung, der Zug selbst ist (noch) nicht betroffen */
+.tr-route .tr-mark svg { width: 82%; height: 82%; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: butt; }
 .train.has-alerts:has(.lv-high) { border-color: #E3001B; }
 
 /* ---------------- Nachrichten (morgens, nur im Zeitfenster) ----------------
