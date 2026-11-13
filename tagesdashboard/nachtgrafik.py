@@ -132,8 +132,9 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None):
-    """SVG-Band für die Nacht. width: 800 quer, 480 hochkant."""
+def svg(now, wx, width=800, seed=None, cat=None):
+    """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
+    cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15)."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -153,15 +154,23 @@ def svg(now, wx, width=800, seed=None):
     city_w = 400 * s
     hills_x = W - 300 * s
     slots = [x for x in range(int(city_w) + 20, int(hills_x) + 40, 12)] + [x for x in range(20, int(250 * s), 12)]
+    if cat:  # Mond sitzt tiefer: nur über niedriger Bebauung (Brücke, Häuser links), nie hinter Münster/Langem Eugen
+        slots = [x for x in range(int(city_w) + 26, int(hills_x) + 34, 12)] + [x for x in range(26, int(50 * s), 12)]
     mx = slots[(now.date().toordinal() * 7) % len(slots)] if slots else W // 2
     if not (wet and cloud >= 85):
-        out.append(_moon(mx, 26, 14, now))
+        # Mit Katze etwas größer und tiefer, damit sie oben auf dem Mond Platz hat
+        my, mr = (48, 18) if cat else (26, 14)
+        out.append(_moon(mx, my, mr, now))
 
     # Wolken (hell, werden auf dem Display fein gerastert)
     if cloud >= 45:
         for _ in range(3 if cloud < 70 else 5 if cloud < 90 else 8):
             out.append(f'<ellipse cx="{rnd.uniform(20, W - 20):.0f}" cy="{rnd.uniform(14, 48):.0f}" '
                        f'rx="{rnd.uniform(45, 95) * W / 800 + 20:.0f}" ry="{rnd.uniform(9, 15):.0f}" fill="{CLOUD}"/>')
+
+    # Katze auf dem Mond nach den Wolken: Sie schläft obenauf und wird nicht verdeckt
+    if cat and not (wet and cloud >= 85):
+        out.append(cat(mx, my - mr))
 
     # Stadt und Berge (Stadt links, Siebengebirge rechts, beide unten verankert)
     out.append(f'<g transform="translate(0,{WATER}) scale({s:.3f}) translate(0,-{WATER})">')

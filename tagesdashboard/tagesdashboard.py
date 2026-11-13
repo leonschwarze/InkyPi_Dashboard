@@ -129,6 +129,7 @@ DEFAULTS = {
     # Katze (seit cfgVersion 13)
     "catEnabled": "true",
     "catWeather": "true",       # Pose passt sich dem Wetter an
+    "catNight": "true",         # schläft im Nachtbild auf dem Mond (seit cfgVersion 14)
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -144,7 +145,8 @@ SINCE_VERSION.update({"radarEnabled": 10, "newsFrEnabled": 10, "newsFrUrl": 10})
 SINCE_VERSION.update({k: 11 for k in DEFAULTS if k.startswith("air")})
 SINCE_VERSION["trainRoute"] = 12
 SINCE_VERSION.update({k: 13 for k in DEFAULTS if k.startswith("cat")})
-CFG_VERSION = 13  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["catNight"] = 14
+CFG_VERSION = 14  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -388,7 +390,8 @@ class Tagesdashboard(BasePlugin):
             self.fest_view(params, fest_now, now, tz, events, weather)
         elif mode != "normal":
             self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
-                              art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None)
+                              art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None,
+                              moon_cat=flag("catEnabled") and flag("catNight"))
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -447,7 +450,8 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Nachtbild und Wochenvorschau
     # ==================================================================
-    def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None):
+    def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
+                     moon_cat=False):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -462,7 +466,8 @@ class Tagesdashboard(BasePlugin):
             if art:
                 wx = nachtgrafik.night_weather(records, now, night_end or now + timedelta(hours=7)) if records else None
                 params["night"]["art"] = {
-                    "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800),
+                    "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
+                                           cat=katze.on_moon if moon_cat else None),
                     "weather": nachtgrafik.describe(wx),
                     "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
                 }

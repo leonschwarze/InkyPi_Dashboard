@@ -18,6 +18,7 @@ Zeichnung: eigene Linien-SVGs, 1 Einheit = 1 px bei 800×480 (--u = 8 px). Die S
 hängt nicht an der Skalierung (vector-effect: non-scaling-stroke), sondern an --u, damit
 die Katze so kräftig ist wie die übrigen Linien. Farbtupfer nur in Displayfarben.
 """
+import math
 import random
 from datetime import timedelta
 
@@ -97,9 +98,9 @@ def schmetterling():
     return 54, 44, _sitting_body() + head + bf
 
 
-def schlaeft():
-    zz = (f'<g stroke="{BLUE}" fill="none"><path d="M37 8 h5 l-5 5 h5"/>'
-          f'<path d="M45 2 h3.5 l-3.5 3.5 h3.5"/></g>')
+def schlaeft(zz_color=BLUE):
+    zz = (f'<g stroke="{zz_color}" fill="none"><path d="M37 8 h5 l-5 5 h5"/>'
+          f'<path d="M45 2 h3.5 l-3.5 3.5 h3.5"/></g>') if zz_color else ""
     body = f'<path {F} d="M5 29 Q3 13 22 11 Q42 10 47 23 Q48.5 29 44 29 Z"/>'
     tail = f'<path {L} d="M46.5 26 Q42 29.5 33 28 Q28.5 27.2 29.5 24.8"/>'
     head = (f'<path {F} d="M7 29 Q5 21 9.5 17.5 L10 10.5 L15 14.5 Q18 13.8 21 15 L26 12 L25.5 18.5'
@@ -144,6 +145,44 @@ def streckt():
             f' Q36 29 26 30.5 Z"/>')
     legs = f'<path {F} d="M25 29 L6.5 31 Q4 31.3 4.2 32.5 Q4.4 33.5 6.5 33.5 L25 33.5 Z"/>'
     return 56, 34, tail + body + legs + _head(15, 22, 0.9, eyes="closed")
+
+
+def gaehnt():
+    """Sitzt und gähnt: Augen zugekniffen, Maul weit offen."""
+    mouth = (f'<ellipse fill="currentColor" stroke="currentColor" cx="20" cy="19.6" rx="3" ry="3.4"/>'
+             f'<ellipse fill="{RED}" stroke="none" cx="20" cy="21" rx="1.7" ry="1.4"/>')
+    head = (f'<g transform="rotate(-10 20 13)">{_head(20, 13, eyes="none")}'
+            f'<path {L} d="M14 12.6 Q16 11 18 12.6 M22 12.6 Q24 11 26 12.6"/>{mouth}</g>')
+    return 40, 44, _sitting_body() + head
+
+
+def _polar(cx, cy, rad, deg):
+    a = math.radians(deg)
+    return cx + rad * math.cos(a), cy + rad * math.sin(a)
+
+
+def schwanzjagd():
+    """Jagt den eigenen Schwanz: dreht den Kopf nach hinten, tatzt nach der Schwanzspitze, dreht sich."""
+    spin = f'<path {L} d="M6 31 Q3.5 25.5 6.5 20 M54 31 Q56.5 25.5 53.5 20 M2 26.5 H3 M57 26.5 H58"/>'  # dreht sich
+    tail = f'<path {L} d="M46 19 Q53 14 50 6.5 Q47 1 40 3 Q36 4.5 37 8"/>'
+    body = (f'<path {F} d="M13 22.5 Q15 13.5 29 13 Q43 12.5 47 18.5 Q49 23 45 26.5 L44.5 33.5 L40.5 33.5'
+            f' L40.5 28 Q31 29.5 22 28.5 L20.5 33.5 L16.5 33.5 L17 27 Q12.5 26 13 22.5 Z"/>')
+    eyes = f'<circle {D} cx="13.6" cy="11.8" r="1.7"/><circle {D} cx="20.6" cy="9.6" r="1.7"/>'
+    head = f'<g transform="rotate(28 15 13)">{_head(15, 13, 0.85, eyes="none")}</g>' + eyes
+    swish = f'<path {L} d="M33 2.5 L30.5 1.5 M34 6 L31.5 6.5"/>'          # Schwanzspitze zuckt
+    return 60, 34, f'<g transform="translate(3 0)">{tail}{body}{head}{swish}</g>' + spin
+
+
+def ruecken():
+    """Liegt ausgestreckt auf dem Rücken: Bauch nach oben, Pfötchen angewinkelt, Kopf zur Seite."""
+    body = (f'<path {F} d="M14 25.5 Q14 13.5 31 13 Q47 13 49 25.5 Z"/>'
+            f'<path {L} d="M25 18.5 Q31 16.8 37 18.5"/>')                     # Bauchfell
+    legs = (f'<path {L} d="M20 15.5 Q18.5 9.5 22 7.8 Q24 7 24.5 9 M26.5 13.6 Q26.5 7.5 30.5 6.6 Q32.5 6.3 32.5 8.3'
+            f' M38 13.8 Q39.5 7.8 43.5 7.5 Q45.5 7.5 45.2 9.5 M43.5 16 Q47 10.5 51 11 Q53 11.4 52 13.2"/>')
+    tail = f'<path {L} d="M48.5 24 Q55 25.5 59 22 Q60.5 20.5 59 19.5"/>'
+    head = (f'<g transform="rotate(-30 12 17)">{_head(12, 17, 0.85, eyes="closed")}</g>'
+            f'<path {L} d="M10.6 21.3 Q12 22.6 13.4 21.3"/>')                     # zufriedenes Lächeln
+    return 62, 26, legs + tail + body + head
 
 
 def sonnt():
@@ -191,15 +230,32 @@ def schal():
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
+    "gähnt": gaehnt, "schwanzjagd": schwanzjagd, "rücken": ruecken,
     "sonnt": sonnt, "sturm": sturm, "schirm": schirm, "schal": schal,
 }
 # Zufällige Posen (ohne die Wetter-Posen)
-EVERYDAY = ["sitzt", "putzt", "schmetterling", "schläft", "kastenbrot", "lugt", "spielt", "streckt"]
+EVERYDAY = ["sitzt", "putzt", "schmetterling", "gähnt", "schläft", "kastenbrot", "lugt", "spielt", "streckt",
+            "schwanzjagd", "rücken"]
 # Wetter (C): Anlass → Pose. Reihenfolge = Vorrang.
 WEATHER_POSE = {"sturm": "sturm", "regen": "schirm", "schnee": "schal", "frost": "schal", "sonne": "sonnt"}
 # Flache Posen passen auch auf Linien mit wenig Platz darüber
 FLAT_MAX_H = 34
 SPOTS = ["kopf", "tag", "mehr"]
+
+
+def on_moon(cx, top, k=0.95, stroke=2.1, ring=1.6):
+    """Nachtbild (seit 1.15): schlafende Katze auf dem Mond. cx = Mondmitte, top = Oberkante des Mondes
+    (Mitte des Mondrings), in Einheiten der Nachtgrafik (ca. 0,92 px). Weißer Körper mit schwarzen Linien hebt
+    sich vom Nachthimmel ab; ein „Z“ gelb wie die Sterne. Die Unterkante berührt den gelben Ring nur (keine
+    Überdeckung): Kanten aus drei Farben (Schwarz, Gelb, Blau) kann eink.py nicht sauber einrasten, dann
+    entstehen grüne und rote Einzelpixel. Ohne Zufall: Das Nachtbild bleibt die ganze Nacht gleich."""
+    w, h, inner = schlaeft(zz_color=None)
+    z = '<path stroke="#FFE500" fill="none" d="M38 4 h6.5 l-6.5 6.5 h6.5"/>'
+    x = cx - 26 * k                               # Körpermitte der Pose liegt bei x ≈ 26
+    bottom = top - ring / 2 - stroke / 2          # Linienunterkante = Außenkante des Rings
+    y = bottom - 29 * k                           # Unterkante der Pose liegt bei y = 29
+    return (f'<g transform="translate({x:.1f} {y:.1f}) scale({k})" stroke-width="{stroke / k:.2f}"'
+            f' stroke-linecap="round" stroke-linejoin="round" style="color:#000000; --bg:#FFFFFF">{inner}{z}</g>')
 
 
 def pose(name):
