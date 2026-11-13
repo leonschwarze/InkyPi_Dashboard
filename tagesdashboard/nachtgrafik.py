@@ -6,7 +6,9 @@ mit Petersberg, Drachenfels und Ölberg, davor den Rhein. Der Himmel zeigt die k
   * Sterne bei klarem Himmel (Anzahl nach Bewölkung, Lage wechselt jeden Tag)
   * Wolken, Regen- oder Schneestriche, Nebelbänder
   * den Mond in seiner Phase; seine Lage wechselt täglich
-Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonnenwende).
+  * Sternschnuppen bei starken Strömen im Maximum und klarem Himmel (seit 1.17, meteore.py)
+Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonnenwende) und, wenn
+ein Meteorstrom aktiv ist, eine weitere Zeile dazu (immer sichtbar, unabhängig vom Wetter).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -132,9 +134,11 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None):
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
-    cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15)."""
+    cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
+    meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
+    Maximum und klarem Himmel > 0, sonst bleibt das Nachtbild unverändert."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -149,6 +153,16 @@ def svg(now, wx, width=800, seed=None, cat=None):
     for _ in range(n):
         out.append(f'<circle cx="{rnd.uniform(3, W - 3):.0f}" cy="{rnd.uniform(3, 66):.0f}" '
                    f'r="{rnd.choice((1.2, 1.4, 1.7, 2.2))}" fill="{STAR}"/>')
+
+    # Sternschnuppen: kurze Striche schräg von oben rechts nach unten links, heller Kopf
+    for _ in range(round(meteors * W / 800)):
+        x1, y1 = rnd.uniform(30, W - 30), rnd.uniform(6, 36)
+        length = rnd.uniform(24, 42) * W / 800
+        ang = math.radians(rnd.uniform(195, 235))
+        x2, y2 = x1 + length * math.cos(ang), y1 - length * math.sin(ang)
+        out.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" '
+                   f'stroke="{STAR}" stroke-width="1.6" stroke-linecap="round"/>')
+        out.append(f'<circle cx="{x1:.0f}" cy="{y1:.0f}" r="1.6" fill="{STAR}"/>')
 
     # Mond: Lage wechselt täglich, nie hinter dem Post Tower
     city_w = 400 * s

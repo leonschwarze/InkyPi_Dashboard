@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="15" />
+<input type="hidden" name="cfgVersion" value="16" />
 
 <div class="st">
 
@@ -257,6 +257,9 @@
     <div class="st-sub" data-parent="nightEnabled">
         <div class="st-line"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input st-time" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input st-time" /></div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht und Tageslicht</span></label>
+        <div class="st-sub" data-parent="nightArt">
+            <label class="st-check"><input type="checkbox" class="db-check" name="meteorEnabled" value="true" data-default="true" data-since="16"><span>Sternschnuppenströme <span class="st-note">als Text, wenn ein Strom aktiv ist; bei Quadrantiden, Perseiden und Geminiden zusätzlich als Strichlein am Himmel, nur im Maximum bei klarem Himmel</span></span></label>
+        </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
     </div>
 </section>

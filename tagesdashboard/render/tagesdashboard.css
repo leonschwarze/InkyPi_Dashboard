@@ -494,6 +494,8 @@
   white-space: nowrap;
 }
 .portrait .nt-art-cap { flex-direction: column; gap: calc(var(--u) * 0.2); }
+/* Sternschnuppenströme (seit 1.17): eigene Zeile unter nt-art-cap, nur wenn ein Strom aktiv ist */
+.nt-art-met { padding: 0 calc(var(--u) * 2.6); font-size: calc(var(--u) * 1.75); line-height: 1.2; }
 .nt-art .art-svg { display: block; width: 100%; height: calc(var(--u) * 15); }
 .portrait .nt-art .art-svg { height: calc(var(--u) * 17); }
 /* Mit Silhouette: Mond steht in der Bildunterschrift, oben etwas kompakter */
