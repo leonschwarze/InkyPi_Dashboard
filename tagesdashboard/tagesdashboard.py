@@ -46,10 +46,10 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse)
+                   katze, pollen, meteore, finsternisse, planeten)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage, radar, luft, katze, pollen, meteore, finsternisse)
+                                        festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -140,6 +140,8 @@ DEFAULTS = {
     "meteorEnabled": "true",
     # Mondfinsternisse im Nachtbild (seit cfgVersion 17)
     "eclipseEnabled": "true",
+    # Helle Planeten im Nachtbild (seit cfgVersion 18)
+    "planetEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -159,7 +161,8 @@ SINCE_VERSION["catNight"] = 14
 SINCE_VERSION.update({k: 15 for k in DEFAULTS if k.startswith("pollen")})
 SINCE_VERSION["meteorEnabled"] = 16
 SINCE_VERSION["eclipseEnabled"] = 17
-CFG_VERSION = 17  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["planetEnabled"] = 18
+CFG_VERSION = 18  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -415,7 +418,7 @@ class Tagesdashboard(BasePlugin):
             self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
                               art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None,
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
-                              eclipses=flag("eclipseEnabled"))
+                              eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"))
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -475,7 +478,7 @@ class Tagesdashboard(BasePlugin):
     # Nachtbild und Wochenvorschau
     # ==================================================================
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
-                     moon_cat=False, meteors=False, eclipses=False):
+                     moon_cat=False, meteors=False, eclipses=False, planets=False):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -498,14 +501,19 @@ class Tagesdashboard(BasePlugin):
                 blood = finsternisse.show_blood_moon(eclipse_info)
                 if eclipse_info:
                     logger.info("Finsternis: %s%s", eclipse_info["text"], " (Blutmond gezeichnet)" if blood else "")
+                planet_info = planeten.active(d) if planets else None
+                planet_dot = planet_info["kind"] if planeten.show_dot(planet_info, wx) else None
+                if planet_info:
+                    logger.info("Planeten: %s%s", planet_info["text"], " (Punkt gezeichnet)" if planet_dot else "")
                 params["night"]["art"] = {
                     "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
-                                           blood_moon=blood),
+                                           blood_moon=blood, planet=planet_dot),
                     "weather": nachtgrafik.describe(wx),
                     "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
                     "meteors": meteor_info["text"] if meteor_info else "",
                     "eclipse": eclipse_info["text"] if eclipse_info else "",
+                    "planet": planet_info["text"] if planet_info else "",
                 }
         else:
             portrait = params["orientation"] == "portrait"

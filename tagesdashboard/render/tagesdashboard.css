@@ -494,8 +494,8 @@
   white-space: nowrap;
 }
 .portrait .nt-art-cap { flex-direction: column; gap: calc(var(--u) * 0.2); }
-/* Zusätzliche Zeile(n) unter nt-art-cap: Sternschnuppenströme (seit 1.17) und Mondfinsternisse
-   (seit 1.18) – je eine eigene Zeile, nur wenn etwas davon anzuzeigen ist */
+/* Zusätzliche Zeile(n) unter nt-art-cap: Sternschnuppenströme (seit 1.17), Mondfinsternisse
+   (seit 1.18) und helle Planeten (seit 1.19) – je eine eigene Zeile, nur wenn etwas davon anzuzeigen ist */
 .nt-art-line { padding: 0 calc(var(--u) * 2.6); font-size: calc(var(--u) * 1.75); line-height: 1.2; }
 .nt-art .art-svg { display: block; width: 100%; height: calc(var(--u) * 15); }
 .portrait .nt-art .art-svg { height: calc(var(--u) * 17); }

@@ -8,9 +8,11 @@ mit Petersberg, Drachenfels und Ölberg, davor den Rhein. Der Himmel zeigt die k
   * den Mond in seiner Phase; seine Lage wechselt täglich; bei einer totalen Mondfinsternis in der
     Nacht selbst rötlich statt gelb (Blutmond, seit 1.18, finsternisse.py)
   * Sternschnuppen bei starken Strömen im Maximum und klarem Himmel (seit 1.17, meteore.py)
+  * einen auffällig hellen Punkt für Venus, Jupiter, Mars oder Saturn am Höhepunkt ihrer
+    Sichtbarkeit (Opposition bzw. größte Helligkeit) bei klarem Himmel (seit 1.19, planeten.py)
 Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonnenwende) und, wenn
-ein Meteorstrom aktiv oder eine Mondfinsternis nah ist, je eine weitere Zeile dazu (immer sichtbar,
-unabhängig vom Wetter).
+ein Meteorstrom aktiv, eine Mondfinsternis nah oder ein Planet am Höhepunkt ist, je eine weitere
+Zeile dazu (immer sichtbar, unabhängig vom Wetter).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -138,13 +140,15 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False):
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
     Maximum und klarem Himmel > 0, sonst bleibt das Nachtbild unverändert.
     blood_moon: Mond rötlich statt gelb (seit 1.18, finsternisse.show_blood_moon); nur in der Nacht
-    einer totalen Mondfinsternis, sonst unverändert."""
+    einer totalen Mondfinsternis, sonst unverändert.
+    planet: "Morgenstern", "Abendstern", "Opposition" oder None (seit 1.19, planeten.show_dot); nur
+    am Höhepunkt eines hellen Planeten bei klarem Himmel gesetzt, sonst bleibt das Nachtbild unverändert."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -181,6 +185,29 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False):
         # Mit Katze etwas größer und tiefer, damit sie oben auf dem Mond Platz hat
         my, mr = (48, 18) if cat else (26, 14)
         out.append(_moon(mx, my, mr, now, blood=blood_moon))
+
+    # Heller Planet am Höhepunkt (seit 1.19): Morgen-/Abendstern niedrig über dem Horizont in der
+    # freien Zone zwischen Stadt und Bergen bzw. bei den Häusern links (wie die tief sitzende Katzen-
+    # Mondposition, nie hinter den hohen Gebäuden); eine Opposition steht die ganze Nacht hoch am
+    # Himmel. Kreis mit vier Strahlen, deutlich größer als die Hintergrundsterne.
+    if planet and not (wet and cloud >= 85):
+        low_slots = ([x for x in range(int(city_w) + 26, int(hills_x) + 34, 12)] +
+                     [x for x in range(26, int(50 * s), 12)])
+        if planet == "Morgenstern":
+            zone = [x for x in low_slots if x < city_w] or low_slots
+            px, py = rnd.choice(zone), rnd.uniform(48, 60)
+        elif planet == "Abendstern":
+            zone = [x for x in low_slots if x >= city_w] or low_slots
+            px, py = rnd.choice(zone), rnd.uniform(48, 60)
+        else:  # Opposition: die ganze Nacht sichtbar, hoch über dem Siebengebirge (niedriger als die
+               # Stadt, sonst verschwindet der Punkt hinter Münster, Langem Eugen oder Post Tower) und
+               # deutlich rechts vom höchsten Mond-Platz (+34/+40, mit/ohne Katze), sonst verschwindet
+               # er hinter Mond oder Katze
+            px, py = rnd.uniform(hills_x + 60, W - 15), rnd.uniform(12, 28)
+        out.append(f'<circle cx="{px:.0f}" cy="{py:.0f}" r="3.2" fill="{STAR}"/>')
+        for dx, dy in ((7, 0), (-7, 0), (0, 7), (0, -7)):
+            out.append(f'<line x1="{px:.0f}" y1="{py:.0f}" x2="{px + dx:.0f}" y2="{py + dy:.0f}" '
+                       f'stroke="{STAR}" stroke-width="1.3"/>')
 
     # Wolken (hell, werden auf dem Display fein gerastert)
     if cloud >= 45:
