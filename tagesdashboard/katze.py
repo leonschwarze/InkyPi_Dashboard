@@ -18,7 +18,6 @@ Zeichnung: eigene Linien-SVGs, 1 Einheit = 1 px bei 800×480 (--u = 8 px). Die S
 hängt nicht an der Skalierung (vector-effect: non-scaling-stroke), sondern an --u, damit
 die Katze so kräftig ist wie die übrigen Linien. Farbtupfer nur in Displayfarben.
 """
-import math
 import random
 from datetime import timedelta
 
@@ -123,11 +122,8 @@ def lugt():
     return 34, 24, _head(17, 14) + paws
 
 
-def spielt():
-    yarn = (f'<g stroke="{RED}" fill="none">'
-            f'<circle cx="7" cy="28.5" r="5" fill="var(--bg)"/>'
-            f'<path d="M3 26 Q7 29 11.5 27 M2.6 29.5 Q7 32.5 11 31 M5 23.8 Q9 26 10.5 31.5"/>'
-            f'<path d="M12 31 Q20 34 28 33"/></g>')
+def _playing():
+    """Katze geduckt und spielbereit, ohne Spielzeug (für spielt, maus, socke)."""
     tail = f'<path {L} d="M52 17 Q60 11 58 4.5 Q57 2 54.5 3.5"/>'
     body = (f'<path {F} d="M22 26.5 Q28 15 40 13.5 Q50 12.5 54 19 Q56.5 24 52 30 L48 33.5 L44 33.5'
             f' L46.5 28 Q38 30 30 30 L27 33.5 L23 33.5 Z"/>')
@@ -136,7 +132,16 @@ def spielt():
             f' Q17 26 15 16 Z"/>'
             f'<circle {D} cx="20" cy="16" r="1.7"/><circle {D} cx="27" cy="16" r="1.7"/>'
             f'<path {D} d="M22.3 19.4 L24.7 19.4 L23.5 20.7 Z"/>')
-    return 62, 34, yarn + tail + body + paw + head
+    return tail + body + paw + head
+
+
+def spielt():
+    """Tatzt nach einem Wollknäuel."""
+    yarn = (f'<g stroke="{RED}" fill="none">'
+            f'<circle cx="7" cy="28.5" r="5" fill="var(--bg)"/>'
+            f'<path d="M3 26 Q7 29 11.5 27 M2.6 29.5 Q7 32.5 11 31 M5 23.8 Q9 26 10.5 31.5"/>'
+            f'<path d="M12 31 Q20 34 28 33"/></g>')
+    return 62, 34, yarn + _playing()
 
 
 def streckt():
@@ -155,10 +160,6 @@ def gaehnt():
             f'<path {L} d="M14 12.6 Q16 11 18 12.6 M22 12.6 Q24 11 26 12.6"/>{mouth}</g>')
     return 40, 44, _sitting_body() + head
 
-
-def _polar(cx, cy, rad, deg):
-    a = math.radians(deg)
-    return cx + rad * math.cos(a), cy + rad * math.sin(a)
 
 
 def schwanzjagd():
@@ -182,7 +183,8 @@ def ruecken():
     tail = f'<path {L} d="M48.5 24 Q55 25.5 59 22 Q60.5 20.5 59 19.5"/>'
     head = (f'<g transform="rotate(-30 12 17)">{_head(12, 17, 0.85, eyes="closed")}</g>'
             f'<path {L} d="M10.6 21.3 Q12 22.6 13.4 21.3"/>')                     # zufriedenes Lächeln
-    return 62, 26, legs + tail + body + head
+    # Kopf 2 Einheiten höher: gedreht ragte das Kinn sonst unter die Linie (seit 1.20, test_katze prüft das)
+    return 62, 26, legs + tail + body + f'<g transform="translate(0 -2)">{head}</g>'
 
 
 def sonnt():
@@ -227,17 +229,120 @@ def schal():
     return 40, 44, cat + scarf
 
 
+# ---------------------------------------------------------------- seit 1.20
+
+def maus():
+    """Geduckt auf der Lauer, Hinterteil hoch – vorne flitzt eine Maus davon.
+    Maus groß und schlicht: Tropfenkörper, ein deutlich abgesetztes rundes Ohr, langer Schwanz."""
+    mouse = (f'<path {L} d="M22 31 Q28 25 32 29.5 Q34 31.5 36.5 28.5"/>'                # Schwanz
+             f'<path {F} d="M0.5 30.5 Q6 22 14 21.5 Q23 21.3 23 30 L22.5 33.5 H6 Q2 33 0.5 30.5 Z"/>'  # Körper, Nase links
+             f'<circle {F} cx="10.5" cy="20.5" r="4.2"/>'                                # Ohr vorne oben
+             f'<circle {D} cx="5.5" cy="27" r="1.5"/>'                                    # Auge
+             f'<circle {D} cx="0.9" cy="30.4" r="1.2"/>')                                 # Nase
+    cat = _playing()
+    return 92, 34, mouse + f'<g transform="translate(30 0)">{cat}</g>'
+
+
+def laser():
+    """Sitzt starr und starrt auf einen roten Laserpunkt vor den Pfoten: große Pupillen nach unten rechts."""
+    dot = (f'<circle fill="{RED}" stroke="none" cx="47" cy="40.5" r="3.4"/>'
+           f'<path stroke="{RED}" fill="none" d="M47 33.5 V32 M41 37 L40 36 M53 37 L54 36"/>')
+    eyes = f'<circle {D} cx="16.8" cy="13.4" r="2.5"/><circle {D} cx="24.8" cy="13.4" r="2.5"/>'
+    return 56, 44, _sitting_body() + _head(20, 13, eyes="none") + eyes + dot
+
+
+def socke():
+    """Abends zur Wäsche-Karte: tobt mit einer Socke (blau, rote Spitze, weißer Bund) statt mit dem Wollknäuel."""
+    cat = _playing()
+    sock = (f'<g transform="rotate(-10 11 26)">'
+            f'<path fill="{BLUE}" stroke="currentColor" d="M3 16 H15 V26 Q15 28 17.5 29 L21 30.5'
+            f' Q25 32.2 24 34 Q23 35.6 19.5 34.8 L9 32.5 Q3 31 3 25 Z"/>'
+            f'<path fill="{RED}" stroke="currentColor" d="M19 29.6 L21 30.5 Q25 32.2 24 34 Q23 35.6 19.5 34.8 L17.5 34.3 Q19.5 32 19 29.6 Z"/>'
+            f'<path fill="var(--bg)" stroke="currentColor" d="M2.5 12 H15.5 V17 H2.5 Z"/></g>')
+    return 74, 34, f'<g transform="translate(0 -2)">{sock}</g>' + f'<g transform="translate(12 0)">{cat}</g>'
+
+
+def karton():
+    """„If it fits, I sits“: sitzt in einem Karton, nur Kopf und Pfoten schauen raus."""
+    flaps = (f'<path {F} d="M5 25 L0.5 18 L13 18 L16 25 Z"/>'
+             f'<path {F} d="M37 25 L41.5 18 L29 18 L26 25 Z"/>')
+    box = f'<path {F} d="M5 25 H37 V43.5 H5 Z"/>'
+    paws = (f'<path {F} d="M11 25 Q11 21.5 14 21.5 Q17 21.5 17 25"/>'
+            f'<path {F} d="M25 25 Q25 21.5 28 21.5 Q31 21.5 31 25"/>')
+    return 42, 44, flaps + _head(21, 17, 1.0) + box + paws
+
+
+def tasse():
+    """Schubst mit der Pfote eine Tasse über die Kante – mit Unschuldsblick.
+    Tasse größer und mit Abstand zur Katze, Pfote berührt nur den Rand, ein Dampfkringel."""
+    cup = (f'<g transform="translate(0 -0.6) rotate(20 56.5 43.5)">'
+           f'<path fill="{RED}" stroke="currentColor" d="M43 28 H58 L57 42 Q56.5 43.5 55 43.5 H46 Q44.5 43.5 44 42 Z"/>'
+           f'<path {L} d="M58 31.5 Q63.5 31.5 63 35.8 Q62.5 39 57.2 39"/>'
+           f'<path {L} d="M49.5 24 Q47 21 49.5 18 Q52 15 49.5 12"/></g>')
+    paw = f'<path {F} d="M27 30 Q34 26.5 41.5 27 Q43.8 27.5 43 29.5 Q41.8 31.5 36 31.3 Q31 31.4 27.5 34"/>'
+    eyes = f'<path {L} d="M14 12.5 Q16 10.6 18 12.5 M22 12.5 Q24 10.6 26 12.5"/>'
+    head = f'<g transform="rotate(-8 20 13)">{_head(20, 13, eyes="none")}{eyes}</g>'
+    return 68, 44, _sitting_body() + head + paw + cup
+
+
+def spaziert():
+    """Spaziert die Linie entlang, Schwanz hoch, hinter sich große, einfache Pfotenabdrücke."""
+    def print_(x):
+        return (f'<g {D}><ellipse cx="{x}" cy="31.6" rx="2.6" ry="1.9"/>'
+                f'<circle cx="{x - 2.6}" cy="27.6" r="1.1"/><circle cx="{x + 2.6}" cy="27.6" r="1.1"/></g>')
+    prints = print_(54) + print_(64)
+    tail = f'<path {L} d="M41 15 Q46 9 43 3 Q41.5 0.8 39.5 2.5"/>'
+    back_legs = f'<path {L} d="M17 23 L13.5 33.5 M37 22 L40.5 33.5"/>'
+    body = f'<path {F} d="M11 17.5 Q13 11.5 26 11.5 Q38 11 41.5 16 Q43.5 21 38.5 24 Q26 26.5 14 24.5 Q9.5 22.5 11 17.5 Z"/>'
+    front_legs = f'<path {L} d="M20 24.5 L22.5 33.5 H25 M33 24 L31 33.5 H33.5"/>'
+    return 68, 34, prints + tail + back_legs + body + front_legs + _head(12, 12, 0.9)
+
+
+def zeitung():
+    """Im Nachrichtenfenster: liest Zeitung. Große weiße Seite mit fetter Schlagzeile und
+    nur zwei Textzeilen – so bleibt sie auch bei 2,4 px Strich als Zeitung erkennbar."""
+    paper = (f'<path {F} d="M3 20 L37 18.5 L38 41 L4 42.5 Z"/>'
+             f'<path fill="currentColor" stroke="currentColor" d="M8 23.3 L28 22.5 L28.2 25.5 L8.2 26.3 Z"/>'
+             f'<path {L} d="M8.5 32 L33 31 M8.8 37.5 L25 36.8"/>')
+    eyes = f'<circle {D} cx="16" cy="14" r="1.8"/><circle {D} cx="24" cy="14" r="1.8"/>'
+    paws = (f'<path {F} d="M1 30 Q1 26.5 4 26.5 Q7 26.5 7 30 Q7 33.5 4 33.5 Q1 33.5 1 30 Z"/>'
+            f'<path {F} d="M34 29 Q34 25.5 37 25.5 Q40 25.5 40 29 Q40 32.5 37 32.5 Q34 32.5 34 29 Z"/>')
+    return 42, 44, _sitting_body() + _head(20, 13, eyes="none") + eyes + paper + paws
+
+
+def koffer():
+    """Am Zug-Dienstag im Zeitfenster: sitzt reisefertig neben ihrem Köfferchen."""
+    case = (f'<path fill="{RED}" stroke="currentColor" d="M37 30 H53 Q54.5 30 54.5 31.5 V42 Q54.5 43.5 53 43.5'
+            f' H37 Q35.5 43.5 35.5 42 V31.5 Q35.5 30 37 30 Z"/>'
+            f'<path {L} d="M41.5 30 V27.5 H48.5 V30 M45 30 V43.5"/>')
+    return 58, 44, _sitting_body() + _head(20, 13) + case
+
+
+def partyhut():
+    """An Geburtstagen aus Leons Liste: großes gelbes Partyhütchen mit rotem Band und Bommel."""
+    hat = (f'<path fill="{YELLOW}" stroke="currentColor" d="M12.5 5 L20 -10 L27.5 5 Q20 7.4 12.5 5 Z"/>'
+           f'<path fill="{RED}" stroke="none" d="M15.2 -0.4 L24.8 -0.4 L26 2.2 L14 2.2 Z"/>'
+           f'<circle fill="{RED}" stroke="currentColor" cx="20" cy="-11.5" r="3"/>')
+    # Das Hütchen ragt über den Kopf hinaus: alles 15 Einheiten tiefer, damit es in der viewBox liegt
+    # (placeCat rechnet mit der viewBox; was darüber hinausragt, könnte Text überdecken).
+    return 40, 59, f'<g transform="translate(0 15)">{_sitting_body()}{_head(20, 13)}{hat}</g>'
+
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
     "gähnt": gaehnt, "schwanzjagd": schwanzjagd, "rücken": ruecken,
     "sonnt": sonnt, "sturm": sturm, "schirm": schirm, "schal": schal,
+    "maus": maus, "laser": laser, "karton": karton, "tasse": tasse, "spaziert": spaziert,
+    "zeitung": zeitung, "koffer": koffer, "partyhut": partyhut, "socke": socke,
 }
 # Zufällige Posen (ohne die Wetter-Posen)
 EVERYDAY = ["sitzt", "putzt", "schmetterling", "gähnt", "schläft", "kastenbrot", "lugt", "spielt", "streckt",
-            "schwanzjagd", "rücken"]
+            "schwanzjagd", "rücken", "maus", "laser", "karton", "tasse", "spaziert"]
 # Wetter (C): Anlass → Pose. Reihenfolge = Vorrang.
 WEATHER_POSE = {"sturm": "sturm", "regen": "schirm", "schnee": "schal", "frost": "schal", "sonne": "sonnt"}
+# Anlässe (seit 1.20): Anlass → Pose. Geburtstag geht dem Wetter vor, die übrigen kommen nach dem Wetter.
+OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "koffer", "waesche": "socke"}
 # Flache Posen passen auch auf Linien mit wenig Platz darüber
 FLAT_MAX_H = 34
 SPOTS = ["kopf", "tag", "mehr"]
@@ -319,26 +424,49 @@ def _day_order(items, day, salt):
     return order
 
 
-def choose(now, records=None, nowcast=None, weather=True, feels_like=None):
+def occasion_slot(now):
+    """Darf in diesem Takt ein Anlass die Pose bestimmen? Jeder zweite Takt – so sind die Anlass-Posen
+    „eingestreut“ statt ständig da. Welcher Takt beginnt, wechselt täglich (Seed = Datum)."""
+    start = random.Random(f"{now.date().isoformat()}/anlass").randrange(2)
+    return (slot_of(now) + start) % 2 == 0
+
+
+def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=()):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
-    main  – Pose, die sie am liebsten zeigt (Wetter-Pose oder die nächste des Tages)
+    occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche)
+
+    Rangfolge: Geburtstag > Wetter > übrige Anlässe > Alltag. Anlässe (auch der Geburtstag) zählen nur
+    in jedem zweiten Takt (occasion_slot); das Wetter gilt immer, wenn es zutrifft.
+
+    main  – Pose, die sie am liebsten zeigt
     flat  – flache Pose für Linien mit wenig Platz darüber
     spots – Reihenfolge der Plätze (kopf, tag, mehr); das Skript im Template nimmt den ersten,
             an dem eine der beiden Posen frei steht
     seed  – Startpunkt für die Lage auf der Linie (wiederholbar)
+    reason – was die Pose bestimmt hat (Wetter- oder Anlassname) oder None
     """
     slot = slot_of(now)
     day = now.date()
     everyday = _day_order(EVERYDAY, day, "pose")
-    reason = weather_reason(records, now, nowcast, feels_like) if weather else None
-    main = WEATHER_POSE[reason] if reason else everyday[slot % len(everyday)]
+    active = [o for o in OCCASION_POSE if o in set(occasions)] if occasion_slot(now) else []
+    others = [o for o in active if o != "geburtstag"]
+    weather_why = weather_reason(records, now, nowcast, feels_like) if weather else None
+    if "geburtstag" in active:
+        reason, main = "geburtstag", OCCASION_POSE["geburtstag"]
+    elif weather_why:
+        reason, main = weather_why, WEATHER_POSE[weather_why]
+    elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln
+        reason = others[(slot // 2) % len(others)]
+        main = OCCASION_POSE[reason]
+    else:
+        reason, main = None, everyday[slot % len(everyday)]
     flat = main if is_flat(main) else next(
         p for i in range(1, len(everyday) + 1) if is_flat(p := everyday[(slot + i) % len(everyday)]))
     spots = _day_order(SPOTS, day, "spot")
     k = slot % len(spots)
     spots = spots[k:] + spots[:k]
-    if reason and not is_flat(main):  # Schirm und Schal brauchen Höhe: zuerst die Kopfzeile
+    if reason and not is_flat(main):  # Schirm, Schal, Partyhut, Zeitung, Koffer brauchen Höhe: zuerst die Kopfzeile
         spots.remove("kopf")
         spots.insert(0, "kopf")
     seed = random.Random(f"{day.isoformat()}/{slot}").randrange(1000)

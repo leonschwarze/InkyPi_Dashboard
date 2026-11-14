@@ -1,12 +1,22 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.19
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.20
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – neu: nachts schläft sie auf dem Mond über Bonn.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, neu: Maus, Laserpunkt, Karton und passende Posen zu Nachrichten, Zug, Wäsche und Geburtstag.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.20: neun neue Katzenposen
+
+- **Fünf neue Alltags-Posen:** jagt eine Maus, starrt auf einen Laserpunkt, sitzt im Karton, schubst eine Tasse von der Kante, spaziert mit Pfotenabdrücken. Damit gibt es 16 Alltags-Posen; wie bisher kommt nie zweimal hintereinander dieselbe.
+- **Vier Anlass-Posen**, die passend eingestreut werden: im Nachrichtenfenster liest sie Zeitung, wenn die Zugkarte da ist, steht sie mit rotem Koffer bereit, abends bei der Wäsche-Karte tobt sie mit einer Socke, und am Geburtstag aus deiner Liste trägt sie ein Partyhütchen.
+- **Eingestreut, nicht immer:** Eine Anlass-Pose kommt nur bei jeder zweiten Aktualisierung (welche, wechselt von Tag zu Tag), dazwischen ganz normale Posen. Sind mehrere Anlässe zugleich da (z. B. Nachrichten und Zug), wechseln sie sich ab.
+- **Vorrang:** Geburtstag vor Wetter vor den übrigen Anlässen. Am Geburtstag trägt sie also auch bei Regen das Hütchen statt den Schirm, die Zeitung dagegen muss bei Regen dem Schirm weichen.
+- Keine neue Einstellung: Die Anlass-Posen gehören zur Katze (abschalten mit „Katze“). Ohne Katze ist das Bild pixelgleich zu 1.19.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 18, unverändert). Nur Python-Dateien haben sich geändert: Ordner ersetzen und InkyPi neu starten.
 
 ## Neu in 1.19: Helle Planeten
 
@@ -173,6 +183,8 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_800x480.png` – Katze bei Regen unter dem Schirm auf der Kopfzeile
 - `katze_480x800.png` – hochkant, bei Frost mit Schal
 - `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn
-- `katze_posen.png` – alle Posen (groß und in Displaygröße)
+- `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
+- `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
+- `katze_posen.png` – alle 24 Posen (groß und in Displaygröße)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

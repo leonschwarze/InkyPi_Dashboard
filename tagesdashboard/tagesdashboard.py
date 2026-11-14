@@ -406,8 +406,13 @@ class Tagesdashboard(BasePlugin):
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
         if flag("catEnabled") and mode == "normal":
             try:
+                occasions = [name for name, on in (
+                    ("geburtstag", any(g["kind"] == "geburtstag" for g in params["greetings"])),
+                    ("nachrichten", bool(params.get("news"))),
+                    ("zug", bool(params.get("train"))),
+                    ("waesche", bool(params.get("laundry")))) if on]
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
-                                             feels_like=dwd.feels_like)
+                                             feels_like=dwd.feels_like, occasions=occasions)
                 logger.info("Katze: %s%s", params["cat"]["main"]["name"],
                             f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
             except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
