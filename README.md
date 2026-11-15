@@ -1,12 +1,24 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.21
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.22
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Neu: eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Neu: Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.22: „4° kälter als gestern“
+
+- Die Begründung unter der Kleidungsempfehlung nennt jetzt den Unterschied zum Vortag: „Bis 20:30: gefühlt bis 5° · 4° kälter als gestern“. So lässt sich die Empfehlung leichter einordnen – wie es sich gestern angefühlt hat, weiß man ja noch.
+- **Verglichen wird dasselbe wie in der Empfehlung:** der kälteste gefühlte Wert in der Zeit, in der du unterwegs bist, mit denselben Uhrzeiten gestern (Messwerte des DWD über Bright Sky). Um 15 Uhr also 15–20:30 Uhr heute gegen 15–20:30 Uhr gestern.
+- **Abends** (wenn das Dashboard schon den nächsten Tag zeigt) heißt es „5° kälter als heute“.
+- Erst **ab 3 Grad** Unterschied, sonst bleibt die Zeile wie bisher (pixelgleich zu 1.21). Fehlen gestern zu viele Stundenwerte, gibt es keinen Vergleich.
+- Wird die Zeile zu lang, fallen hintere Gründe weg (z. B. „Regen, zu windig für Schirm“ – der steht ja schon als Symbol darüber). Der Vergleich bleibt.
+- Gefühlt heißt mit Windchill: Bei Kälte und Wind kann der Unterschied größer sein als bei der Lufttemperatur.
+- Keine neue Einstellung: Der Vergleich gehört zur Kleidungsempfehlung.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 18, unverändert). Nur Python- und Template-Dateien haben sich geändert: Ordner ersetzen und InkyPi neu starten. Das Dashboard lädt dafür bei Bright Sky die Stundenwerte ab gestern 0 Uhr statt ab 21 Uhr (etwa 24 Werte mehr).
 
 ## Neu in 1.21: Statusanzeige bei Ausfällen
 
@@ -199,5 +211,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_posen.png` – alle 24 Posen (groß und in Displaygröße)
 - `status_800x480.png` – Statusanzeige: der GA-Feed ist seit 5:05 nicht erreichbar, Bonn wird mit WDR-Meldungen ergänzt (1.21)
 - `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
+- `gestern_800x480.png` – Schnee, gefühlt bis −8° · 4° kälter als gestern (1.22)
+- `gestern_480x800.png` – hochkant, abends: morgen 5° kälter als heute (1.22)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

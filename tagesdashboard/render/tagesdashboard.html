@@ -157,7 +157,11 @@
       <div class="wear-items">
         {% for it in wear.pieces %}<div class="wear-item">{{ it.svg | safe }}<span>{{ it.text }}</span></div>{% endfor %}
       </div>
+      {% if wear.compare %}{# seit 1.22: „4° kälter als gestern“ hinter „gefühlt bis …“; fitWhy lässt hintere Gründe weg #}
+      <div class="wear-why has-cmp"><span>{{ wear.why_head }}</span><span class="ww-cmp"> · {{ wear.compare }}</span>{% for g in wear.why_rest %}<span class="ww-rest"> · {{ g }}</span>{% endfor %}</div>
+      {% else %}
       <div class="wear-why">{{ wear.why }}</div>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -504,8 +508,25 @@
       el.style.display = 'none';
     }
   }
+  // Begründung der Kleidung mit Vergleich zum Vortag (seit 1.22): passt die Zeile nicht, fallen die
+  // hinteren Gründe weg (von hinten) – sie stehen ohnehin als Symbol darüber bzw. in der Tageskurve.
+  // Der Vergleich selbst bleibt. Gemessen über Rechtecke, nicht scrollWidth (das rundet).
+  function fitWhy(box) {
+    const rest = Array.from(box.querySelectorAll('.ww-rest'));
+    rest.forEach(el => { el.style.display = ''; });
+    const right = () => {
+      const r = box.getBoundingClientRect();
+      return r.right - parseFloat(getComputedStyle(box).paddingRight || 0);
+    };
+    const end = () => {
+      const shown = Array.from(box.children).filter(el => el.style.display !== 'none');
+      return shown[shown.length - 1].getBoundingClientRect().right;
+    };
+    while (rest.length && end() > right() + 0.5) rest.pop().style.display = 'none';
+  }
   function fitAll() {
     document.querySelectorAll('.h-status').forEach(fitStatus);
+    document.querySelectorAll('.wear-why.has-cmp').forEach(fitWhy);
     document.querySelectorAll('.fit-box').forEach(fitBox);
     document.querySelectorAll('.news').forEach(fitNews);
     if (window.placeCat) window.placeCat();  // Katze erst setzen, wenn das Layout feststeht

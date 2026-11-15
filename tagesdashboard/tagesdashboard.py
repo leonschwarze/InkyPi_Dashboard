@@ -634,6 +634,8 @@ class Tagesdashboard(BasePlugin):
             "graph_icons": True, "hours": 24, "days": days,
             # Platz 5 wird durch den UV-Index ersetzt; Bewölkung ist der Ersatz ohne UV-Daten
             "tiles": ["wind", "gust", "precip", "humidity", "cloudcover", "sun"],
+            # ab gestern 0 Uhr, für „4° kälter als gestern“ (kleidung.vergleich, seit 1.22)
+            "history_hours": 24,
         }
         data = w.fetch_data(lat, lon, tz, now, opts)
         base = w.build_template_params(data, lat, lon, tz, now, opts, settings)
@@ -936,11 +938,19 @@ class Tagesdashboard(BasePlugin):
                     end, reason = last["end"], last["title"]
         end = min(end, day_end)
 
-        hours = []
+        def felt(r):
+            return dwd.feels_like(r["temperature"], r.get("wind_speed"), r.get("relative_humidity"))
+
+        # Vortag zur selben Uhrzeit (nach Uhrzeit, nicht „minus 24 h“ – sonst verrutscht es bei der
+        # Zeitumstellung um eine Stunde; die fehlende bzw. doppelte Stunde fängt die Abdeckung ab)
+        by_hour = {(r["dt"].date(), r["dt"].hour): r for r in records if r.get("temperature") is not None}
+        hours, pairs = [], []
         for r in records:
             if not (start <= r["dt"] <= end + timedelta(minutes=59)) or r.get("temperature") is None:
                 continue
-            gef = dwd.feels_like(r["temperature"], r.get("wind_speed"), r.get("relative_humidity"))
+            gef = felt(r)
+            prev = by_hour.get((r["dt"].date() - timedelta(days=1), r["dt"].hour))
+            pairs.append((gef, felt(prev) if prev else None))
             hours.append(kleidung.Stunde(
                 gefuehlt=gef, temp=r["temperature"],
                 regen_prob=r.get("precipitation_probability") or (100 if (r.get("precipitation") or 0) >= 0.3 else 0),
@@ -961,10 +971,21 @@ class Tagesdashboard(BasePlugin):
         if title.endswith(" anziehen"):
             title = title[: -len(" anziehen")]
             title = title[:1].lower() + title[1:]
+        # „4° kälter als gestern“ (seit 1.22): direkt hinter „gefühlt bis …“, darauf bezieht es sich.
+        # Abends (Fokus morgen) ist der Vortag heute.
+        diff = kleidung.vergleich(pairs)
+        compare = None
+        if diff is not None:
+            compare = kleidung.vergleich_text(diff, "gestern" if d == now.date() else "heute")
+            logger.info("Kleidung: %s (Fenster %s–%s)", compare, hm(start), hm(end))
         return {
             "title": title,
             "pieces": [{"svg": kleidung.ICONS.get(icon, ""), "text": text} for icon, text in rec.teile],
             "why": f"{until}: {grund}",
+            # mit Vergleich in Teilen, damit fitWhy() hintere Gründe weglassen kann
+            "why_head": f"{until}: {rec.gruende[0]}",
+            "why_rest": rec.gruende[1:],
+            "compare": compare,
             "reason_event": reason,
             "sensitivity": SENSITIVITY_LABEL.get(sensitivity, ""),
         }

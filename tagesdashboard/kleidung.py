@@ -33,6 +33,7 @@ class Empfehlung:
     titel: str
     teile: list = field(default_factory=list)   # (icon, text)
     grund: str = ""
+    gruende: list = field(default_factory=list)  # dieselben Gründe einzeln (seit 1.22)
 
 
 def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11, uv=None):
@@ -126,7 +127,36 @@ def empfehlen(stunden, empfindlichkeit="empfindlich", monat=11, uv=None):
     auswahl = sorted(best.items(), key=lambda kv: (kv[1][0], kv[1][1]))[:5]
     auswahl.sort(key=lambda kv: kv[1][1])
     uniq = [(icon, text) for icon, (_, _, text) in auswahl]
-    return Empfehlung(titel=titel, teile=uniq[:5], grund=" · ".join(gruende))
+    return Empfehlung(titel=titel, teile=uniq[:5], grund=" · ".join(gruende), gruende=list(gruende))
+
+
+# --------------------------------------------------------------------------
+# Vergleich mit dem Vortag (seit 1.22): „4° kälter als gestern“
+# --------------------------------------------------------------------------
+VERGLEICH_SCHWELLE = 3      # °C: kleinere Unterschiede sind eher Rauschen (Messung gestern vs. Vorhersage heute)
+VERGLEICH_ABDECKUNG = 0.75  # so viel des Fensters muss es am Vortag geben, sonst kein Vergleich
+
+
+def vergleich(paare, schwelle=VERGLEICH_SCHWELLE):
+    """Unterschied der kältesten gefühlten Temperatur zum Vortag, in ganzen Grad.
+
+    `paare` = je Stunde des Fensters (gefühlt heute, gefühlt am Vortag zur selben Uhrzeit oder None).
+    Gleiche Kennzahl wie die Empfehlung (kältester Wert im Fenster), damit der Satz die Empfehlung
+    erklärt. Der Aufschlag für Kälteempfindlichkeit steckt in beiden Werten und fällt deshalb heraus.
+    Liefert z. B. -4 (heute 4° kälter) oder None (unter der Schwelle oder zu viele Lücken).
+    """
+    if not paare:
+        return None
+    vortag = [g for _, g in paare if g is not None]
+    if len(vortag) < VERGLEICH_ABDECKUNG * len(paare):
+        return None
+    diff = round(min(h for h, _ in paare) - min(vortag))
+    return diff if abs(diff) >= schwelle else None
+
+
+def vergleich_text(diff, bezug="gestern"):
+    """-4 -> „4° kälter als gestern“, 3 -> „3° wärmer als gestern“."""
+    return f"{abs(diff)}° {'kälter' if diff < 0 else 'wärmer'} als {bezug}"
 
 
 # --------------------------------------------------------------------------

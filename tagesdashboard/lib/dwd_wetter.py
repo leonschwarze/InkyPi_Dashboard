@@ -406,7 +406,9 @@ class DwdWetter(BasePlugin):
         tz_param = getattr(tz, "key", "Europe/Berlin")
 
         today = now.date()
-        start = datetime.combine(today, datetime.min.time(), tz) - timedelta(hours=3)
+        # Wie weit zurück: Standard 3 h (Luftdrucktendenz). Das Tagesdashboard braucht für den
+        # Vergleich „kälter als gestern“ den ganzen Vortag und setzt dafür history_hours (seit 1.22).
+        start = datetime.combine(today, datetime.min.time(), tz) - timedelta(hours=opts.get("history_hours", 3))
         end = datetime.combine(today + timedelta(days=opts["days"] + 1), datetime.min.time(), tz) + timedelta(hours=1)
         end = max(end, now + timedelta(hours=opts["hours"] + 2))
 
