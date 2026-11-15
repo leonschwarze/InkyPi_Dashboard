@@ -29,9 +29,15 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 API = "https://api.transitous.org"
+NAME = "Anfahrt"  # Name in der Statusanzeige (seit 1.21)
 PLAN_PATHS = ("/api/v6/plan", "/api/v5/plan")  # neuere Version zuerst
 TIMEOUT = 12
 USER_AGENT = "InkyPi-Tagesdashboard/1.8 (privates E-Ink-Display, nicht-kommerziell)"
@@ -203,7 +209,9 @@ def resolve(session, location, cfg):
         pos = (float(found[0]["lat"]), float(found[0]["lon"])) if found else None
     except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
         logger.warning("Anfahrt: Ort %r nicht gefunden: %s", text, exc)
+        status.fail(NAME, f"Ort: {exc}")
         return None  # beim nächsten Mal wieder versuchen (kein Eintrag)
+    status.ok(NAME)  # auch ohne Treffer: Transitous hat geantwortet
     _GEO[key] = (pos, _time.time() + GEO_FAIL_TTL)
     return pos
 
@@ -254,11 +262,15 @@ def bike_minutes(session, a, b, arrive, tz):
             data = _plan(session, params)
         bikes =[it for it in data.get("direct") or [] if any(l.get("mode") == "BIKE" for l in it.get("legs") or [])]
         if not bikes:
+            status.ok(NAME)  # Transitous hat geantwortet, kennt nur keinen Radweg
             raise ValueError("keine Radroute")
         minutes = math.ceil(min(int(it["duration"]) for it in bikes) / 60)
     except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
         logger.warning("Anfahrt: Radroute nicht berechnet (%s) – Schätzung", exc)
+        if str(exc) != "keine Radroute":
+            status.fail(NAME, f"Rad: {exc}")
         return estimate(a, b, "bike"), True
+    status.ok(NAME)
     _BIKE[k] = (_time.time() + BIKE_TTL, minutes)
     return minutes, False
 
@@ -359,6 +371,7 @@ def plan(events, records, now, tz, cfg, session=None):
     out = {"by_event": {}, "card": None, "edges": []}
     if not cfg or not events:
         return out
+    status.use(NAME)
     session = _session(session)
     home = parse_coord(cfg["start"]) or (resolve(session, cfg["start"], cfg) if cfg["start"] else cfg["home"])
     if not home:
@@ -410,8 +423,10 @@ def plan(events, records, now, tz, cfg, session=None):
                 res = None
                 try:
                     res = transit(session, leg["from"], leg["to"], leg["arrive"], tz, now)
+                    status.ok(NAME)
                 except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
                     logger.warning("Anfahrt: ÖPNV-Verbindung nicht abrufbar (%s) – Schätzung", exc)
+                    status.fail(NAME, f"ÖPNV: {exc}")
                 if res:
                     leg.update(depart=res["depart"], how="zu Fuß" if res["walk"] else res["line"], approx=False, ride=res)
                 else:

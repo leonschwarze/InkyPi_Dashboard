@@ -33,6 +33,11 @@ import time as _time
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 URL = "https://opendata.dwd.de/climate_environment/health/alerts/s31fg.json"
@@ -113,14 +118,17 @@ def load(cfg, now, session=None):
     """Rohdaten für die Wetter-Kachel oder None (unter der Schwelle, außerhalb der Saison oder
     keine Daten). `tagesdashboard.pollen_tile()` baut daraus die fertige Kachel (Icon, Text, CSS-Klasse)."""
     session = session or requests.Session()
+    status.use("Pollen")
     hit = _cache.get("pollen")
     if hit and _time.monotonic() - hit[0] < CACHE_MIN * 60:
         payload = hit[1]
     else:
         try:
             payload = fetch_payload(session)
+            status.ok("Pollen")
         except Exception as exc:  # Pollen ist Zusatz: nie das ganze Bild verlieren
             logger.warning("Pollenflug nicht verfügbar: %s", exc)
+            status.fail("Pollen", exc)
             payload = None
         _cache["pollen"] = (_time.monotonic(), payload)
     if not payload:

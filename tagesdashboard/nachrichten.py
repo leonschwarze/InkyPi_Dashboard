@@ -26,6 +26,11 @@ from email.utils import parsedate_to_datetime
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_FEEDS = {
@@ -204,11 +209,13 @@ def load(cfg, now, session=None):
     """Liefert [{"label", "source", "items": [{"title", "source"}]}] für die gefundenen Ebenen."""
     session = session or requests.Session()
     feeds = {}
-    for key, (_, _, url) in cfg["feeds"].items():
+    for key, (_, source, url) in cfg["feeds"].items():
         try:
             feeds[key] = fetch(url, session)
+            status.ok(source)  # der Zwischenspeicher hält nur Erfolge
         except (requests.RequestException, RuntimeError, ET.ParseError) as exc:
             logger.warning("Nachrichten-Feed %s nicht verfügbar: %s", url, exc)
+            status.fail(source, exc)
             feeds[key] = None
 
     # Auswahlreihenfolge Bonn, Bund, NRW: Ein bundesweites Thema bleibt bei der tagesschau,

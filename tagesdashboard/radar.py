@@ -21,6 +21,11 @@ from datetime import datetime, timedelta
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 API = "https://api.brightsky.dev/radar"
@@ -56,6 +61,7 @@ def _decode(raw, h, w):
 def fetch(lat, lon, now, session=None):
     """Liefert [(zeit, gitter)] ab jetzt; gitter[zeile][spalte], Zeile 0 = Norden."""
     key = (round(lat, 3), round(lon, 3))
+    status.use("Radar")
     hit = _cache.get(key)
     if hit and _time.monotonic() - hit[0] < CACHE_MIN * 60:
         return hit[1]
@@ -64,14 +70,19 @@ def fetch(lat, lon, now, session=None):
               "date": start.isoformat(), "last_date": (start + timedelta(minutes=HORIZON_MIN + 10)).isoformat(),
               "tz": str(now.tzinfo)}
     session = session or requests.Session()
-    r = session.get(API, params=params, headers=HEADERS, timeout=TIMEOUT)
-    if r.status_code != 200:
-        raise RuntimeError(f"Radar: HTTP {r.status_code}")
-    size = 2 * (DIST_M // 1000) + 1
-    frames = []
-    for fr in r.json().get("radar", []):
-        t = datetime.fromisoformat(fr["timestamp"]).astimezone(now.tzinfo)
-        frames.append((t, _decode(fr["precipitation_5"], size, size)))
+    try:
+        r = session.get(API, params=params, headers=HEADERS, timeout=TIMEOUT)
+        if r.status_code != 200:
+            raise RuntimeError(f"Radar: HTTP {r.status_code}")
+        size = 2 * (DIST_M // 1000) + 1
+        frames = []
+        for fr in r.json().get("radar", []):
+            t = datetime.fromisoformat(fr["timestamp"]).astimezone(now.tzinfo)
+            frames.append((t, _decode(fr["precipitation_5"], size, size)))
+    except Exception as exc:
+        status.fail("Radar", exc)
+        raise
+    status.ok("Radar")
     frames.sort(key=lambda f: f[0])
     _cache[key] = (_time.monotonic(), frames)
     return frames

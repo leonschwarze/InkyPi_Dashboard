@@ -42,6 +42,11 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 COMMUNITY_URL = "https://data.sensor.community/airrohr/v1/filter/area={lat:.4f},{lon:.4f},{km}"
@@ -58,6 +63,8 @@ MIN_SENSORS = 3               # weniger Außensensoren: kein verlässlicher Medi
 MAX_AGE_MIN = 20              # ältere Messungen eines Sensors zählen nicht
 HUMID_RH = 80                 # ab hier messen die Laser-Sensoren deutlich zu viel
 SMOOTH_MIN = 60               # Mittel über die Abrufe der letzten Stunde
+COMMUNITY_NAME = "Luftsensoren"  # Namen in der Statusanzeige (seit 1.21)
+STATION_NAME = "UBA-Station"
 COMMUNITY_CACHE_MIN = 10      # die meisten Stationen senden etwa alle 5–10 Minuten
 UBA_CACHE_MIN = 30            # Stundenwerte, kommen mit Verzögerung
 UBA_MAX_AGE_H = 3             # älter: Station gilt als ausgefallen
@@ -177,14 +184,17 @@ def fetch_community(lat, lon, km, session):
 def community(cfg, now, session):
     """Geglätteter Wert der Bürgersensoren oder None."""
     key = ("com", round(cfg["lat"], 3), round(cfg["lon"], 3), cfg["radius"])
+    status.use(COMMUNITY_NAME)
     hit = _cache.get(key)
     if hit and _time.monotonic() - hit[0] < COMMUNITY_CACHE_MIN * 60:
         agg = hit[1]
     else:
         try:
             agg = aggregate(fetch_community(cfg["lat"], cfg["lon"], cfg["radius"], session), now)
+            status.ok(COMMUNITY_NAME)  # auch ohne genug Sensoren: der Dienst hat geantwortet
         except Exception as exc:  # Zusatz: nie das ganze Bild verlieren
             logger.warning("Luft: sensor.community nicht verfügbar: %s", exc)
+            status.fail(COMMUNITY_NAME, exc)
             agg = None
         _cache[key] = (_time.monotonic(), agg)
         if agg and agg.get("pm10") is not None and agg.get("pm25") is not None:
@@ -260,14 +270,17 @@ def fetch_uba(station, now, session):
 
 def uba(cfg, now, session):
     key = ("uba", cfg["station"])
+    status.use(STATION_NAME)
     hit = _cache.get(key)
     if hit and _time.monotonic() - hit[0] < UBA_CACHE_MIN * 60:
         payload = hit[1]
     else:
         try:
             payload = fetch_uba(cfg["station"], now, session)
+            status.ok(STATION_NAME)
         except Exception as exc:
             logger.warning("Luft: Messstation nicht verfügbar: %s", exc)
+            status.fail(STATION_NAME, exc)
             payload = None
         _cache[key] = (_time.monotonic(), payload)
     return parse_uba(payload, now) if payload else None

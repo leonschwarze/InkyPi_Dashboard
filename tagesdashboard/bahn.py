@@ -35,8 +35,10 @@ import requests
 
 try:
     from . import strecke
+    from . import status as anzeige  # Statusanzeige; „status“ ist hier der Zugstatus (Funktion unten)
 except ImportError:  # Tests importieren die Module ohne Paket
     import strecke
+    import status as anzeige
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ TIMEOUT = 10
 # Häufige Bahnhöfe ohne Nachschlagen (EVA-Nummer); alle anderen fragt bahn.station() ab
 KNOWN_STATIONS = {"bonn hbf": "8000044", "köln hbf": "8000207", "koblenz hbf": "8000206",
                   "düsseldorf hbf": "8000085"}
+NAME = "Zug"  # Name in der Statusanzeige (seit 1.21)
 _station_cache = {}
 # Halt des Zuges am Zielbahnhof (Sollfahrplan ändert sich am Tag nicht): einmal suchen, dann merken
 _target_cache = {}
@@ -421,12 +424,14 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
             "arrival": None, "alerts": []}
     session = session or requests.Session()
     srcs = sources(client_id, api_key)
+    anzeige.use(NAME)
     try:
         eva, _ = station(session, srcs, cfg["station"])
         pt = planned_dt.strftime("%y%m%d%H%M")
         plan_xml = fetch(session, srcs, f"plan/{eva}/{pt[:6]}/{pt[6:8]}")
         plan = find_planned(plan_xml, cfg["cat"], cfg["num"], pt)
         if plan is None:
+            anzeige.ok(NAME)  # die Bahn hat geantwortet, der Zug fährt heute nur nicht
             return dict(base, state="unknown", badge="nicht im Fahrplan",
                         note=f"{cfg['label']} um {hm(planned_dt)} heute nicht gefunden")
         try:
@@ -436,6 +441,7 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
             live = True
         except (RuntimeError, ET.ParseError) as exc:
             logger.warning("Bahn-Änderungen nicht abrufbar: %s", exc)
+            anzeige.fail(NAME, f"Änderungen: {exc}")
             root, changes, live = None, {}, False
         out = dict(base, **status(plan, changes, planned_dt, now, tz))
         if not live:
@@ -452,6 +458,7 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
                         t_root = ET.fromstring(fetch(session, srcs, f"fchg/{t_eva}"))
                     except (RuntimeError, ET.ParseError) as exc:
                         logger.info("Änderungen am Ausstieg nicht abrufbar: %s", exc)
+                        anzeige.fail(NAME, f"Ausstieg: {exc}")  # Störungsmonitor unvollständig
                         t_root = None
                     path = [p for p in (changes.get("cpth") or "").split("|") if p]
                     out["arrival"] = arrival(t_root, t_name, t_stop, path, tz)
@@ -459,6 +466,7 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
                     msgs += find_messages(t_root, t_stop["id"])
             except (RuntimeError, ET.ParseError, ValueError) as exc:
                 logger.info("Ausstieg %s nicht auswertbar: %s", cfg["target"], exc)
+                anzeige.fail(NAME, f"Ausstieg: {exc}")
 
         if cfg.get("alerts", True):
             arr = out["arrival"] or {}
@@ -471,7 +479,9 @@ def load(cfg, now, tz, client_id=None, api_key=None, session=None):
         elif out["arrival"] and out["arrival"]["cancelled"] and out["state"] != "gone":
             # fährt, kommt aber nicht bis zum Ausstieg: das ist wichtiger als Pünktlichkeit
             out.update(state="partial", badge="Teilausfall")
+        anzeige.ok(NAME)  # zählt nur, wenn oben nichts gescheitert ist (siehe status.commit)
         return out
     except (RuntimeError, ET.ParseError, ValueError) as exc:
         logger.warning("Zugdaten nicht verfügbar: %s", exc)
+        anzeige.fail(NAME, exc)
         return dict(base, state="unknown", badge="keine Daten", note="Bahn nicht erreichbar")

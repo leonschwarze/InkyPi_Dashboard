@@ -107,8 +107,11 @@
 <div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}"
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
-  <header class="head">
+  <header class="head{% if status %} has-status{% endif %}">
     <span class="h-date">{{ date_str }}{% for g in greetings[:2] %}<span class="h-fest">{{ g.icon | safe }}{{ g.text }}</span>{% endfor %}</span>
+    {% if status %}{# Statusanzeige (seit 1.21): roter Punkt + Quelle, nach ~2 h „seit … nicht erreichbar“; fitStatus kürzt #}
+    <span class="h-status">{% for s in status %}<span class="h-st{% if s.long %} h-st-long{% endif %}"><svg class="h-dot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/></svg><span class="h-st-txt">{{ s.name }}{% if s.long %}<span class="h-st-since"> seit&nbsp;{{ s.since }}</span><span class="h-st-what"> nicht erreichbar</span>{% endif %}</span></span>{% endfor %}</span>
+    {% endif %}
     <span class="h-meta">{% if place %}{{ place }} · {% endif %}KW {{ kw }} · Stand {{ updated }}</span>
   </header>
 
@@ -486,7 +489,23 @@
       credit.textContent = src.join(' · ');
     }
   }
+  /* Statusanzeige im Kopf: passt nicht alles, zuerst „nicht erreichbar“, dann „seit …“
+     weglassen (erst bei den hinteren Quellen, dann bei der ersten), zuletzt hintere Quellen.
+     Datum und „Stand“ werden nie gekürzt. */
+  function fitStatus(box) {
+    const all = sel => Array.from(box.querySelectorAll(sel));
+    const chips = all('.h-st'), whats = all('.h-st-what'), sinces = all('.h-st-since');
+    [...chips, ...whats, ...sinces].forEach(el => { el.style.display = ''; });
+    const steps = [...whats.slice(1), ...whats.slice(0, 1), ...sinces.slice(1), ...sinces.slice(0, 1),
+                   ...chips.slice(1).reverse()];
+    const fits = () => box.scrollWidth <= box.clientWidth + 0.5;
+    for (const el of steps) {
+      if (fits()) break;
+      el.style.display = 'none';
+    }
+  }
   function fitAll() {
+    document.querySelectorAll('.h-status').forEach(fitStatus);
     document.querySelectorAll('.fit-box').forEach(fitBox);
     document.querySelectorAll('.news').forEach(fitNews);
     if (window.placeCat) window.placeCat();  // Katze erst setzen, wenn das Layout feststeht

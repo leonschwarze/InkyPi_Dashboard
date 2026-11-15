@@ -1,12 +1,23 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.20
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.21
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, neu: Maus, Laserpunkt, Karton und passende Posen zu Nachrichten, Zug, Wäsche und Geburtstag.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Neu: eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.21: Statusanzeige bei Ausfällen
+
+- **Roter Punkt mit dem Namen der Quelle** rechts im Kopf, sobald eine Datenquelle nicht antwortet: „● Radar“, „● Kalender“, „● Zug“, „● GA“ …
+- **Nach etwa 2 Stunden** wird daraus der volle Hinweis: „● Kalender seit 9:10 nicht erreichbar“ (über Mitternacht „seit gestern 22:40“).
+- Überwacht werden Wetter, UV-Index, Kalender, Zug (samt Störungsmonitor am Ausstieg), Streckenmeldungen, Regenradar, Luftsensoren und UBA-Station, Pollenflug, Anfahrt (Transitous) und jeder Nachrichten-Feed einzeln. Gezeigt wird eine Quelle nur, solange sie gerade gebraucht wird – die Zugdaten vom Dienstagmorgen stehen also nicht die ganze Woche im Kopf. Ein erfolgreicher Abruf lässt den Punkt verschwinden.
+- Wird es eng, kürzt das Dashboard selbst: erst „nicht erreichbar“, dann „seit …“, höchstens drei Quellen. Quer passt der volle Satz bei kurzen Namen („GA seit 5:05 nicht erreichbar“), sonst bleibt „Kalender seit 9:10“. Hochkant ist mehr Platz.
+- Nur in der normalen Ansicht. Ohne Ausfall ist das Bild pixelgleich zu 1.20. Nach einem Neustart von InkyPi beginnt die Zählung neu.
+- Im Log: `journalctl -u inkypi.service | grep Status` zeigt Beginn, Grund und Ende jedes Ausfalls.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 18, unverändert, keine neue Einstellung). Nur Python- und Template-Dateien haben sich geändert: Ordner ersetzen und InkyPi neu starten.
 
 ## Neu in 1.20: neun neue Katzenposen
 
@@ -186,5 +197,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
 - `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
 - `katze_posen.png` – alle 24 Posen (groß und in Displaygröße)
+- `status_800x480.png` – Statusanzeige: der GA-Feed ist seit 5:05 nicht erreichbar, Bonn wird mit WDR-Meldungen ergänzt (1.21)
+- `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

@@ -36,6 +36,11 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+try:
+    from . import status
+except ImportError:  # Tests importieren die Module ohne Paket
+    import status
+
 logger = logging.getLogger(__name__)
 
 URL = "https://openservice-test.vrr.de/static03/XML_ADDINFO_REQUEST"
@@ -48,6 +53,7 @@ SKIP_PROVIDERS = {"DBProd"}  # kennt der Störungsmonitor schon aus IRIS
 MAX_TEXT = 140
 NB = "\u00a0"                # geschütztes Leerzeichen: „seit 6:40“ und „bis 4.12.“ nie trennen
 
+NAME = "Strecke"            # Name in der Statusanzeige (seit 1.21)
 _cache = {}                  # Linienschlüssel -> (Zeitpunkt, Liste oder None)
 
 _LETTER = "A-Za-zÄÖÜäöüß"
@@ -100,6 +106,7 @@ def select(data, key):
 
 def fetch(session, key):
     """Meldungen zur Linie, 10 Minuten zwischengespeichert. None, wenn die Auskunft nicht antwortet."""
+    status.use(NAME)
     hit = _cache.get(key)
     if hit and _time.monotonic() - hit[0] < CACHE_SECONDS:
         return hit[1]
@@ -110,10 +117,13 @@ def fetch(session, key):
             result = select(r.json(), key)
             logger.info("Strecke: %d Meldungen zur %s aus der VRR-Auskunft (%d kB)",
                         len(result), key, len(r.content) // 1024)
+            status.ok(NAME)
         else:
             logger.warning("Strecke: VRR-Auskunft antwortet mit HTTP %s", r.status_code)
+            status.fail(NAME, f"HTTP {r.status_code}")
     except (requests.RequestException, ValueError) as exc:
         logger.warning("Strecke: VRR-Auskunft nicht erreichbar (%s)", type(exc).__name__)
+        status.fail(NAME, type(exc).__name__)
     _cache[key] = (_time.monotonic(), result)
     return result
 

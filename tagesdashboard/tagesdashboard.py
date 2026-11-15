@@ -18,6 +18,7 @@ Was das Dashboard selbst hinzufügt:
   * nachts ein ruhiges Nachtbild, sonntagabends eine Wochenvorschau (ansichten.py)
   * Anfahrt zu Terminen: Rad oder ÖPNV je nach Wetter, und wann man los muss (anfahrt.py)
   * Festtage: Gruß im Kopf und Festbild an Heiligabend und Silvester; Geburtstage (festtage.py)
+  * Statusanzeige im Kopf, wenn eine Datenquelle ausfällt, nach ~2 h mit „seit …“ (status.py)
 """
 
 import json
@@ -46,10 +47,11 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse, planeten)
+                   katze, pollen, meteore, finsternisse, planeten, status)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
-                                        festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten)
+                                        festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
+                                        status)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -300,6 +302,7 @@ class Tagesdashboard(BasePlugin):
                 logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet", hit["made"])
                 return hit["image"].copy()
 
+        status.begin()  # ab hier melden die Module, welche Quelle antwortet (Statusanzeige im Kopf)
         switch = self._opt(settings, "switchHour")
         focus = today + timedelta(days=1) if switch.isdigit() and now.hour >= int(switch) else today
 
@@ -308,19 +311,24 @@ class Tagesdashboard(BasePlugin):
         try:
             events, calendars = self.load_calendar(settings, device_config, tz, today, flag,
                                                    min_days=8 if mode == "week" else 0)
+            status.ok("Kalender")  # ein einzelner unlesbarer Kalender hat schon fail gemeldet
         except RuntimeError as exc:
             cal_error = str(exc)
             logger.warning("Kalender nicht verfügbar: %s", exc)
+            status.fail("Kalender", exc)
 
         # ---- Wetter (darf ausfallen, dann nur Kalender) ------------------
         weather, wx_error = None, None
         try:
             weather = self.load_weather(settings, tz, now, focus, flag, days=8 if mode == "week" else 2)
+            status.ok("Wetter")
         except RuntimeError as exc:
             wx_error = str(exc)
             logger.warning("Wetter nicht verfügbar: %s", exc)
+            status.fail("Wetter", exc)
 
         if weather is None and cal_error:
+            status.commit(now)  # Ausfall trotzdem mitzählen, auch wenn es kein Bild gibt
             raise RuntimeError(f"Weder Wetter noch Kalender verfügbar. Wetter: {wx_error} Kalender: {cal_error}")
 
         use_colors = flag("useColors")
@@ -403,6 +411,12 @@ class Tagesdashboard(BasePlugin):
             params["train"] = bahn.load(train_cfg, now, tz,
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
                                         api_key=device_config.load_env_key("DB_API_KEY"))
+        # ---- Statusanzeige: alle Abrufe dieser Runde sind gelaufen ----
+        status.commit(now)
+        params["status"] = status.report(now) if mode == "normal" else []
+        if params["status"]:
+            logger.info("Status im Kopf: %s", ", ".join(
+                f"{s['name']} seit {s['since']}" + (" (lang)" if s["long"] else "") for s in params["status"]))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
         if flag("catEnabled") and mode == "normal":
             try:
@@ -448,6 +462,7 @@ class Tagesdashboard(BasePlugin):
             edges += ansichten.boundaries(now, *week_win) if week_win else []
             edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
+            edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
@@ -553,6 +568,7 @@ class Tagesdashboard(BasePlugin):
                     events.extend(helper.parse_events(ics, cal, tz, start, end))
             except RuntimeError as exc:
                 logger.warning("Kalender %s nicht lesbar: %s", cal["name"], exc)
+                status.fail("Kalender", f"{cal['name']}: {exc}")
         return events, calendars
 
     def calendar_days(self, events, tz, now, today, settings, flag, records, trips=None):
@@ -688,7 +704,9 @@ class Tagesdashboard(BasePlugin):
             entries = resp.json().get("content") or []
         except Exception as exc:
             logger.warning("UV-Index nicht verfügbar: %s", exc)
+            status.fail("UV-Index", exc)
             return None
+        status.ok("UV-Index")
         by_city = {(e.get("city") or "").casefold(): e.get("forecast") or {} for e in entries}
         for name in names:
             key = name.casefold()

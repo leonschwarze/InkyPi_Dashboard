@@ -565,3 +565,28 @@ body:has(> .container > .fe) > .container { width: 100vw; height: 100vh; }
   height: calc(var(--u) * var(--h) / 8 * var(--k, 1));
 }
 .cat-box .cat * { vector-effect: non-scaling-stroke; stroke-width: calc(var(--u) * 0.3); }
+
+/* ---------------- Statusanzeige im Kopf (seit 1.21) ----------------
+ * Nur da, wenn eine Datenquelle ausfällt (.has-status) – sonst bleibt der Kopf pixelgleich.
+ * Roter Punkt + Name; nach etwa 2 Stunden „seit 9:10 nicht erreichbar“ (status.py).
+ * Datum und „Stand“ behalten ihre Breite; was nicht passt, kürzt fitStatus() im Template. */
+.has-status .h-date, .has-status .h-meta { flex-shrink: 0; }
+.h-status {
+  margin-left: auto;              /* rechts, direkt vor „Bonn · KW … · Stand …“ */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.4);
+  font-size: calc(var(--u) * 2);
+  white-space: nowrap;
+}
+.h-st { display: flex; align-items: center; gap: calc(var(--u) * 0.5); flex: 0 0 auto; }
+.db .h-dot { width: calc(var(--u) * 1.5); height: calc(var(--u) * 1.5); flex: 0 0 auto; }
+.h-dot circle { fill: #E3001B; }
+.mono .h-dot circle { fill: currentColor; }
+/* Hochkant: Datum allein in der ersten Zeile, darunter „Bonn · KW · Stand“ links und der Status rechts */
+.portrait .head.has-status { flex-direction: row; flex-wrap: wrap; column-gap: calc(var(--u) * 2); }
+.portrait .has-status .h-date { flex: 0 0 100%; }
+.portrait .h-status { order: 3; }
