@@ -165,17 +165,80 @@ def night(now, records, items, w, dwd, icons, train_cfg, sun_cache, max_events=5
     }
 
 
-def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3):
-    """Wochenvorschau: die nächsten Tage Mo–So (sonntags: ab morgen)."""
+# ----------------------------------------------------------------------
+# Freie Abende (seit 1.29, Kopf der Wochenvorschau statt der Terminzahl)
+# ----------------------------------------------------------------------
+EVENING = (time(18), time(22))  # Standard; einstellbar (freeFrom/freeTo)
+
+
+def free_evening(items, d, tz, evening=EVENING):
+    """Ist der Abend des Tages d frei?
+
+    evening = (von, bis) als datetime.time; liegt „bis“ nicht nach „von“ (z. B. 19:00–0:30), endet der
+    Abend am Folgetag.
+    Belegt ist er, wenn ein Termin mit Uhrzeit dieses Fenster (Standard 18–22 Uhr) berührt (auch über Nacht
+    laufende und mehrtägige) oder eine mehrtägige ganztägige Abwesenheit eingetragen ist (Reise, Urlaub).
+    Eintägige ganztägige Termine (Müllabfuhr, Geburtstag) belegen den Abend nicht. Abgelehnte Einladungen
+    sind schon vorher aussortiert (seit 1.26).
+    """
+    start = datetime.combine(d, evening[0], tz)
+    end = datetime.combine(d + timedelta(days=0 if evening[1] > evening[0] else 1), evening[1], tz)
+    for it in items:
+        ev = it.get("source") or {}
+        s, e = ev.get("start"), ev.get("end")
+        if s is None or e is None:
+            continue
+        if ev.get("all_day"):
+            if (e.date() - s.date()).days > 1:
+                return False
+            continue
+        if s < end and (e > start or (s == e and s >= start)):
+            return False
+    return True
+
+
+def day_list(days):
+    """Wochentage als kurze Liste; ab drei aufeinanderfolgenden Tagen als Spanne („Mo–Mi, Sa“)."""
+    idx = sorted(KURZ.index(x) for x in days)
+    runs = []
+    for i in idx:
+        if runs and i == runs[-1][1] + 1:
+            runs[-1][1] = i
+        else:
+            runs.append([i, i])
+    out = []
+    for a, b in runs:
+        if b - a >= 2:
+            out.append(f"{KURZ[a]}–{KURZ[b]}")
+        else:
+            out.extend(KURZ[a:b + 1])
+    return ", ".join(out)
+
+
+def free_text(free):
+    if not free:
+        return "keine freien Abende"
+    if len(free) == 7:
+        return "alle Abende frei"
+    return "Freie Abende: " + day_list(free)
+
+
+def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3, has_calendar=True, evening=EVENING):
+    """Wochenvorschau: die nächsten Tage Mo–So (sonntags: ab morgen).
+
+    evening: Fenster für die freien Abende oder None (Schalter aus); ohne Kalender keine Aussage.
+    """
+    show_free = has_calendar and evening is not None
     start = now.date() + timedelta(days=(7 - now.weekday()) % 7 or 7)  # nächster Montag
-    rows, total, rainy = [], 0, []
+    rows, rainy, free = [], [], []
     for i in range(7):
         d = start + timedelta(days=i)
         items = day_items(d)
+        if show_free and free_evening(items, d, now.tzinfo, evening):
+            free.append(KURZ[d.weekday()])
         wx = day_summary(w, dwd, icons, records, d) if records else None
         if wx and wx["rainy"]:
             rainy.append(KURZ[d.weekday()])
-        total += len([it for it in items if not it["all_day"]])
         rows.append({
             "name": KURZ[d.weekday()],
             "date": f"{d.day}.{d.month}.",
@@ -188,9 +251,15 @@ def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3):
     end = start + timedelta(days=6)
     span = (f"{start.day}.–{end.day}. {MONATE[end.month - 1]}" if start.month == end.month
             else f"{start.day}. {MONATE[start.month - 1]} – {end.day}. {MONATE[end.month - 1]}")
-    summary = [f"{total} Termin{'e' if total != 1 else ''}"]
+    # Kurzform für den Fall, dass der Kopf quer nicht reicht (fitWeekHead im Template, seit 1.29)
+    span_short = (f"{start.day}.–{end.day}.{end.month}." if start.month == end.month
+                  else f"{start.day}.{start.month}.–{end.day}.{end.month}.")
+    summary = []
     if rainy:
         summary.append("Regen " + ", ".join(rainy))
     elif records:
         summary.append("kaum Regen")
-    return {"kw": start.isocalendar()[1], "span": span, "summary": " · ".join(summary), "rows": rows}
+    if show_free:
+        summary.append(free_text(free))
+    return {"kw": start.isocalendar()[1], "span": span, "span_short": span_short, "summary": summary,
+            "rows": rows, "free": free if show_free else None}

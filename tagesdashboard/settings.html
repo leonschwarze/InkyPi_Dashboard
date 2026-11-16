@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="21" />
+<input type="hidden" name="cfgVersion" value="22" />
 
 <div class="st">
 
@@ -260,6 +260,10 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="weekEnabled" value="true" data-default="true" data-since="5"><span>Sonntags die kommende Woche zeigen</span></label>
     <div class="st-sub" data-parent="weekEnabled">
         <div class="st-line"><span>von</span><input type="time" id="weekFrom" name="weekFrom" class="form-input st-time" /><span>bis</span><input type="time" id="weekTo" name="weekTo" class="form-input st-time" /></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="freeEnabled" value="true" data-default="true" data-since="22"><span>Freie Abende <span class="st-note">im Kopf statt der Terminzahl, z. B. „Freie Abende: Di, Sa“. Frei: kein Termin im Abendfenster, keine mehrtägige Reise; eintägige ganztägige Termine zählen nicht</span></span></label>
+        <div class="st-sub" data-parent="freeEnabled">
+            <div class="st-line"><span>Abend von</span><input type="time" id="freeFrom" name="freeFrom" class="form-input st-time" /><span>bis</span><input type="time" id="freeTo" name="freeTo" class="form-input st-time" /></div>
+        </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="piEnabled" value="true" data-default="true" data-since="21"><span>Zustand des Pi <span class="st-note">eine Zeile unten: Ausfälle der Woche, Neustarts, Unterspannung, wie lange online, höchste Temperatur, freier Speicher</span></span></label>
     </div>
 </section>
@@ -284,6 +288,7 @@
 <section class="st-sec">
     <h3 class="st-h">Festtage und Geburtstage</h3>
     <label class="st-check"><input type="checkbox" class="db-check" name="festXmas" value="true" data-default="true" data-since="9"><span>Heiligabend und Weihnachten <span class="st-note">Gruß 24.–26.12., Festbild an Heiligabend 17–23 Uhr</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="adventEnabled" value="true" data-default="true" data-since="22"><span>Adventskranz <span class="st-note">vom 1. Advent bis Heiligabend im Kopf, jede Adventswoche brennt eine Kerze mehr</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="festNye" value="true" data-default="true" data-since="9"><span>Silvester und Neujahr <span class="st-note">Gruß 31.12. und 1.1., Festbild 22–2 Uhr</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="festBday" value="true" data-default="true" data-since="9"><span>Geburtstage im Haushalt <span class="st-note">Gruß im Kopf, Festbild mit Folienballons 6–10 Uhr</span></span></label>
     <div class="st-sub" data-parent="festBday">
@@ -460,7 +465,7 @@
         laundryFrom: '17:00', laundryTo: '23:00',
         tripBuffer: '5', tripRainProb: '30', tripMaxGap: '90', tripLead: '120',
         tripSkip: 'Video, online, Zoom, Teams, Webex, Jitsi, Telefon',
-        nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00',
+        nightFrom: '23:00', nightTo: '06:00', weekFrom: '18:00', weekTo: '23:00', freeFrom: '18:00', freeTo: '22:00',
         newsFrom: '06:00', newsTo: '09:30', newsWeekendFrom: '08:00', newsWeekendTo: '10:30',
         newsBonnUrl: 'https://ga.de/feed.rss', newsNrwUrl: 'https://www1.wdr.de/uebersicht-100.feed',
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml',

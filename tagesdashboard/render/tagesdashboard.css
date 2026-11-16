@@ -635,3 +635,32 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .mono .live { border-color: currentColor; }
 .live .tr-main { gap: calc(var(--u) * 0.1); }
 .live .tr-top { line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------------- Adventskranz (seit 1.29, advent.py) ----------------
+ * Steht wie die Katze mit der Unterkante auf der Kopflinie (--adv-drop = Abstand Text–Linie) und ist
+ * höchstens so hoch wie die Kopfzeile, damit der Kopf nicht wächst. Farben über Variablen. */
+.h-adv { display: inline-flex; align-self: flex-end; margin-bottom: calc(-1 * var(--adv-drop)); }
+.head { --adv-drop: calc(var(--u) * 0.35 + var(--line)); }
+.adv-ic { width: calc(var(--u) * 4.3); height: calc(var(--u) * 3.85); margin-top: calc(var(--u) * -0.7); }
+/* Konturen fest in Displayeinheiten (wie die Katze): schrumpfte der Strich mit dem Kranz (hochkant, Woche),
+   mischten sich an Kanten drei Farben in einem Pixel → Streupixel nach dem Einrasten (dev/kranz_pruefstand.py) */
+.adv-ic * { vector-effect: non-scaling-stroke; stroke-width: calc(var(--u) * 0.24); }
+.mono .h-adv { --adv-red: var(--bg); --adv-yellow: var(--bg); --adv-green: var(--bg); }
+.portrait .head .h-adv { align-self: center; margin-bottom: 0; }   /* hochkant: Datum hat eine eigene Zeile */
+.portrait .head .adv-ic { margin-top: 0; }
+/* Wochenvorschau: im Fließtext des Titels (kein Flex, sonst fällt das Leerzeichen nach „·“ weg);
+   unten auf der Grundlinie, per top auf die Kopflinie gesenkt, ohne die Zeile höher zu machen */
+.wk-title .h-adv { display: inline-block; vertical-align: baseline; margin: calc(var(--u) * -0.7) 0 0 calc(var(--u) * 1.2);
+                   position: relative; top: calc(var(--u) * 0.8 + var(--line) + 0.2em); }
+.wk-title .adv-ic { display: block; width: calc(var(--u) * 4); height: calc(var(--u) * 3.6); margin-top: 0; }
+
+/* ---------------- Kopf der Wochenvorschau (seit 1.29) ----------------
+ * Zusammenfassung in Teilen („Regen Mi, Do“ · „Freie Abende: Di, Sa“); fitWeekHead setzt bei Platzmangel
+ * .wk-stack (untereinander) und zuletzt .wk-cut (mit „…“ kürzen). */
+.wk-part + .wk-part::before { content: " · "; }
+.wk-stack .wk-sum { display: inline-flex; flex-direction: column; line-height: 1.05; align-self: center; }
+.wk-stack .wk-part + .wk-part::before { content: none; }
+.wk-cut .wk-title, .wk-cut .wk-laundry { flex-shrink: 0; }
+.wk-cut .wk-sum { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+.wk-cut .wk-part { display: block; overflow: hidden; text-overflow: ellipsis; }
+.portrait .wk-cut .wk-sum { flex: 1 1 0; }

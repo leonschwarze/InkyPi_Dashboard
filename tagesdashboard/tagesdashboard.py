@@ -48,11 +48,11 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
-                   pegel, pizustand)
+                   pegel, pizustand, advent)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand)
+                                        status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -168,6 +168,9 @@ DEFAULTS = {
     # Rhein auf echtem Pegel im Nachtbild, Zustand des Pi in der Wochenvorschau (seit cfgVersion 21)
     "pegelEnabled": "true",
     "piEnabled": "true",
+    # Freie Abende in der Wochenvorschau, Adventskranz im Kopf (seit cfgVersion 22)
+    "freeEnabled": "true", "freeFrom": "18:00", "freeTo": "22:00",
+    "adventEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -191,7 +194,8 @@ SINCE_VERSION["planetEnabled"] = 18
 SINCE_VERSION.update({"urlaubEnabled": 19, "wahlEnabled": 19, "issEnabled": 19})
 SINCE_VERSION["liveEnabled"] = 20
 SINCE_VERSION.update({"pegelEnabled": 21, "piEnabled": 21})
-CFG_VERSION = 21  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"freeEnabled": 22, "adventEnabled": 22})
+CFG_VERSION = 22  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -465,6 +469,12 @@ class Tagesdashboard(BasePlugin):
             logger.info("Status im Kopf: %s", ", ".join(
                 f"{s['name']} seit {s['since']}" + (" (lang)" if s["long"] else "") for s in params["status"]))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        # ---- Adventskranz (seit 1.29): 1. Advent bis Heiligabend, Kopf der normalen Ansicht und der
+        # Wochenvorschau; jede Adventswoche brennt eine Kerze mehr. Keine Einstellung ----
+        candles = advent.candles(today) if mode in ("normal", "week") and flag("adventEnabled") else 0
+        if candles:
+            params["advent"] = advent.wreath(candles)
+            logger.info("Advent: %d. Kerze", candles)
         # ---- Ostereier (seit 1.24): seltene Tage und seltenes Wetter, nur in der normalen Ansicht ----
         egg = ostereier.today(now) if mode == "normal" else None
         if egg:
@@ -517,7 +527,7 @@ class Tagesdashboard(BasePlugin):
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
                               eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
                               iss_pos=self.home_position(settings) if flag("issEnabled") else None,
-                              river=river_info, pi=flag("piEnabled"))
+                              river=river_info, pi=flag("piEnabled"), free_win=self.free_window(opt, flag))
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -544,6 +554,7 @@ class Tagesdashboard(BasePlugin):
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
+            edges += advent.boundaries(now) if flag("adventEnabled") else []  # Kranz kommt, bekommt eine Kerze mehr, geht nach Heiligabend
             if flag("liveEnabled"):  # Livestream-Karte kommt zu Beginn der Sitzung und geht an ihrem Ende
                 edges += livestream.boundaries(today_events, live_words, now)
             for edge in edges:
@@ -632,9 +643,21 @@ class Tagesdashboard(BasePlugin):
         except Exception:  # Zusatz: nie das ganze Bild verlieren
             logger.exception("Zustand des Pi konnte nicht gespeichert werden")
 
+    @staticmethod
+    def free_window(opt, flag):
+        """Fenster für die freien Abende (seit 1.29) oder None, wenn der Schalter aus ist.
+
+        Ungültige oder gleiche Zeiten → Standard 18–22 Uhr (lieber eine Aussage als stillschweigend keine).
+        „bis“ vor „von“ (z. B. 19:00–0:30) heißt: über Mitternacht.
+        """
+        if not flag("freeEnabled"):
+            return None
+        a, b = bahn.parse_hhmm(opt("freeFrom")), bahn.parse_hhmm(opt("freeTo"))
+        return (a, b) if a and b and a != b else ansichten.EVENING
+
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
-                     pi=False):
+                     pi=False, free_win=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -699,7 +722,8 @@ class Tagesdashboard(BasePlugin):
         else:
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,
-                                            per_row=4 if portrait else 3)
+                                            per_row=4 if portrait else 3, has_calendar=not cal_error,
+                                            evening=free_win)
             if pi:  # Zustand des Pi in der Fußzeile (seit 1.28)
                 try:
                     params["pi_line"] = pizustand.line(now, getattr(self, "_pi_path", None))

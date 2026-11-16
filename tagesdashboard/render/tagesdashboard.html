@@ -84,8 +84,9 @@
 <!-- ===================== Wochenvorschau ===================== -->
 <div lang="de" class="wk {{ orientation }}">
   <header class="wk-head">
-    <span class="wk-title">Woche {{ week.kw }} · {{ week.span }}</span>
-    <span class="wk-sum">{{ week.summary }}</span>
+    <span class="wk-title">Woche {{ week.kw }} · <span class="wk-span" data-long="{{ week.span }}" data-short="{{ week.span_short }}">{{ week.span }}</span>{% if advent %}<span class="h-adv">{{ advent | safe }}</span>{% endif %}</span>
+    {# Regen und freie Abende (seit 1.29 statt der Terminzahl); fitWeekHead macht den Kopf passend #}
+    <span class="wk-sum">{% for part in week.summary %}<span class="wk-part">{{ part }}</span>{% endfor %}</span>
     {% if laundry %}<span class="wk-laundry lw-{{ laundry.state }}">Wäsche: <b>{{ laundry.badge }}</b></span>{% endif %}
   </header>
   <div class="wk-rows">
@@ -108,16 +109,41 @@
   {% if pi_line %}<div class="wk-pi"><b>Pi:</b> {{ pi_line }}</div>{% endif %}
   {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
 </div>
+<script>
+  /* Kopf der Wochenvorschau (seit 1.29): Titel, Zusammenfassung und Wäsche-Schild in einer Zeile
+     (hochkant: Titel allein, darunter der Rest). Passt es nicht, der Reihe nach:
+     1. Zeitraum kurz („30.11.–6.12.“), 2. Regen und freie Abende untereinander, 3. Zusammenfassung
+     mit „…“ kürzen. Das Wäsche-Schild wird nie abgeschnitten (vor 1.29 passierte das quer bei
+     Wochen über zwei Monate). Gemessen über Rechtecke. */
+  function fitWeekHead(head) {
+    const title = head.querySelector('.wk-title'), span = head.querySelector('.wk-span'),
+          sum = head.querySelector('.wk-sum'), wash = head.querySelector('.wk-laundry');
+    span.textContent = span.dataset.long;
+    head.classList.remove('wk-stack', 'wk-cut');
+    const right = () => head.getBoundingClientRect().right + 0.5;
+    const inside = el => !el || el.getBoundingClientRect().right <= right();
+    const sameLine = () => !(sum && wash) || wash.getBoundingClientRect().top < sum.getBoundingClientRect().bottom - 0.5;
+    const restFits = () => inside(sum) && inside(wash) && sameLine();
+    const portrait = !!head.closest('.portrait');   // hochkant hat der Titel eine eigene Zeile
+    if (!inside(title) || (!portrait && !restFits())) span.textContent = span.dataset.short;
+    if (!restFits()) head.classList.add('wk-stack');
+    if (!restFits()) head.classList.add('wk-cut');
+  }
+  function fitWeek() { document.querySelectorAll('.wk-head').forEach(fitWeekHead); }
+  fitWeek();
+  window.addEventListener('load', fitWeek);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitWeek);
+</script>
 {% else %}
 <div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}"
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
   <header class="head{% if status %} has-status{% endif %}">
-    <span class="h-date">{{ date_str }}{% for g in greetings[:2] %}<span class="h-fest">{{ g.icon | safe }}{{ g.text }}</span>{% endfor %}</span>
+    <span class="h-date">{{ date_str }}{% if advent %}<span class="h-adv">{{ advent | safe }}</span>{% endif %}{% for g in greetings[:2] %}<span class="h-fest">{{ g.icon | safe }}{{ g.text }}</span>{% endfor %}</span>
     {% if status %}{# Statusanzeige (seit 1.21): roter Punkt + Quelle, nach ~2 h „seit … nicht erreichbar“; fitStatus kürzt #}
     <span class="h-status">{% for s in status %}<span class="h-st{% if s.long %} h-st-long{% endif %}"><svg class="h-dot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/></svg><span class="h-st-txt">{{ s.name }}{% if s.long %}<span class="h-st-since"> seit&nbsp;{{ s.since }}</span><span class="h-st-what"> nicht erreichbar</span>{% endif %}</span></span>{% endfor %}</span>
     {% endif %}
-    <span class="h-meta">{% if place %}{{ place }} · {% endif %}KW {{ kw }} · Stand {{ updated }}</span>
+    <span class="h-meta"{% if place and advent %} data-noplace="KW {{ kw }} · Stand {{ updated }}"{% endif %}>{% if place %}{{ place }} · {% endif %}KW {{ kw }} · Stand {{ updated }}</span>
   </header>
 
   <!-- ===================== Wetter ===================== -->
@@ -572,9 +598,41 @@
       }
     });
   }
+  /* Adventskranz (seit 1.29): Würden mit ihm „Bonn · KW · Stand“ abgeschnitten oder Teile der Statusanzeige
+     ausgeblendet, wird es eng. Ohne Statusanzeige (z. B. Heiligabend mit „Frohe Weihnachten“,
+     Geburtstagsgruß) fällt zuerst „Bonn ·“ weg – reicht das, bleibt der Kranz. Sonst macht der Kranz
+     Platz (Ort wieder da), aber nur, wenn das ohne ihn wirklich weniger kürzt. */
+  function fitHead(head) {
+    const adv = head.querySelector('.h-adv'), st = head.querySelector('.h-status'), meta = head.querySelector('.h-meta');
+    // Ort weglassen = Text ohne „Bonn · “ (data-noplace, nur mit Kranz); kein eigenes span um den Ort,
+    // sonst setzt Chromium den Text in zwei Stücken und verschiebt Buchstaben um Bruchteile eines Pixels
+    if (meta && !meta.dataset.full) meta.dataset.full = meta.textContent;
+    const place = meta && meta.dataset.noplace ? {
+      hide: () => { meta.textContent = meta.dataset.noplace; }, show: () => { meta.textContent = meta.dataset.full; } } : null;
+    const date = head.querySelector('.h-date');
+    // Wie viel fehlt? Ausgeblendete Teile der Statusanzeige zählen am meisten, dann in Pixeln, was von
+    // „Bonn · KW · Stand“ abgeschnitten ist und wie weit Datum/Gruß über ihren Platz hinauslaufen (Überlappung).
+    const over = el => el ? Math.max(0, el.scrollWidth - el.clientWidth - 0.5) : 0;
+    const cuts = () => {
+      if (st) fitStatus(st);
+      const hidden = st ? Array.from(st.querySelectorAll('*')).filter(el => el.style.display === 'none').length : 0;
+      return 1000 * hidden + over(meta) + 2 * over(date);
+    };
+    if (adv) adv.style.display = '';
+    if (place) place.show();
+    const withAdv = cuts();
+    if (!adv || !withAdv) return;
+    if (place && !st) {
+      place.hide();
+      if (!cuts()) return;
+      place.show();
+    }
+    adv.style.display = 'none';
+    if (cuts() >= withAdv) { adv.style.display = ''; cuts(); }
+  }
   function fitAll() {
     fitQr(false);
-    document.querySelectorAll('.h-status').forEach(fitStatus);
+    document.querySelectorAll('.db > .head').forEach(fitHead);
     document.querySelectorAll('.wear-why.has-cmp').forEach(fitWhy);
     document.querySelectorAll('.fit-box').forEach(fitBox);
     document.querySelectorAll('.news').forEach(fitNews);

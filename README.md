@@ -1,12 +1,34 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.28
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.29
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Neu: Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. Neu: In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.29: Adventskranz, freie Abende
+
+![Adventskranz](docs/advent_800x480.png)
+
+**Adventskranz:**
+
+- Vom 1. Advent bis Heiligabend steht neben dem Datum ein kleiner **Adventskranz**; mit jedem Adventssonntag brennt eine Kerze mehr (von links). Er erscheint im Kopf der normalen Ansicht und am Sonntagabend im Kopf der Wochenvorschau.
+- Er steht auf der Kopflinie, die Kopfzeile wird dadurch nicht höher. Wird es im Kopf eng, fällt zuerst „Bonn ·“ weg (z. B. an Heiligabend neben „Frohe Weihnachten“). Reicht das nicht (langer Geburtstagsgruß) oder steht eine Statusmeldung im Kopf, macht der Kranz Platz, damit „Stand …“ und die Meldung ganz zu lesen sind.
+- Die Katze bewegt sich davon unabhängig wie immer und weicht dem Kranz nur aus.
+- Schalter „Adventskranz“ unter „Festtage und Geburtstage“, standardmäßig an.
+
+![Freie Abende](docs/abende_800x480.png)
+
+**Freie Abende (Wochenvorschau):**
+
+- Im Kopf der Wochenvorschau steht statt der Zahl der Termine z. B. „**Freie Abende: Di, Sa**“ (ab drei Tagen am Stück als Spanne: „Mo–Mi, Sa“; sonst „keine freien Abende“ bzw. „alle Abende frei“).
+- Frei ist ein Abend, wenn kein Termin das **Abendfenster** berührt (Standard **18 bis 22 Uhr**, einstellbar; „bis“ vor „von“ wie 19:00–0:30 geht über Mitternacht) und keine **mehrtägige** ganztägige Abwesenheit eingetragen ist (Reise, Urlaub). Eintägige ganztägige Termine wie Müllabfuhr oder Geburtstage zählen nicht; abgelehnte Einladungen ohnehin nicht. Ist der Kalender nicht erreichbar, steht dazu nichts da.
+- Schalter „Freie Abende“ mit dem Abendfenster unter „Wochenvorschau“, standardmäßig an.
+- Behoben: Bei Wochen über zwei Monate („30. November – 6. Dezember“) wurde quer das Wäsche-Schild rechts abgeschnitten. Reicht der Platz nicht, steht der Zeitraum jetzt kurz da („30.11.–6.12.“), notfalls stehen Regen und freie Abende untereinander.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 22); die beiden neuen Schalter sind von selbst an. Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen, `sudo systemctl restart inkypi.service` und die Einstellungen einmal speichern. Prüfen: `journalctl -u inkypi.service | grep Advent` (ab dem 29.11.).
 
 ## Neu in 1.28: Rhein auf echtem Pegel, Zustand des Pi
 
@@ -279,6 +301,8 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `iss_800x480.png`, `iss_480x800.png` – Nachtbild mit ISS-Überflug (erfundene Bahndaten, 1.23)
 - `livestream_800x480.png`, `livestream_480x800.png` – während der Ratssitzung: QR-Code zum Livestream (1.25), Katze am Rednerpult (1.27)
 - `pegel_800x480.png`, `pegel_480x800.png` – Nachtbild mit dem Rhein auf echtem Pegel: 1,16 m, fallend (1.28)
-- `pi_800x480.png`, `pi_480x800.png` – Wochenvorschau mit dem Zustand des Pi: Kalender zweimal ausgefallen (1.28)
+- `pi_800x480.png`, `pi_480x800.png` – Wochenvorschau mit dem Zustand des Pi: Kalender zweimal ausgefallen (1.28; seit 1.29 mit freien Abenden)
+- `advent_800x480.png`, `advent_480x800.png` – 3. Advent: Kranz mit drei brennenden Kerzen im Kopf (1.29)
+- `abende_800x480.png`, `abende_480x800.png` – Wochenvorschau am 1. Advent: Kranz und „Freie Abende: Di, Sa“ (1.29)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.
