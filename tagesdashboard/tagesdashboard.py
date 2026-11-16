@@ -459,13 +459,26 @@ class Tagesdashboard(BasePlugin):
         if mode == "normal" and use_colors and ostereier.rainbow(records, now):
             params["rainbow"] = ostereier.RAINBOW_SVG
             logger.info("Osterei: Regenbogen")
+        # ---- Livestream (seit 1.25): QR-Code zum Stream, solange eine Ratssitzung läuft ----
+        live_words = opt("liveWords") or livestream.DEFAULT_WORDS
+        today_events = next((d["events"] for d in params.get("calendar") or [] if d.get("is_today")), [])
+        if mode == "normal" and flag("liveEnabled"):
+            try:
+                card = livestream.card(today_events, live_words, opt("liveUrl"), now)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren (z. B. Adresse zu lang für einen QR-Code)
+                card = None
+                logger.exception("Livestream-Karte konnte nicht erzeugt werden")
+            if card:
+                params["live"] = card
+                logger.info("Livestream: %s %s → %s", card["title"], card["until"], card["href"])
         if flag("catEnabled") and mode == "normal":
             try:
                 occasions = [name for name, on in (
                     ("geburtstag", any(g["kind"] == "geburtstag" for g in params["greetings"])),
                     ("nachrichten", bool(params.get("news"))),
                     ("zug", bool(params.get("train"))),
-                    ("waesche", bool(params.get("laundry")))) if on]
+                    ("waesche", bool(params.get("laundry"))),
+                    ("rat", bool(params.get("live")))) if on]  # seit 1.27: Rednerpult/Akten zur Ratssitzung
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
                                              feels_like=dwd.feels_like, occasions=occasions,
                                              egg=egg["pose"] if egg else None)
@@ -479,19 +492,6 @@ class Tagesdashboard(BasePlugin):
             card = self.wahl_card(params, wahl_cfg, today, weather, records)
             if card:
                 params["wahl_card"], params["wahl_icon"] = card, WAHL_ICON.format(cls="lw-svg")
-        # ---- Livestream (seit 1.25): QR-Code zum Stream, solange eine Ratssitzung läuft ----
-        live_words = opt("liveWords") or livestream.DEFAULT_WORDS
-        today_events = next((d["events"] for d in params.get("calendar") or [] if d.get("is_today")), [])
-        if mode == "normal" and flag("liveEnabled"):
-            try:
-                card = livestream.card(today_events, live_words, opt("liveUrl"), now)
-            except Exception:  # Zusatz: nie das ganze Bild verlieren (z. B. Adresse zu lang für einen QR-Code)
-                card = None
-                logger.exception("Livestream-Karte konnte nicht erzeugt werden")
-            if card:
-                params["live"] = card
-                logger.info("Livestream: %s %s → %s", card["title"], card["until"], card["href"])
-
         if mode == "urlaub":
             self.urlaub_view(params, vacation, today, weather, dimensions, tz, now)
         if mode == "fest":

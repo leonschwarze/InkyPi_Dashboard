@@ -396,6 +396,28 @@ def grundgesetz():
     return 40, 44, _sitting_body() + _head(20, 13) + book + paws
 
 
+# ---------------------------------------------------------------- Ratssitzung (seit 1.27, solange die Livestream-Karte steht)
+
+def rednerpult():
+    """Spricht am Rednerpult ins Mikrofon: breites blaues Pult verdeckt den Körper, großer roter
+    Mikrofonkopf am Schwanenhals rechts neben dem Gesicht."""
+    desk = (f'<path fill="{BLUE}" stroke="currentColor" d="M3 23.5 L37 21 L34.5 43.5 H5.5 Z"/>'
+            f'<path {L} d="M13 31 H27"/>')
+    mic = (f'<path {L} d="M33.5 21.5 Q35.5 15 33.5 12.5"/>'
+           f'<circle fill="{RED}" stroke="currentColor" cx="32.5" cy="10.5" r="3"/>')
+    return 41, 44, _head(17, 12) + desk + mic
+
+
+def akten():
+    """Spät in der Ratssitzung (ab RAT_LATE_HOUR): schläft auf einem Stapel bunter Aktenordner."""
+    w, h, cat = schlaeft()
+    stack = (f'<path fill="{BLUE}" stroke="currentColor" d="M4 30 H46 V34.5 H4 Z"/>'
+             f'<path fill="{RED}" stroke="currentColor" d="M7 34.5 H49 V39 H7 Z"/>'
+             f'<path fill="{YELLOW}" stroke="currentColor" d="M3 39 H45 V43.5 H3 Z"/>'
+             f'<path {L} d="M38 32.2 H42 M41 36.7 H45 M37 41.2 H41"/>')
+    return 54, 44, f'<g transform="translate(0 1)">{cat}</g>' + stack
+
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
@@ -406,6 +428,8 @@ POSES = {
     # Ostereier (seit 1.24): nie zufällig, nur an ihrem Tag (ostereier.today)
     "narr": narr, "dirigent": dirigent, "schwarz": schwarz, "himbeerkuchen": himbeerkuchen,
     "kürbis": kuerbis, "grundgesetz": grundgesetz,
+    # Ratssitzung (seit 1.27): nur über choose(occasions=["rat"]), nie zufällig
+    "rednerpult": rednerpult, "akten": akten,
 }
 # Ostereier (seit 1.24): nur über choose(egg=…); geheim, darum auch nicht auf dem Posen-Bogen für die README
 EGG_POSES = ("narr", "dirigent", "schwarz", "himbeerkuchen", "kürbis", "grundgesetz")
@@ -416,6 +440,9 @@ EVERYDAY = ["sitzt", "putzt", "schmetterling", "gähnt", "schläft", "kastenbrot
 WEATHER_POSE = {"sturm": "sturm", "regen": "schirm", "schnee": "schal", "frost": "schal", "sonne": "sonnt"}
 # Anlässe (seit 1.20): Anlass → Pose. Geburtstag geht dem Wetter vor, die übrigen kommen nach dem Wetter.
 OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "koffer", "waesche": "socke"}
+# Ratssitzung (seit 1.27, Anlass „rat“ = die Livestream-Karte steht): Rednerpult, ab 21 Uhr schläft sie auf den Akten.
+# Kommt wie die übrigen Anlässe nur auf jedem zweiten Takt, aber vor Osterei und Wetter (Leons Wahl).
+RAT_POSE, RAT_LATE_POSE, RAT_LATE_HOUR = "rednerpult", "akten", 21
 # Flache Posen passen auch auf Linien mit wenig Platz darüber
 FLAT_MAX_H = 34
 SPOTS = ["kopf", "tag", "mehr"]
@@ -507,11 +534,13 @@ def occasion_slot(now):
 def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
-    occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche)
+    occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche) und „rat“
+                (seit 1.27: Ratssitzung läuft, die Livestream-Karte steht)
     egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
 
-    Rangfolge: Geburtstag > Osterei > Wetter > übrige Anlässe > Alltag. Anlässe (auch der Geburtstag) zählen
-    nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie zutreffen.
+    Rangfolge: Geburtstag > Ratssitzung > Osterei > Wetter > übrige Anlässe > Alltag. Anlässe (auch Geburtstag
+    und Ratssitzung) zählen nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie
+    zutreffen – an einem Ostereier-Tag mit Ratssitzung wechseln sich also Osterei und Rednerpult ab.
 
     main  – Pose, die sie am liebsten zeigt
     flat  – flache Pose für Linien mit wenig Platz darüber
@@ -523,11 +552,15 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     slot = slot_of(now)
     day = now.date()
     everyday = _day_order(EVERYDAY, day, "pose")
-    active = [o for o in OCCASION_POSE if o in set(occasions)] if occasion_slot(now) else []
+    on_slot = occasion_slot(now)
+    active = [o for o in OCCASION_POSE if o in set(occasions)] if on_slot else []
     others = [o for o in active if o != "geburtstag"]
+    council = on_slot and "rat" in set(occasions)
     weather_why = weather_reason(records, now, nowcast, feels_like) if weather else None
     if "geburtstag" in active:  # nur auf Anlass-Takten, an Ostereier-Tagen also im Wechsel mit dem Osterei
         reason, main = "geburtstag", OCCASION_POSE["geburtstag"]
+    elif council:  # Ratssitzung (seit 1.27): vor Osterei und Wetter, spät schläft sie auf den Akten
+        reason, main = "rat", RAT_LATE_POSE if now.hour >= RAT_LATE_HOUR else RAT_POSE
     elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
         reason, main = "osterei", egg
     elif weather_why:
@@ -542,7 +575,7 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     spots = _day_order(SPOTS, day, "spot")
     k = slot % len(spots)
     spots = spots[k:] + spots[:k]
-    if reason and not is_flat(main):  # Schirm, Schal, Partyhut, Zeitung, Koffer brauchen Höhe: zuerst die Kopfzeile
+    if reason and not is_flat(main):  # Schirm, Schal, Partyhut, Zeitung, Koffer, Pult, Akten brauchen Höhe: zuerst die Kopfzeile
         spots.remove("kopf")
         spots.insert(0, "kopf")
     seed = random.Random(f"{day.isoformat()}/{slot}").randrange(1000)

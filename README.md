@@ -1,12 +1,18 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.26
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.27
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. Neu: **abgelehnte Einladungen** erscheinen nicht mehr.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Neu: Die Katze steht während der Ratssitzung **am Rednerpult**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.27: die Katze in der Ratssitzung
+
+- Solange die Livestream-Karte zur Ratssitzung steht, tritt die Katze ans **Rednerpult** (blaues Pult, rotes Mikrofon). Ab **21 Uhr** ist es ihr zu lang geworden: Dann schläft sie auf einem **Stapel Aktenordner**.
+- Wie die anderen Anlass-Posen (Zeitung, Koffer, Socke) kommt sie nur bei jeder zweiten Aktualisierung, dazwischen macht sie, was sie sonst auch tut. Sie geht aber dem Wetter vor: Auch bei Regen steht sie am Pult statt unter dem Schirm, und bei der nächsten Aktualisierung hält sie wieder den Schirm.
+- Ist die Livestream-Karte ausgeschaltet oder die Sitzung abgelehnt, bleibt alles wie bisher. Keine neue Einstellung (cfgVersion bleibt 20). Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.26: abgelehnte Einladungen ausgeblendet
 
@@ -241,7 +247,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn
 - `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
 - `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
-- `katze_posen.png` – alle 24 Posen (groß und in Displaygröße)
+- `katze_posen.png` – alle 26 Posen (groß und in Displaygröße)
 - `status_800x480.png` – Statusanzeige: der GA-Feed ist seit 5:05 nicht erreichbar, Bonn wird mit WDR-Meldungen ergänzt (1.21)
 - `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
 - `gestern_800x480.png` – Schnee, gefühlt bis −8° · 4° kälter als gestern (1.22)
@@ -249,6 +255,6 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `urlaub_800x480.png`, `urlaub_480x800.png` – Urlaubsbild: Abfahrtstafel mit Zielwetter (1.23)
 - `wahlkampf_800x480.png`, `wahlkampf_480x800.png` – Wahlkampf-Karte am Tag mit Wahlkampftermin (1.23)
 - `iss_800x480.png`, `iss_480x800.png` – Nachtbild mit ISS-Überflug (erfundene Bahndaten, 1.23)
-- `livestream_800x480.png`, `livestream_480x800.png` – während der Ratssitzung: QR-Code zum Livestream (1.25)
+- `livestream_800x480.png`, `livestream_480x800.png` – während der Ratssitzung: QR-Code zum Livestream (1.25), Katze am Rednerpult (1.27)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.
