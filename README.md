@@ -1,12 +1,18 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.25
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.26
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Neu: Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. Neu: **abgelehnte Einladungen** erscheinen nicht mehr.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.26: abgelehnte Einladungen ausgeblendet
+
+Termine, zu denen du abgesagt hast, erscheinen nicht mehr – weder in der Terminliste noch in der Wochenvorschau, der Anfahrt oder der Wahlkampf-Karte. Bei Serien fehlt nur der einzelne abgelehnte Termin. Zugesagte, vorläufige und offene Einladungen bleiben, ebenso Termine, bei denen nur andere absagen. Erkannt wirst du an der E-Mail-Adresse deines Nextcloud-Kontos (Persönliche Einstellungen → E-Mail; ohne Adresse bleibt alles wie bisher).
+
+Keine neue Einstellung (cfgVersion bleibt 20). Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`; neu speichern musst du nichts.
 
 ## Neu in 1.25: Livestream der Ratssitzung per QR-Code
 

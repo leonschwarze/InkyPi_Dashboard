@@ -6,10 +6,13 @@ App-Passwort) und zeigt sie auf Deutsch als Terminliste oder Wochenansicht an.
 
 Ablauf (RFC 4791 / RFC 6764):
   1. PROPFIND auf /remote.php/dav/            -> current-user-principal
-  2. PROPFIND auf den Principal               -> calendar-home-set
+  2. PROPFIND auf den Principal               -> calendar-home-set und calendar-user-address-set
+                                                 (eigene Adressen, RFC 6638)
   3. PROPFIND (Depth 1) auf das Kalender-Home -> alle Kalender mit Name und Farbe
   4. REPORT calendar-query je Kalender         -> Termine im Zeitraum
   5. Serientermine löst recurring_ical_events auf (ist bei InkyPi schon installiert)
+  6. Abgesagte Termine (STATUS:CANCELLED) und Einladungen, die man selbst abgelehnt hat
+     (eigener ATTENDEE mit PARTSTAT=DECLINED), fallen weg
 """
 
 import calendar as pycal
@@ -110,6 +113,7 @@ class CalDavClient:
     def __init__(self, root, user, password, verify=True):
         self.root = root
         self.user = user
+        self.own_addresses = set()  # füllt calendars(); siehe _principal()
         self.session = requests.Session()
         self.session.auth = (user, password)
         self.session.verify = verify
@@ -163,11 +167,36 @@ class CalDavClient:
                     return urljoin(url, href.strip())
         return None
 
+    def _principal(self, principal):
+        """Kalender-Home und eigene Adressen des Principals – beides mit einer Anfrage.
+
+        Nextcloud nennt unter calendar-user-address-set die E-Mail-Adresse des Kontos
+        (mailto:…) und die Principal-Adresse. Genau so steht man selbst als ATTENDEE in
+        Einladungen; daran erkennt parse_events eigene Absagen.
+        """
+        body = ('<?xml version="1.0" encoding="utf-8"?>'
+                '<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">'
+                '<d:prop><c:calendar-home-set/><c:calendar-user-address-set/></d:prop></d:propfind>')
+        tree = self._request("PROPFIND", principal, body, 0)
+        home, addresses = None, set()
+        for resp in tree.findall("d:response", NS):
+            for prop in self._ok_props(resp):
+                href = prop.findtext("c:calendar-home-set/d:href", namespaces=NS)
+                if href and not home:
+                    home = urljoin(principal, href.strip())
+                for el in prop.findall("c:calendar-user-address-set/d:href", NS):
+                    if el.text and el.text.strip():
+                        addresses.add(address_key(el.text, principal))
+        return home, addresses
+
     def calendars(self):
         principal = self._find_href(self.root, "<d:current-user-principal/>", "d:current-user-principal/d:href")
         if not principal:
             principal = urljoin(self.root, f"principals/users/{self.user}/")
-        home = self._find_href(principal, "<c:calendar-home-set/>", "c:calendar-home-set/d:href")
+        home, self.own_addresses = self._principal(principal)
+        if not self.own_addresses:
+            logger.info("Kalender: Nextcloud nennt keine eigene Adresse – abgelehnte Einladungen "
+                        "lassen sich nicht erkennen (E-Mail-Adresse im Nextcloud-Konto eingetragen?)")
         if not home:
             home = urljoin(self.root, f"calendars/{self.user}/")
 
@@ -225,6 +254,34 @@ class CalDavClient:
 # --------------------------------------------------------------------------
 # Hilfsfunktionen
 # --------------------------------------------------------------------------
+
+def address_key(value, base=""):
+    """Kalenderadresse vergleichbar machen: 'MAILTO:Leon@Example.de' -> 'mailto:leon@example.de',
+    relative Principal-Adressen werden absolut (die Gäste in Einladungen stehen fast immer als mailto:)."""
+    text = str(value or "").strip()
+    if text.lower().startswith("mailto:"):
+        return "mailto:" + unquote(text[7:]).strip().lower()
+    if base and not re.match(r"^[a-z][a-z0-9+.-]*:", text, re.I):
+        text = urljoin(base, text)
+    return text.rstrip("/").lower()
+
+
+def declined_by(ev, own):
+    """True, wenn man selbst diese Einladung abgelehnt hat.
+
+    Steht man mehrfach in der Gästeliste (zweite Adresse), zählt der Termin nur dann als
+    abgelehnt, wenn jeder eigene Eintrag DECLINED ist. Absagen anderer Gäste spielen keine Rolle.
+    """
+    if not own:
+        return False
+    attendees = ev.get("attendee")
+    if attendees is None:
+        return False
+    if not isinstance(attendees, list):
+        attendees = [attendees]
+    mine = [a for a in attendees if address_key(a) in own]
+    return bool(mine) and all(str(a.params.get("PARTSTAT", "")).upper() == "DECLINED" for a in mine)
+
 
 def contrast_color(hex_color):
     h = hex_color.lstrip("#")
@@ -327,10 +384,13 @@ class NextcloudKalender(BasePlugin):
         for cal in calendars:
             try:
                 for ics in client.events(cal["url"], start_dt, end_dt):
-                    events.extend(self.parse_events(ics, cal, tz, start_dt, end_dt))
+                    events.extend(self.parse_events(ics, cal, tz, start_dt, end_dt, client.own_addresses))
             except RuntimeError as exc:
                 logger.warning("Kalender %s konnte nicht gelesen werden: %s", cal["name"], exc)
                 failed.append(cal["name"])
+        if getattr(self, "declined_hidden", 0):
+            logger.info("Kalender: %d abgelehnte Termine ausgeblendet", self.declined_hidden)
+            self.declined_hidden = 0
         if failed and len(failed) == len(calendars):
             raise RuntimeError(f"Kein Kalender lesbar ({', '.join(failed)}) – siehe Logs.")
 
@@ -422,7 +482,9 @@ class NextcloudKalender(BasePlugin):
             raise RuntimeError(f"Kalender nicht gefunden: {', '.join(missing)}. Verfügbar: {names}")
         return chosen
 
-    def parse_events(self, ics_text, cal, tz, start_dt, end_dt):
+    def parse_events(self, ics_text, cal, tz, start_dt, end_dt, own=()):
+        """Termine einer ICS-Datei im Zeitraum. own = eigene Adressen (CalDavClient.own_addresses):
+        Einladungen, die man selbst abgelehnt hat, fallen weg (Anzahl in self.declined_hidden)."""
         try:
             vcal = icalendar.Calendar.from_ical(ics_text)
             occurrences = recurring_ical_events.of(vcal).between(start_dt, end_dt)
@@ -433,6 +495,9 @@ class NextcloudKalender(BasePlugin):
         result = []
         for ev in occurrences:
             if str(ev.get("status", "")).upper() == "CANCELLED":
+                continue
+            if declined_by(ev, own):
+                self.declined_hidden = getattr(self, "declined_hidden", 0) + 1
                 continue
             start, all_day = to_local(ev.decoded("dtstart"), tz)
             if "dtend" in ev:

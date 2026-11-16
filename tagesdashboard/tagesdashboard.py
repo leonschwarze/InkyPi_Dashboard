@@ -698,10 +698,12 @@ class Tagesdashboard(BasePlugin):
         for cal in calendars:
             try:
                 for ics in client.events(cal["url"], start, end):
-                    events.extend(helper.parse_events(ics, cal, tz, start, end))
+                    events.extend(helper.parse_events(ics, cal, tz, start, end, client.own_addresses))
             except RuntimeError as exc:
                 logger.warning("Kalender %s nicht lesbar: %s", cal["name"], exc)
                 status.fail("Kalender", f"{cal['name']}: {exc}")
+        if getattr(helper, "declined_hidden", 0):
+            logger.info("Kalender: %d abgelehnte Termine ausgeblendet", helper.declined_hidden)
         return events, calendars
 
     def calendar_days(self, events, tz, now, today, settings, flag, records, trips=None):
