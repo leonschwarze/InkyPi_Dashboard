@@ -328,6 +328,74 @@ def partyhut():
     return 40, 59, f'<g transform="translate(0 15)">{_sitting_body()}{_head(20, 13)}{hat}</g>'
 
 
+# ---------------------------------------------------------------- Ostereier (seit 1.24, ostereier.py wählt)
+
+def narr():
+    """Karneval: Narrenkappe in den Bonner Stadtfarben Rot und Gelb, Schellen an den Zipfeln."""
+    cap = (f'<path fill="{RED}" stroke="currentColor" d="M10.5 7 Q5 1 2.5 -6.5 Q11 -4.5 20 3.5 Z"/>'
+           f'<path fill="{YELLOW}" stroke="currentColor" d="M29.5 7 Q35 1 37.5 -6.5 Q29 -4.5 20 3.5 Z"/>'
+           f'<path fill="{YELLOW}" stroke="currentColor" d="M9.5 5.5 Q20 1 30.5 5.5 L30.5 8.8 Q20 4.5 9.5 8.8 Z"/>'
+           f'<circle fill="{YELLOW}" stroke="currentColor" cx="2.5" cy="-7.5" r="2.4"/>'
+           f'<circle fill="{RED}" stroke="currentColor" cx="37.5" cy="-7.5" r="2.4"/>')
+    return 40, 55, f'<g transform="translate(0 11)">{_sitting_body()}{_head(20, 13)}{cap}</g>'
+
+
+def dirigent():
+    """17.12. (Beethovens Taufe in Bonn): dirigiert mit erhobenem Taktstock, zwei Noten schweben."""
+    def note(x, y):
+        return (f'<ellipse fill="{BLUE}" stroke="currentColor" cx="{x}" cy="{y}" rx="2.6" ry="1.9"'
+                f' transform="rotate(-20 {x} {y})"/>'
+                f'<path {L} d="M{x + 2.3} {y - .6} V{y - 9} Q{x + 6} {y - 7} {x + 6.2} {y - 3.5}"/>')
+    paw = (f'<path {F} d="M26 31 Q31 26.5 33 20 Q33.8 17 36.3 17.8 Q38.6 18.8 37.5 21.6 Q35.2 28.5 29.5 34.5"/>')
+    baton = f'<path {L} d="M36.5 17.5 L44 7"/>'
+    eyes = f'<path {L} d="M14 12.6 Q16 14.6 18 12.6 M22 12.6 Q24 14.6 26 12.6"/>'
+    head = f'<g transform="rotate(-8 20 13)">{_head(20, 13, eyes="none")}{eyes}</g>'
+    return 56, 44, _sitting_body(paws=1) + head + paw + baton + note(47, 22) + note(40, 33.5)
+
+
+def schwarz():
+    """Freitag, der 13.: Eine schwarze Katze läuft über die Linie (die spazierende Katze, ganz schwarz,
+    gelbe Augen)."""
+    w, h, inner = spaziert()
+    inner = inner.replace('fill="var(--bg)"', 'fill="currentColor"')
+    eyes = (f'<circle fill="{YELLOW}" stroke="none" cx="8.4" cy="11.6" r="1.7"/>'
+            f'<circle fill="{YELLOW}" stroke="none" cx="15.6" cy="11.6" r="1.7"/>')
+    return w, h, inner + eyes
+
+
+def himbeerkuchen():
+    """14.3. (π-Tag) auf einem Raspberry Pi: neben der Katze steht ein großes π auf einem Kuchen mit zwei
+    Himbeeren. Das π aus einfachen Linien (gefüllt wirkte es bei ~40 px wie ein Tisch), die Himbeeren auf dem
+    Kuchen (oben auf dem π sahen sie aus wie zwei Köpfe)."""
+    pie = (f'<path fill="{YELLOW}" stroke="currentColor" d="M38 37.5 H62 L60.5 43.5 H39.5 Z"/>'
+           f'<path {L} d="M39.5 20 Q41 18 44 18.5 H60.5 M46 18.8 Q46.5 31 42.5 37.5 M54.5 18.8 V33 Q54.5 36.5 59 35"/>'
+           f'<circle fill="{RED}" stroke="currentColor" cx="40.6" cy="35" r="2.4"/>'
+           f'<circle fill="{RED}" stroke="currentColor" cx="49.8" cy="35" r="2.4"/>')
+    return 64, 44, _sitting_body() + _head(20, 13) + pie
+
+
+def kuerbis():
+    """31.10.: sitzt neben einem Kürbis mit großen Dreieckaugen und Zackenmund (Gelb statt Orange –
+    Orange kann das Display nicht)."""
+    pumpkin = (f'<path {L} d="M51 25.5 Q51 21.5 54 20"/>'
+               f'<path fill="{YELLOW}" stroke="currentColor" d="M51 25.5 Q38.5 24 38.5 34.5 Q38.5 43.5 51 43.5'
+               f' Q63.5 43.5 63.5 34.5 Q63.5 24 51 25.5 Z"/>'
+               f'<path {D} d="M42.5 33 L48 33 L45.2 28 Z M54 33 L59.5 33 L56.8 28 Z'
+               f' M43 36 L59 36 Q57.5 41 51 41 Q44.5 41 43 36 Z"/>')
+    return 64, 44, _sitting_body() + _head(20, 13) + pumpkin
+
+
+def grundgesetz():
+    """23.5. (Grundgesetz, 1949 in Bonn verkündet): hält ein Buch in Schwarz-Rot-Gold vor der Brust."""
+    book = (f'<path fill="currentColor" stroke="currentColor" d="M9.5 24 H30.5 V29 H9.5 Z"/>'
+            f'<path fill="{RED}" stroke="none" d="M9.5 29 H30.5 V34 H9.5 Z"/>'
+            f'<path fill="{YELLOW}" stroke="none" d="M9.5 34 H30.5 V39.5 H9.5 Z"/>'
+            f'<path {L} d="M9.5 24 H30.5 V39.5 H9.5 Z"/>')
+    paws = (f'<path {F} d="M6 38 Q6 34.5 9 34.5 Q12 34.5 12 38 Q12 41 9 41 Q6 41 6 38 Z"/>'
+            f'<path {F} d="M28 38 Q28 34.5 31 34.5 Q34 34.5 34 38 Q34 41 31 41 Q28 41 28 38 Z"/>')
+    return 40, 44, _sitting_body() + _head(20, 13) + book + paws
+
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
@@ -335,7 +403,12 @@ POSES = {
     "sonnt": sonnt, "sturm": sturm, "schirm": schirm, "schal": schal,
     "maus": maus, "laser": laser, "karton": karton, "tasse": tasse, "spaziert": spaziert,
     "zeitung": zeitung, "koffer": koffer, "partyhut": partyhut, "socke": socke,
+    # Ostereier (seit 1.24): nie zufällig, nur an ihrem Tag (ostereier.today)
+    "narr": narr, "dirigent": dirigent, "schwarz": schwarz, "himbeerkuchen": himbeerkuchen,
+    "kürbis": kuerbis, "grundgesetz": grundgesetz,
 }
+# Ostereier (seit 1.24): nur über choose(egg=…); geheim, darum auch nicht auf dem Posen-Bogen für die README
+EGG_POSES = ("narr", "dirigent", "schwarz", "himbeerkuchen", "kürbis", "grundgesetz")
 # Zufällige Posen (ohne die Wetter-Posen)
 EVERYDAY = ["sitzt", "putzt", "schmetterling", "gähnt", "schläft", "kastenbrot", "lugt", "spielt", "streckt",
             "schwanzjagd", "rücken", "maus", "laser", "karton", "tasse", "spaziert"]
@@ -431,13 +504,14 @@ def occasion_slot(now):
     return (slot_of(now) + start) % 2 == 0
 
 
-def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=()):
+def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
     occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche)
+    egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
 
-    Rangfolge: Geburtstag > Wetter > übrige Anlässe > Alltag. Anlässe (auch der Geburtstag) zählen nur
-    in jedem zweiten Takt (occasion_slot); das Wetter gilt immer, wenn es zutrifft.
+    Rangfolge: Geburtstag > Osterei > Wetter > übrige Anlässe > Alltag. Anlässe (auch der Geburtstag) zählen
+    nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie zutreffen.
 
     main  – Pose, die sie am liebsten zeigt
     flat  – flache Pose für Linien mit wenig Platz darüber
@@ -452,8 +526,10 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     active = [o for o in OCCASION_POSE if o in set(occasions)] if occasion_slot(now) else []
     others = [o for o in active if o != "geburtstag"]
     weather_why = weather_reason(records, now, nowcast, feels_like) if weather else None
-    if "geburtstag" in active:
+    if "geburtstag" in active:  # nur auf Anlass-Takten, an Ostereier-Tagen also im Wechsel mit dem Osterei
         reason, main = "geburtstag", OCCASION_POSE["geburtstag"]
+    elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
+        reason, main = "osterei", egg
     elif weather_why:
         reason, main = weather_why, WEATHER_POSE[weather_why]
     elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln

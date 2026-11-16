@@ -140,7 +140,7 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None):
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -148,7 +148,8 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     blood_moon: Mond rötlich statt gelb (seit 1.18, finsternisse.show_blood_moon); nur in der Nacht
     einer totalen Mondfinsternis, sonst unverändert.
     planet: "Morgenstern", "Abendstern", "Opposition" oder None (seit 1.19, planeten.show_dot); nur
-    am Höhepunkt eines hellen Planeten bei klarem Himmel gesetzt, sonst bleibt das Nachtbild unverändert."""
+    am Höhepunkt eines hellen Planeten bei klarem Himmel gesetzt, sonst bleibt das Nachtbild unverändert.
+    felis: Funktion (x, y, Maßstab) → SVG des Sternbilds Katze (seit 1.24, ostereier.felis_svg) oder None."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -208,6 +209,13 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
         for dx, dy in ((7, 0), (-7, 0), (0, 7), (0, -7)):
             out.append(f'<line x1="{px:.0f}" y1="{py:.0f}" x2="{px + dx:.0f}" y2="{py + dy:.0f}" '
                        f'stroke="{STAR}" stroke-width="1.3"/>')
+
+    # Osterei (seit 1.24): Sternbild Katze hoch über dem Siebengebirge, ganz rechts – weit weg vom Mond (höchster
+    # Platz hills_x + 40, Radius ≤ 18) und rechts vom Ende der ISS-Bahn (0,88 W). In der Nacht einer Opposition
+    # steht dort der Planet, dann bleibt das Sternbild weg. felis = Funktion (x, y, k) → SVG
+    if felis and planet != "Opposition":
+        k = 0.85
+        out.append(felis(max(hills_x + 54, W - 38 * k - 20), 4, k))
 
     if extra:  # z. B. ISS-Bahn (iss.night_arc)
         out.append(extra)

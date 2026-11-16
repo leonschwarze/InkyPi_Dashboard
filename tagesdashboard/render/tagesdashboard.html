@@ -123,7 +123,7 @@
   <section class="wx">
     {% if weather %}
     <div class="wx-top">
-      <div class="wx-icon">{{ weather.icon | safe }}</div>
+      <div class="wx-icon{% if rainbow %} has-rainbow{% endif %}">{% if rainbow %}{{ rainbow | safe }}{% endif %}{{ weather.icon | safe }}</div>
       <div class="wx-text">
         {% if weather.label %}<div class="wx-label">{{ weather.label }}</div>{% endif %}
         <div class="wx-temp">{{ weather.temp }}<span class="deg">°C</span></div>

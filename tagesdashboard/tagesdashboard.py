@@ -47,11 +47,11 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss)
+                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status, urlaub, wahlkampf, iss)
+                                        status, urlaub, wahlkampf, iss, ostereier)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -445,6 +445,15 @@ class Tagesdashboard(BasePlugin):
             logger.info("Status im Kopf: %s", ", ".join(
                 f"{s['name']} seit {s['since']}" + (" (lang)" if s["long"] else "") for s in params["status"]))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        # ---- Ostereier (seit 1.24): seltene Tage und seltenes Wetter, nur in der normalen Ansicht ----
+        egg = ostereier.today(now) if mode == "normal" else None
+        if egg:
+            logger.info("Osterei: %s", egg["name"])
+            if egg["greeting"]:  # wie die Festtage, aber ohne Symbol (die Katze ist das Symbol)
+                params["greetings"].append({"kind": "osterei", "text": egg["greeting"], "icon": ""})
+        if mode == "normal" and use_colors and ostereier.rainbow(records, now):
+            params["rainbow"] = ostereier.RAINBOW_SVG
+            logger.info("Osterei: Regenbogen")
         if flag("catEnabled") and mode == "normal":
             try:
                 occasions = [name for name, on in (
@@ -453,7 +462,8 @@ class Tagesdashboard(BasePlugin):
                     ("zug", bool(params.get("train"))),
                     ("waesche", bool(params.get("laundry")))) if on]
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
-                                             feels_like=dwd.feels_like, occasions=occasions)
+                                             feels_like=dwd.feels_like, occasions=occasions,
+                                             egg=egg["pose"] if egg else None)
                 logger.info("Katze: %s%s", params["cat"]["main"]["name"],
                             f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
             except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
@@ -500,6 +510,7 @@ class Tagesdashboard(BasePlugin):
             edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
+            edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge
@@ -603,6 +614,9 @@ class Tagesdashboard(BasePlugin):
                 planet_dot = planet_info["kind"] if planeten.show_dot(planet_info, wx) else None
                 if planet_info:
                     logger.info("Planeten: %s%s", planet_info["text"], " (Punkt gezeichnet)" if planet_dot else "")
+                felis = ostereier.felis_night(d, wx)  # Osterei (seit 1.24): Sternbild Katze
+                if felis:
+                    logger.info("Osterei: Sternbild Katze")
                 iss_line, iss_svg = "", None
                 end = night_end or now + timedelta(hours=7)
                 nxt = [p for p in iss.passes(now, *iss_pos) if iss.worth(p) and p["end"] > now] if iss_pos else []
@@ -617,7 +631,8 @@ class Tagesdashboard(BasePlugin):
                 params["night"]["art"] = {
                     "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
-                                           blood_moon=blood, planet=planet_dot, extra=iss_svg),
+                                           blood_moon=blood, planet=planet_dot, extra=iss_svg,
+                                           felis=ostereier.felis_svg if felis else None),
                     "iss": iss_line,
                     "weather": nachtgrafik.describe(wx),
                     "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
