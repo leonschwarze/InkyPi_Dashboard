@@ -13,6 +13,7 @@ mit Petersberg, Drachenfels und Ölberg, davor den Rhein. Der Himmel zeigt die k
 Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonnenwende) und, wenn
 ein Meteorstrom aktiv, eine Mondfinsternis nah oder ein Planet am Höhepunkt ist, je eine weitere
 Zeile dazu (immer sichtbar, unabhängig vom Wetter).
+Seit 1.28 steht der Rhein so hoch wie am Pegel Bonn (blaues Wasser, schwarze Ufermauer, Pegellatte mit Wert).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -140,7 +141,80 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None):
+# ----------------------------------------------------------------------
+# Rhein auf echtem Pegel (seit 1.28, pegel.py)
+# ----------------------------------------------------------------------
+# Wasserlinie im Band (y in Koordinaten der Grafik) je nach Pegel Bonn in cm. Unter WATER (104) steht die
+# schwarze Ufermauer frei, darüber stehen die Häuser im Wasser. Bewusst nicht linear: Zwischen Niedrig- und
+# Mittelwasser soll man den Unterschied sehen (1,16 m ↔ 3,80 m ≈ 8 Einheiten), ab 700 cm (erste Ufer
+# überschwemmt, Stadt Bonn) steigt das Wasser über die Uferkante, 950 cm („großes Hochwasser“) reicht an
+# die Brücke; darüber steht die Fahrbahn der Kennedybrücke im Wasser (sie wird über die Welle gezeichnet).
+PEGEL_Y = [(0, 126.0), (150, 121.0), (300, 116.0), (500, 110.0), (700, 104.0), (950, 99.0), (1300, 93.0)]
+LATTE_M = 13          # Pegellatte 0–13 m, ein Feld je Meter (rot/weiß); Rekord in Bonn: 10,13 m (1993)
+LATTE_W = 9
+LABEL_PX = 14         # Schriftgröße der Zahl an der Latte (in Einheiten der Grafik, quer ≈ 13 px)
+# grobe Zeichenbreiten von Jost SemiBold in em (für die Lage des Trendpfeils hinter der Zahl)
+_EM = {",": 0.26, " ": 0.25, "m": 0.86}
+
+
+def pegel_y(cm):
+    """Wasserlinie für einen Pegel in cm (stückweise linear zwischen den Punkten in PEGEL_Y)."""
+    pts = PEGEL_Y
+    if cm <= pts[0][0]:
+        return pts[0][1]
+    for (c0, y0), (c1, y1) in zip(pts, pts[1:]):
+        if cm <= c1:
+            return y0 + (y1 - y0) * (cm - c0) / (c1 - c0)
+    return pts[-1][1]
+
+
+def _wave(W, y):
+    """Wellenkamm: weiße Zickzacklinie (±0,9) über die ganze Breite."""
+    pts = " ".join(f"{x},{y + (0.9 if (x // 8) % 2 else -0.9):.1f}" for x in range(0, W + 9, 8))
+    return f'<polyline points="{pts}" fill="none" stroke="{WHITE}" stroke-width="1.6" stroke-linejoin="round"/>'
+
+
+def _pegel(W, pegel, reflections, bx0, bx1):
+    """Blaues Wasser bis zur Wasserlinie, Pegellatte an der Kennedybrücke mit Wert und Trendpfeil."""
+    y = pegel_y(pegel["cm"])
+    out = [f'<rect y="{y:.1f}" width="{W}" height="{H - y:.1f}" fill="{SKY}"/>']
+    # Pegellatte zwischen zwei Brückenpfeilern (bei 3/8 der Brücke), nur der Teil über Wasser
+    x = bx0 + (bx1 - bx0) * 3 / 8 if bx1 - bx0 > 40 else W / 2
+    for m in range(LATTE_M):
+        y0, y1 = pegel_y((m + 1) * 100), min(pegel_y(m * 100), y)
+        if y1 > y0:
+            out.append(f'<rect x="{x - LATTE_W / 2:.1f}" y="{y0:.1f}" width="{LATTE_W}" height="{y1 - y0:.1f}" '
+                       f'fill="{BLOOD if m % 2 else WHITE}"/>')
+    top = pegel_y(LATTE_M * 100)
+    out.append(f'<rect x="{x - LATTE_W / 2 - 1:.1f}" y="{top - 1.5:.1f}" width="{LATTE_W + 2}" height="1.5" fill="{WHITE}"/>')
+    out.append(_wave(W, y))
+    if bx1 - bx0 > 40 and y < WATER - 3:  # Hochwasser bis an die Brücke: Fahrbahn bleibt sichtbar
+        out.append(f'<rect x="{bx0:.0f}" y="{WATER - 6}" width="{bx1 - bx0:.0f}" height="3" fill="{INK}"/>')
+    for rx, colour in reflections:
+        for k in range(3):
+            ry = y + 4 + k * 5
+            if ry > H - 2:
+                break
+            out.append(f'<rect x="{rx - 9 + k * 5:.0f}" y="{ry:.0f}" width="{18 - k * 5}" height="2" fill="{colour}"/>')
+    # Zahl über der Latte, Pfeil dahinter (steigt/fällt um mindestens pegel.TREND_CM in 24 h)
+    text = pegel["label"]
+    tw = sum(_EM.get(c, 0.56) for c in text) * LABEL_PX
+    arrow = 13 if pegel.get("trend") else 0
+    left = x - (tw + arrow) / 2
+    base = top - 5
+    out.append(f'<text x="{left:.1f}" y="{base:.1f}" font-size="{LABEL_PX}" font-weight="600" fill="{WHITE}">{text}</text>')
+    if arrow:
+        ax = left + tw + 8
+        if pegel["trend"] > 0:  # Spitze nach oben
+            pts = f"{ax - 4.5:.1f},{base:.1f} {ax + 4.5:.1f},{base:.1f} {ax:.1f},{base - 9.5:.1f}"
+        else:
+            pts = f"{ax - 4.5:.1f},{base - 9.5:.1f} {ax + 4.5:.1f},{base - 9.5:.1f} {ax:.1f},{base:.1f}"
+        out.append(f'<polygon points="{pts}" fill="{WHITE}"/>')
+    return out
+
+
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None,
+        pegel=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -149,7 +223,9 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     einer totalen Mondfinsternis, sonst unverändert.
     planet: "Morgenstern", "Abendstern", "Opposition" oder None (seit 1.19, planeten.show_dot); nur
     am Höhepunkt eines hellen Planeten bei klarem Himmel gesetzt, sonst bleibt das Nachtbild unverändert.
-    felis: Funktion (x, y, Maßstab) → SVG des Sternbilds Katze (seit 1.24, ostereier.felis_svg) oder None."""
+    felis: Funktion (x, y, Maßstab) → SVG des Sternbilds Katze (seit 1.24, ostereier.felis_svg) oder None.
+    pegel: Ergebnis von pegel.load ({"cm", "label", "trend"}) oder None (seit 1.28); dann steht das Wasser so
+    hoch wie am Pegel Bonn, mit Pegellatte. None → Rhein wie bisher (pixelgleich)."""
     W = width
     s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
@@ -256,9 +332,12 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     reflections = [(x, STAR) for x in (222 * s, 281 * s, 330 * s)]
     if not (wet and cloud >= 85):
         reflections.append((mx, BLOOD if blood_moon else STAR))
-    for x, colour in reflections:
-        for k in range(3):
-            out.append(f'<rect x="{x - 9 + k * 5:.0f}" y="{WATER + 5 + k * 6}" width="{18 - k * 5}" height="2" fill="{colour}"/>')
+    if pegel:  # Rhein auf echtem Pegel (seit 1.28): Wasserlinie, Pegellatte, Spiegelungen ab der Wasserlinie
+        out += _pegel(W, pegel, reflections, bx0, bx1)
+    else:
+        for x, colour in reflections:
+            for k in range(3):
+                out.append(f'<rect x="{x - 9 + k * 5:.0f}" y="{WATER + 5 + k * 6}" width="{18 - k * 5}" height="2" fill="{colour}"/>')
 
     # Niederschlag und Nebel vor allem
     if wet:

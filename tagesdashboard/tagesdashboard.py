@@ -47,11 +47,12 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream)
+                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
+                   pegel, pizustand)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status, urlaub, wahlkampf, iss, ostereier, livestream)
+                                        status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -164,6 +165,9 @@ DEFAULTS = {
     "liveEnabled": "true",
     "liveWords": livestream.DEFAULT_WORDS,
     "liveUrl": livestream.DEFAULT_URL,
+    # Rhein auf echtem Pegel im Nachtbild, Zustand des Pi in der Wochenvorschau (seit cfgVersion 21)
+    "pegelEnabled": "true",
+    "piEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -186,7 +190,8 @@ SINCE_VERSION["eclipseEnabled"] = 17
 SINCE_VERSION["planetEnabled"] = 18
 SINCE_VERSION.update({"urlaubEnabled": 19, "wahlEnabled": 19, "issEnabled": 19})
 SINCE_VERSION["liveEnabled"] = 20
-CFG_VERSION = 20  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"pegelEnabled": 21, "piEnabled": 21})
+CFG_VERSION = 21  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -351,6 +356,7 @@ class Tagesdashboard(BasePlugin):
 
         if weather is None and cal_error:
             status.commit(now)  # Ausfall trotzdem mitzählen, auch wenn es kein Bild gibt
+            self.pi_record(now, device_config, flag("piEnabled"))
             raise RuntimeError(f"Weder Wetter noch Kalender verfügbar. Wetter: {wx_error} Kalender: {cal_error}")
 
         use_colors = flag("useColors")
@@ -443,8 +449,17 @@ class Tagesdashboard(BasePlugin):
             params["train"] = bahn.load(train_cfg, now, tz,
                                         client_id=device_config.load_env_key("DB_CLIENT_ID"),
                                         api_key=device_config.load_env_key("DB_API_KEY"))
+        # ---- Rhein auf echtem Pegel (seit 1.28, nur Nachtbild mit Silhouette); vor commit, damit ein
+        # Ausfall des Pegels gezählt wird. Ohne Daten bleibt der Rhein wie bisher ----
+        river_info = None
+        if mode == "night" and flag("nightArt") and flag("pegelEnabled"):
+            try:
+                river_info = pegel.load(now)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Pegel konnte nicht geladen werden")
         # ---- Statusanzeige: alle Abrufe dieser Runde sind gelaufen ----
         status.commit(now)
+        self.pi_record(now, device_config, flag("piEnabled"))
         params["status"] = status.report(now) if mode == "normal" else []
         if params["status"]:
             logger.info("Status im Kopf: %s", ", ".join(
@@ -501,7 +516,8 @@ class Tagesdashboard(BasePlugin):
                               art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None,
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
                               eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
-                              iss_pos=self.home_position(settings) if flag("issEnabled") else None)
+                              iss_pos=self.home_position(settings) if flag("issEnabled") else None,
+                              river=river_info, pi=flag("piEnabled"))
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -605,8 +621,20 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Nachtbild und Wochenvorschau
     # ==================================================================
+    def pi_record(self, now, device_config, enabled):
+        """Zustand des Pi für die Wochenvorschau mitschreiben (seit 1.28): Ausfälle aus der Statusanzeige,
+        Temperatur, Neustarts, Unterspannung. Läuft in jeder Runde mit echten Abrufen, auch ohne Bild."""
+        if not enabled:
+            return
+        try:
+            self._pi_path = pizustand.state_path(device_config)
+            pizustand.record(now, status.snapshot(), path=self._pi_path)
+        except Exception:  # Zusatz: nie das ganze Bild verlieren
+            logger.exception("Zustand des Pi konnte nicht gespeichert werden")
+
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
-                     moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None):
+                     moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
+                     pi=False):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -651,7 +679,7 @@ class Tagesdashboard(BasePlugin):
                     "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
                                            blood_moon=blood, planet=planet_dot, extra=iss_svg,
-                                           felis=ostereier.felis_svg if felis else None),
+                                           felis=ostereier.felis_svg if felis else None, pegel=river),
                     "iss": iss_line,
                     "weather": nachtgrafik.describe(wx),
                     "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
@@ -672,6 +700,12 @@ class Tagesdashboard(BasePlugin):
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,
                                             per_row=4 if portrait else 3)
+            if pi:  # Zustand des Pi in der Fußzeile (seit 1.28)
+                try:
+                    params["pi_line"] = pizustand.line(now, getattr(self, "_pi_path", None))
+                    logger.info("Pi: %s", params["pi_line"])
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    logger.exception("Zustand des Pi konnte nicht ermittelt werden")
         params["view_error"] = cal_error or params.get("wx_error")
 
     # ==================================================================

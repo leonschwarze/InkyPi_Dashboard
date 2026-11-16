@@ -1,12 +1,34 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.27
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.28
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Neu: Die Katze steht während der Ratssitzung **am Rednerpult**.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Neu: Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.28: Rhein auf echtem Pegel, Zustand des Pi
+
+![Rhein auf echtem Pegel](docs/pegel_800x480.png)
+
+**Rhein auf echtem Pegel (Nachtbild):**
+
+- Unter der Bonner Silhouette fließt der Rhein jetzt **so hoch, wie er am Pegel Bonn gerade steht**: blaues Wasser, darüber die schwarze Ufermauer. Bei Niedrigwasser sieht man viel Mauer, ab etwa 7 m (dort werden laut Stadt Bonn die ersten Uferbereiche überschwemmt) steht das Wasser an den Häusern, bei großem Hochwasser reicht es an die Kennedybrücke.
+- An der Brücke steht eine **rot-weiße Pegellatte** (ein Feld je Meter) mit dem Wert darüber, z. B. „1,16 m ▼“. Der Pfeil zeigt, ob der Rhein seit gestern um mindestens 5 cm gestiegen oder gefallen ist.
+- Quelle: **PEGELONLINE** der Wasserstraßen- und Schifffahrtsverwaltung (frei, ohne Anmeldung). Abgefragt wird nur, wenn das Nachtbild gezeichnet wird. Ist der Dienst nicht erreichbar oder der letzte Wert älter als 6 Stunden, fließt der Rhein wie bisher.
+- Schalter „Rhein auf echtem Pegel“ unter „Nachtbild“, standardmäßig an.
+
+![Zustand des Pi](docs/pi_800x480.png)
+
+**Zustand des Pi (Wochenvorschau):**
+
+- Sonntags steht unter der Woche eine Zeile wie „**Pi:** Kalender 2× weg (40 min, zuletzt Do 3:10) · 23 Tage online · bis 52 °C · 9,8 GB frei“ – oder „… · Woche ohne Ausfälle“.
+- Vorn stehen, was in den letzten 7 Tagen schiefging: **Ausfälle** je Datenquelle (fallen mehrere zugleich aus, z. B. ohne WLAN, steht „Wetter und Kalender 1× weg“), **Neustarts** und **Unterspannung** (dann das Netzteil prüfen). Dahinter: wie lange der Pi läuft, die höchste Temperatur der Woche und der freie Speicher auf der Karte. Ist die Zeile zu lang, fallen hinten Werte weg, hochkant darf sie zwei Zeilen haben.
+- Damit die Woche einen Neustart übersteht, merkt sich das Dashboard Ausfälle und Höchstwerte in `InkyPi/src/config/tagesdashboard_pi.json` (nur wenn sich etwas ändert, schont die Speicherkarte; Einträge älter als 9 Tage fallen weg).
+- Schalter „Zustand des Pi“ unter „Wochenvorschau“, standardmäßig an.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 21); die beiden neuen Schalter sind von selbst an. Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen, `sudo systemctl restart inkypi.service` und die Einstellungen einmal speichern. Prüfen: `journalctl -u inkypi.service | grep -E "Pegel|Pi:"`.
 
 ## Neu in 1.27: die Katze in der Ratssitzung
 
@@ -256,5 +278,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `wahlkampf_800x480.png`, `wahlkampf_480x800.png` – Wahlkampf-Karte am Tag mit Wahlkampftermin (1.23)
 - `iss_800x480.png`, `iss_480x800.png` – Nachtbild mit ISS-Überflug (erfundene Bahndaten, 1.23)
 - `livestream_800x480.png`, `livestream_480x800.png` – während der Ratssitzung: QR-Code zum Livestream (1.25), Katze am Rednerpult (1.27)
+- `pegel_800x480.png`, `pegel_480x800.png` – Nachtbild mit dem Rhein auf echtem Pegel: 1,16 m, fallend (1.28)
+- `pi_800x480.png`, `pi_480x800.png` – Wochenvorschau mit dem Zustand des Pi: Kalender zweimal ausgefallen (1.28)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

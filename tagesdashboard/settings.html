@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="20" />
+<input type="hidden" name="cfgVersion" value="21" />
 
 <div class="st">
 
@@ -260,6 +260,7 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="weekEnabled" value="true" data-default="true" data-since="5"><span>Sonntags die kommende Woche zeigen</span></label>
     <div class="st-sub" data-parent="weekEnabled">
         <div class="st-line"><span>von</span><input type="time" id="weekFrom" name="weekFrom" class="form-input st-time" /><span>bis</span><input type="time" id="weekTo" name="weekTo" class="form-input st-time" /></div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="piEnabled" value="true" data-default="true" data-since="21"><span>Zustand des Pi <span class="st-note">eine Zeile unten: Ausfälle der Woche, Neustarts, Unterspannung, wie lange online, höchste Temperatur, freier Speicher</span></span></label>
     </div>
 </section>
 
@@ -273,6 +274,7 @@
             <label class="st-check"><input type="checkbox" class="db-check" name="meteorEnabled" value="true" data-default="true" data-since="16"><span>Sternschnuppenströme <span class="st-note">als Text, wenn ein Strom aktiv ist; bei Quadrantiden, Perseiden und Geminiden zusätzlich als Strichlein am Himmel, nur im Maximum bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="eclipseEnabled" value="true" data-default="true" data-since="17"><span>Mondfinsternisse <span class="st-note">als Text, wenn eine Finsternis höchstens 45 Tage entfernt ist; bei einer totalen Mondfinsternis färbt sich der Mond in der Nacht selbst rötlich (Blutmond)</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="planetEnabled" value="true" data-default="true" data-since="18"><span>Helle Planeten <span class="st-note">als Text, wenn Venus, Jupiter, Mars oder Saturn ihren Höhepunkt erreichen (Opposition bzw. größte Helligkeit); zusätzlich als heller Punkt am Himmel, nur am Höhepunkt bei klarem Himmel</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="pegelEnabled" value="true" data-default="true" data-since="21"><span>Rhein auf echtem Pegel <span class="st-note">das Wasser steht so hoch wie am Pegel Bonn, mit Pegellatte und Wert (PEGELONLINE); ohne Daten bleibt der Rhein wie bisher</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="issEnabled" value="true" data-default="true" data-since="19"><span>ISS-Überflüge <span class="st-note">als Textzeile, wenn die Raumstation hell und hoch über Bonn fliegt (Dämmerung, mindestens 25° hoch); bei klarem Himmel zusätzlich ihre Bahn als gestrichelte Linie. Bahndaten von Celestrak, höchstens alle 2 Stunden</span></span></label>
         </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>

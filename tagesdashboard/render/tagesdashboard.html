@@ -105,6 +105,7 @@
     </div>
     {% endfor %}
   </div>
+  {% if pi_line %}<div class="wk-pi"><b>Pi:</b> {{ pi_line }}</div>{% endif %}
   {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
 </div>
 {% else %}

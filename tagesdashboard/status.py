@@ -106,6 +106,11 @@ def boundaries(now):
             if src in _used and st["since"] + LONG_AFTER > now]
 
 
+def snapshot():
+    """Laufende Ausfälle als {quelle: (seit, zuletzt gescheitert)} – für die Wochenbilanz in pizustand.py (seit 1.28)."""
+    return {src: (st["since"], st["last"]) for src, st in _state.items()}
+
+
 def reset():
     """Alles vergessen (Tests)."""
     _events.clear()
