@@ -211,6 +211,19 @@
 
   <!-- ===================== Kalender ===================== -->
   <section class="cal">
+    {% if live %}
+    <!-- Livestream (seit 1.25): QR-Code zum Stream, solange eine Ratssitzung läuft -->
+    <div class="xcard live">
+      <div class="lv-qr">{{ live.svg | safe }}</div>
+      <div class="tr-main">
+        <div class="lv-tag"><svg class="lv-dot" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="5"/></svg>LIVE</div>
+        <div class="tr-top">{{ live.title }}</div>
+        <div class="tr-sub">im Livestream · {{ live.until }}</div>
+        <div class="tr-sub">mit dem Handy scannen oder</div>
+        <div class="tr-sub lv-url">{{ live.url }}</div>
+      </div>
+    </div>
+    {% endif %}
     {% if wahl_card %}
     <!-- Wahlkampf-Modus: Karte am Wahlkampftag -->
     <div class="xcard wahl wk-{{ wahl_card.level }}">
@@ -409,7 +422,7 @@
       range.selectNodeContents(n);
       for (const r of range.getClientRects()) if (r.width && r.height) obs.push(r);
     }
-    db.querySelectorAll('svg, img, .train, .laundry, .trip, .air, .nowcast, .alert, .wear, .error-box, .news')
+    db.querySelectorAll('svg, img, .train, .laundry, .trip, .air, .nowcast, .alert, .wear, .error-box, .news, .live')
       .forEach(el => { if (visible(el)) obs.push(el.getBoundingClientRect()); });
     lines.forEach(l => { const r = l.el.getBoundingClientRect();
       obs.push({left: r.left, right: r.right, top: l.y - 1, bottom: l.y + u * 0.4}); });
@@ -540,11 +553,31 @@
     };
     while (rest.length && end() > right() + 0.5) rest.pop().style.display = 'none';
   }
+  /* QR-Code (seit 1.25): Kantenlänge auf ein ganzzahliges Vielfaches der Module setzen und die Lage
+     auf ganze Pixel schieben – sonst werden Module auf E-Ink ungleich breit (schlechter zu scannen). */
+  function fitQr(snap) {
+    document.querySelectorAll('svg.qr').forEach(svg => {
+      const n = Number(svg.dataset.n);
+      if (!snap) {
+        svg.style.width = svg.style.height = svg.style.transform = '';
+        const want = svg.getBoundingClientRect().width;   // Wunschgröße aus dem CSS
+        const m = Math.max(3, Math.floor(want / n));
+        svg.style.width = svg.style.height = (m * n) + 'px';
+        svg.dataset.m = m;
+      } else {
+        svg.style.transform = '';
+        const r = svg.getBoundingClientRect();
+        svg.style.transform = `translate(${Math.round(r.left) - r.left}px, ${Math.round(r.top) - r.top}px)`;
+      }
+    });
+  }
   function fitAll() {
+    fitQr(false);
     document.querySelectorAll('.h-status').forEach(fitStatus);
     document.querySelectorAll('.wear-why.has-cmp').forEach(fitWhy);
     document.querySelectorAll('.fit-box').forEach(fitBox);
     document.querySelectorAll('.news').forEach(fitNews);
+    fitQr(true);
     if (window.placeCat) window.placeCat();  // Katze erst setzen, wenn das Layout feststeht
   }
   fitAll();

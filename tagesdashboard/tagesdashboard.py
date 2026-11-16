@@ -47,11 +47,11 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier)
+                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status, urlaub, wahlkampf, iss, ostereier)
+                                        status, urlaub, wahlkampf, iss, ostereier, livestream)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -160,6 +160,10 @@ DEFAULTS = {
     "wahlTag": "",                       # leer: nur für die Landtagswahl NRW bekannt (25.04.2027)
     "wahlWords": wahlkampf.DEFAULT_WORDS,
     "issEnabled": "true",
+    # Livestream-Karte während einer Ratssitzung (seit cfgVersion 20)
+    "liveEnabled": "true",
+    "liveWords": livestream.DEFAULT_WORDS,
+    "liveUrl": livestream.DEFAULT_URL,
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -181,7 +185,8 @@ SINCE_VERSION["meteorEnabled"] = 16
 SINCE_VERSION["eclipseEnabled"] = 17
 SINCE_VERSION["planetEnabled"] = 18
 SINCE_VERSION.update({"urlaubEnabled": 19, "wahlEnabled": 19, "issEnabled": 19})
-CFG_VERSION = 19  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["liveEnabled"] = 20
+CFG_VERSION = 20  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -474,6 +479,18 @@ class Tagesdashboard(BasePlugin):
             card = self.wahl_card(params, wahl_cfg, today, weather, records)
             if card:
                 params["wahl_card"], params["wahl_icon"] = card, WAHL_ICON.format(cls="lw-svg")
+        # ---- Livestream (seit 1.25): QR-Code zum Stream, solange eine Ratssitzung läuft ----
+        live_words = opt("liveWords") or livestream.DEFAULT_WORDS
+        today_events = next((d["events"] for d in params.get("calendar") or [] if d.get("is_today")), [])
+        if mode == "normal" and flag("liveEnabled"):
+            try:
+                card = livestream.card(today_events, live_words, opt("liveUrl"), now)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren (z. B. Adresse zu lang für einen QR-Code)
+                card = None
+                logger.exception("Livestream-Karte konnte nicht erzeugt werden")
+            if card:
+                params["live"] = card
+                logger.info("Livestream: %s %s → %s", card["title"], card["until"], card["href"])
 
         if mode == "urlaub":
             self.urlaub_view(params, vacation, today, weather, dimensions, tz, now)
@@ -511,6 +528,8 @@ class Tagesdashboard(BasePlugin):
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
+            if flag("liveEnabled"):  # Livestream-Karte kommt zu Beginn der Sitzung und geht an ihrem Ende
+                edges += livestream.boundaries(today_events, live_words, now)
             for edge in edges:
                 if edge and now < edge < until:
                     until = edge

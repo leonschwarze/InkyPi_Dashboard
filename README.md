@@ -1,12 +1,23 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.24
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.25
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Neu: ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Neu: Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.25: Livestream der Ratssitzung per QR-Code
+
+![Livestream-Karte](docs/livestream_800x480.png)
+
+- Solange ein Termin „Ratssitzung“ läuft, steht oben in der Terminliste eine rot gerahmte Karte mit **QR-Code**: Handy-Kamera drauf, und der Livestream der Sitzung öffnet sich. Darunter steht die Adresse zum Abtippen und bis wann die Sitzung geht. Vorher und danach ist das Bild genau wie bisher.
+- Der Code führt standardmäßig zu **www.bonn.de/livestream**: Dort verlinkt die Stadt Bonn am Sitzungstag den Stream von Rat und Bezirksvertretungen (der YouTube-Link wechselt mit jeder Sitzung, diese Seite bleibt).
+- **Einstellbar** unter „Termine“: Schalter „Livestream während Sitzungen“, Stichwörter im Termintitel (z. B. „Ratssitzung, Bezirksvertretung“) und die Adresse. Kurze Adressen ergeben einen gröberen Code, der sich leichter scannen lässt.
+- Auf dem 7,3″-Display ist der Code etwa 17 mm groß (jedes Modul genau 3 Pixel) – aus 10–20 cm Abstand scannen.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 20); der neue Schalter ist von selbst an. Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen (er enthält jetzt `lib/segno/` für den QR-Code, nichts zu installieren) und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.24: ein paar Überraschungen
 
@@ -232,5 +243,6 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `urlaub_800x480.png`, `urlaub_480x800.png` – Urlaubsbild: Abfahrtstafel mit Zielwetter (1.23)
 - `wahlkampf_800x480.png`, `wahlkampf_480x800.png` – Wahlkampf-Karte am Tag mit Wahlkampftermin (1.23)
 - `iss_800x480.png`, `iss_480x800.png` – Nachtbild mit ISS-Überflug (erfundene Bahndaten, 1.23)
+- `livestream_800x480.png`, `livestream_480x800.png` – während der Ratssitzung: QR-Code zum Livestream (1.25)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

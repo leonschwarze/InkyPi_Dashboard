@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="19" />
+<input type="hidden" name="cfgVersion" value="20" />
 
 <div class="st">
 
@@ -150,6 +150,18 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="liveEnabled" value="true" data-default="true" data-since="20"><span>Livestream während Sitzungen <span class="st-note">oben in der Terminliste ein QR-Code zum Stream, solange der Termin läuft</span></span></label>
+    <div class="st-sub" data-parent="liveEnabled">
+        <div class="st-field">
+            <label for="liveWords">Stichwörter im Termintitel</label>
+            <input type="text" id="liveWords" name="liveWords" class="form-input" placeholder="Ratssitzung" />
+        </div>
+        <div class="st-field">
+            <label for="liveUrl">Adresse des Livestreams</label>
+            <input type="text" id="liveUrl" name="liveUrl" class="form-input" placeholder="https://www.bonn.de/livestream" />
+        </div>
+        <div class="st-hint">Die Stadt Bonn verlinkt auf www.bonn.de/livestream am Sitzungstag den Stream von Rat und Bezirksvertretungen. Mehrere Stichwörter mit Komma trennen, z. B. „Ratssitzung, Bezirksvertretung“. Kurze Adressen ergeben einen gröberen, leichter lesbaren Code.</div>
+    </div>
 </section>
 
 <section class="st-sec">
@@ -454,7 +466,8 @@
         airLevel: '3', airRadius: '3', airStation: 'DENW062',
         pollenLevel: '1',
         urlaubWords: 'Urlaub, Ferien, Reise', urlaubMinDays: '2',
-        wahlArt: 'landtag', wahlWords: 'Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion' };
+        wahlArt: 'landtag', wahlWords: 'Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion',
+        liveWords: 'Ratssitzung', liveUrl: 'https://www.bonn.de/livestream' };
     const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 

@@ -613,3 +613,21 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
   background: #E3001B; color: #fff; padding: calc(var(--u) * 0.4) calc(var(--u) * 0.7); }
 .wahl-badge b { font-weight: 600; font-size: calc(var(--u) * 2.6); }
 .wahl-badge span { font-size: calc(var(--u) * 1.5); }
+
+/* ---------------- Livestream-Karte (seit 1.25) ----------------
+ * QR-Code schwarz auf weiß (auch bei dunklem Hintergrund). Die Größe hier ist nur der Wunsch:
+ * fitQr() im Template rundet auf ganze Pixel je Modul (mindestens 3) und schiebt den Code auf
+ * ganze Pixel, damit alle Module gleich breit sind. 29 Module + Ruhezone bei 800×480 = 87 px ≈ 17 mm. */
+.lv-qr { flex: 0 0 auto; line-height: 0; }
+.lv-qr svg.qr { display: block; width: calc(var(--u) * 11.6); height: calc(var(--u) * 11.6); }
+.lv-tag { display: flex; align-items: center; gap: calc(var(--u) * 0.5); font-size: calc(var(--u) * 1.8);
+  color: #E3001B; line-height: 1.1; }
+.mono .lv-tag { color: inherit; }
+.lv-dot { width: calc(var(--u) * 1.3); height: calc(var(--u) * 1.3); flex: 0 0 auto; }
+.lv-dot circle { fill: #E3001B; }
+.mono .lv-dot circle { fill: currentColor; }
+.live { border-color: #E3001B; gap: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 0.3) calc(var(--u) * 0.8) calc(var(--u) * 0.3) calc(var(--u) * 0.3); }
+.mono .live { border-color: currentColor; }
+.live .tr-main { gap: calc(var(--u) * 0.1); }
+.live .tr-top { line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
