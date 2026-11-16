@@ -47,11 +47,18 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
-                   katze, pollen, meteore, finsternisse, planeten, status)
+                   katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status)
+                                        status, urlaub, wahlkampf, iss)
+
+# Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
+WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
+             '<path d="M10 3 H22 V17 H10 Z" fill="#FFFFFF" stroke="#000" stroke-width="2.2"/>'
+             '<path d="M13 6.5 l6 6 M19 6.5 l-6 6" stroke="#E3001B" stroke-width="2.4" stroke-linecap="round"/>'
+             '<rect x="3.5" y="15" width="25" height="14" rx="2" fill="#E3001B" stroke="#000" stroke-width="2.2"/>'
+             '<rect x="8" y="17.6" width="16" height="2.6" fill="#000"/></svg>')
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -144,6 +151,15 @@ DEFAULTS = {
     "eclipseEnabled": "true",
     # Helle Planeten im Nachtbild (seit cfgVersion 18)
     "planetEnabled": "true",
+    # Urlaubsbild, Wahlkampf-Modus, ISS-Überflug (seit cfgVersion 19)
+    "urlaubEnabled": "true",
+    "urlaubWords": urlaub.DEFAULT_KEYWORDS,
+    "urlaubMinDays": str(urlaub.MIN_DAYS),
+    "wahlEnabled": "true",
+    "wahlArt": wahlkampf.DEFAULT_ART,   # landtag | bundestag | europa | kommunal
+    "wahlTag": "",                       # leer: nur für die Landtagswahl NRW bekannt (25.04.2027)
+    "wahlWords": wahlkampf.DEFAULT_WORDS,
+    "issEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -164,7 +180,8 @@ SINCE_VERSION.update({k: 15 for k in DEFAULTS if k.startswith("pollen")})
 SINCE_VERSION["meteorEnabled"] = 16
 SINCE_VERSION["eclipseEnabled"] = 17
 SINCE_VERSION["planetEnabled"] = 18
-CFG_VERSION = 18  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"urlaubEnabled": 19, "wahlEnabled": 19, "issEnabled": 19})
+CFG_VERSION = 19  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -338,6 +355,16 @@ class Tagesdashboard(BasePlugin):
 
         records = weather["records"] if weather else []
 
+        # ---- Urlaubsbild: läuft ein mehrtägiger Urlaub, ersetzt die Abfahrtstafel das Dashboard ----
+        vacation = None
+        if flag("urlaubEnabled") and events and mode in ("normal", "night", "week"):
+            vacation = urlaub.find(events, today, urlaub.keywords(settings.get("urlaubWords")),
+                                   urlaub.read_min_days(settings.get("urlaubMinDays")))
+            if vacation:
+                logger.info("Urlaub erkannt: %s bis %s", vacation["dest"], vacation["last"])
+                mode = "urlaub"
+                news_now = train_now = False
+
         # ---- Anfahrt: Rad oder ÖPNV, wann los? (nur in der normalen Ansicht) ----
         trip_cfg = anfahrt.read_config(opt, flag, *self.home_position(settings))
         trips = {"by_event": {}, "card": None, "edges": []}
@@ -431,13 +458,23 @@ class Tagesdashboard(BasePlugin):
                             f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
             except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
                 logger.exception("Katze konnte nicht gewählt werden")
+        # ---- Wahlkampf-Modus: Karte an Tagen mit Wahlkampftermin (und am Wahltag selbst) ----
+        wahl_cfg = wahlkampf.read_config(opt, flag, today) if mode == "normal" else None
+        if wahl_cfg:
+            card = self.wahl_card(params, wahl_cfg, today, weather, records)
+            if card:
+                params["wahl_card"], params["wahl_icon"] = card, WAHL_ICON.format(cls="lw-svg")
+
+        if mode == "urlaub":
+            self.urlaub_view(params, vacation, today, weather, dimensions, tz, now)
         if mode == "fest":
             self.fest_view(params, fest_now, now, tz, events, weather)
-        elif mode != "normal":
+        elif mode in ("night", "week"):
             self.special_view(params, mode, now, tz, events, weather, train_cfg, cal_error,
                               art=flag("nightArt"), night_end=ansichten.window_end(now, *night_win) if night_win else None,
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
-                              eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"))
+                              eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
+                              iss_pos=self.home_position(settings) if flag("issEnabled") else None)
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -495,10 +532,51 @@ class Tagesdashboard(BasePlugin):
         }
 
     # ==================================================================
+    # Urlaubsbild und Wahlkampf-Karte
+    # ==================================================================
+    def urlaub_view(self, params, vacation, today, weather, dimensions, tz, now):
+        records = weather["records"] if weather else []
+        w = weather["dwd_plugin"] if weather else None
+        wx_home = ansichten.day_summary(w, dwd, icons, records, today, "ur-ic") if w and records else None
+        wx_dest = None
+        pos = urlaub.geocode(vacation["dest"])
+        if pos and w:
+            dest_records = urlaub.fetch_records(pos, tz, now, dwd.parse_ts)
+            wx_dest = ansichten.day_summary(w, dwd, icons, dest_records, today, "ur-ic") if dest_records else None
+        W = 800 if dimensions[0] >= dimensions[1] else 480
+        H = round(W * dimensions[1] / dimensions[0])
+        params["urlaub"] = {"svg": urlaub.scene(W, H, vacation, today, wx_dest, wx_home)}
+
+    @staticmethod
+    def wahl_card(params, cfg, today, weather, records):
+        """Karte oben in der Terminspalte: am Wahltag und am Tag davor immer, sonst nur, wenn heute ein
+        Wahlkampftermin ansteht (dann mit Wetter, Dämmerung und gefühlter Temperatur)."""
+        cd = wahlkampf.countdown(today, cfg["day"], cfg["label"])
+        if not cd:
+            return None
+        if cd["n"] <= 1:
+            return {"top": cd["text"], "sub": "Wahllokale 8–18 Uhr" if cd["n"] == 0 else "Wahllokale morgen 8–18 Uhr",
+                    "sub2": "", "level": "ok", "badge_n": cd["badge"][0], "badge_t": cd["badge"][1]}
+        today_events = next((d["events"] for d in params.get("calendar") or [] if d.get("is_today")), [])
+        if not records:
+            return None
+        for it in today_events:
+            if it["all_day"] or not wahlkampf.is_campaign(it["title"], cfg["words"]):
+                continue
+            sunset = weather["sun_cache"](it["source"]["start"].date())[1]
+            wx_ = wahlkampf.weather_at(it["source"], records, sunset, dwd.feels_like)
+            if not wx_:
+                continue
+            return {"top": it["title"], "sub": f"{wx_['time']} · {wx_['rain']}",
+                    "sub2": " · ".join(x for x in (wx_["dark"], wx_["felt"]) if x),
+                    "level": wx_["level"], "badge_n": cd["badge"][0], "badge_t": cd["badge"][1]}
+        return None
+
+    # ==================================================================
     # Nachtbild und Wochenvorschau
     # ==================================================================
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
-                     moon_cat=False, meteors=False, eclipses=False, planets=False):
+                     moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -525,16 +603,37 @@ class Tagesdashboard(BasePlugin):
                 planet_dot = planet_info["kind"] if planeten.show_dot(planet_info, wx) else None
                 if planet_info:
                     logger.info("Planeten: %s%s", planet_info["text"], " (Punkt gezeichnet)" if planet_dot else "")
+                iss_line, iss_svg = "", None
+                end = night_end or now + timedelta(hours=7)
+                nxt = [p for p in iss.passes(now, *iss_pos) if iss.worth(p) and p["end"] > now] if iss_pos else []
+                if nxt and nxt[0]["start"] < end:
+                    p, txt = nxt[0], iss.describe(nxt[0])
+                    same = p["start"].date() == now.date()
+                    when = ("heute" if same else "morgen") + (" früh" if p["start"].hour < 12 else "")
+                    iss_line = (f"ISS {when} {txt['time']}: {txt['route']} · {txt['peak']} · {txt['mins']} · "
+                                f"{txt['bright']}")
+                    clear = (wx or {}).get("cloud", 100) < 60 and not (wx or {}).get("wet")
+                    iss_svg = iss.night_arc(480 if params["orientation"] == "portrait" else 800) if clear else None
                 params["night"]["art"] = {
                     "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
-                                           blood_moon=blood, planet=planet_dot),
+                                           blood_moon=blood, planet=planet_dot, extra=iss_svg),
+                    "iss": iss_line,
                     "weather": nachtgrafik.describe(wx),
                     "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
                     "meteors": meteor_info["text"] if meteor_info else "",
                     "eclipse": eclipse_info["text"] if eclipse_info else "",
                     "planet": planet_info["text"] if planet_info else "",
                 }
+                # Höchstens zwei Zusatzzeilen (mit drei überlappt der Text oben, quer geprüft).
+                # Rangfolge: Finsternis > ISS > Sternschnuppen > Planeten
+                art_ = params["night"]["art"]
+                kept = 0
+                for key in ("eclipse", "iss", "meteors", "planet"):
+                    if art_.get(key):
+                        kept += 1
+                        if kept > 2:
+                            art_[key] = ""
         else:
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,

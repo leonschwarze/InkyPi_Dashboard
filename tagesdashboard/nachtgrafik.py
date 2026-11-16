@@ -140,7 +140,7 @@ HILLS = ("M0,104 C20,86 40,70 60,68 L96,68 C104,70 112,76 120,72 C132,64 140,56 
 HOTEL = (66, 62, 24, 6)
 
 
-def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None):
+def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -208,6 +208,9 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
         for dx, dy in ((7, 0), (-7, 0), (0, 7), (0, -7)):
             out.append(f'<line x1="{px:.0f}" y1="{py:.0f}" x2="{px + dx:.0f}" y2="{py + dy:.0f}" '
                        f'stroke="{STAR}" stroke-width="1.3"/>')
+
+    if extra:  # z. B. ISS-Bahn (iss.night_arc)
+        out.append(extra)
 
     # Wolken (hell, werden auf dem Display fein gerastert)
     if cloud >= 45:

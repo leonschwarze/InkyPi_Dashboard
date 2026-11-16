@@ -1,7 +1,10 @@
 {% extends "plugin.html" %}
 
 {% block content %}
-{% if fest %}
+{% if urlaub %}
+<!-- ===================== Urlaubsbild (Abfahrtstafel) ===================== -->
+<div lang="de" class="ur {{ orientation }}">{{ urlaub.svg | safe }}</div>
+{% elif fest %}
 <!-- ===================== Festansicht (Heiligabend, Silvester/Neujahr) ===================== -->
 <div lang="de" class="fe {{ orientation }}">
   <div class="fe-art">{{ fest.svg | safe }}</div>
@@ -72,6 +75,7 @@
     {% if night.art.meteors %}<div class="nt-art-line">{{ night.art.meteors }}</div>{% endif %}
     {% if night.art.eclipse %}<div class="nt-art-line">{{ night.art.eclipse }}</div>{% endif %}
     {% if night.art.planet %}<div class="nt-art-line">{{ night.art.planet }}</div>{% endif %}
+    {% if night.art.iss %}<div class="nt-art-line">{{ night.art.iss }}</div>{% endif %}
     {{ night.art.svg | safe }}
   </section>
   {% endif %}
@@ -207,6 +211,18 @@
 
   <!-- ===================== Kalender ===================== -->
   <section class="cal">
+    {% if wahl_card %}
+    <!-- Wahlkampf-Modus: Karte am Wahlkampftag -->
+    <div class="xcard wahl wk-{{ wahl_card.level }}">
+      <div class="lw-icon">{{ wahl_icon | safe }}</div>
+      <div class="tr-main">
+        <div class="tr-top">{{ wahl_card.top }}</div>
+        <div class="tr-sub">{{ wahl_card.sub }}</div>
+        {% if wahl_card.sub2 %}<div class="tr-sub">{{ wahl_card.sub2 }}</div>{% endif %}
+      </div>
+      <div class="tr-badge wahl-badge"><b>{{ wahl_card.badge_n }}</b><span>{{ wahl_card.badge_t }}</span></div>
+    </div>
+    {% endif %}
     {% if train %}
     <div class="train st-{{ train.state }}{% if train.alerts %} has-alerts{% endif %}">
       <div class="tr-row">

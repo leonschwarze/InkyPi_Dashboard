@@ -590,3 +590,21 @@ body:has(> .container > .fe) > .container { width: 100vw; height: 100vh; }
 .portrait .head.has-status { flex-direction: row; flex-wrap: wrap; column-gap: calc(var(--u) * 2); }
 .portrait .has-status .h-date { flex: 0 0 100%; }
 .portrait .h-status { order: 3; }
+
+/* ---------------- Urlaubsbild und Wahlkampf-Karte (seit 1.23) ---------------- */
+.ur { width: 100%; height: 100%; line-height: 0; background: #fff; }
+.ur-svg { display: block; width: 100%; height: 100%; }
+body:has(> .container > .ur) { padding: 0 !important; margin: 0 !important; }
+body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
+.xcard {
+  flex: 0 0 auto; display: flex; align-items: center; gap: calc(var(--u) * 1);
+  margin-bottom: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 0.8);
+  border: calc(var(--u) * 0.3) solid currentColor; border-radius: calc(var(--u) * 1);
+}
+.xcard .tr-top { font-size: calc(var(--u) * 2.2); }
+.wahl.wk-achtung { border-color: #E3001B; }
+.wahl-badge { display: flex; flex-direction: column; align-items: center; line-height: 1.0;
+  background: #E3001B; color: #fff; padding: calc(var(--u) * 0.4) calc(var(--u) * 0.7); }
+.wahl-badge b { font-weight: 600; font-size: calc(var(--u) * 2.6); }
+.wahl-badge span { font-size: calc(var(--u) * 1.5); }

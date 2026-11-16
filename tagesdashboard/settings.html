@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="18" />
+<input type="hidden" name="cfgVersion" value="19" />
 
 <div class="st">
 
@@ -261,6 +261,7 @@
             <label class="st-check"><input type="checkbox" class="db-check" name="meteorEnabled" value="true" data-default="true" data-since="16"><span>Sternschnuppenströme <span class="st-note">als Text, wenn ein Strom aktiv ist; bei Quadrantiden, Perseiden und Geminiden zusätzlich als Strichlein am Himmel, nur im Maximum bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="eclipseEnabled" value="true" data-default="true" data-since="17"><span>Mondfinsternisse <span class="st-note">als Text, wenn eine Finsternis höchstens 45 Tage entfernt ist; bei einer totalen Mondfinsternis färbt sich der Mond in der Nacht selbst rötlich (Blutmond)</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="planetEnabled" value="true" data-default="true" data-since="18"><span>Helle Planeten <span class="st-note">als Text, wenn Venus, Jupiter, Mars oder Saturn ihren Höhepunkt erreichen (Opposition bzw. größte Helligkeit); zusätzlich als heller Punkt am Himmel, nur am Höhepunkt bei klarem Himmel</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="issEnabled" value="true" data-default="true" data-since="19"><span>ISS-Überflüge <span class="st-note">als Textzeile, wenn die Raumstation hell und hoch über Bonn fliegt (Dämmerung, mindestens 25° hoch); bei klarem Himmel zusätzlich ihre Bahn als gestrichelte Linie. Bahndaten von Celestrak, höchstens alle 2 Stunden</span></span></label>
         </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
     </div>
@@ -277,6 +278,41 @@
             <tbody id="bdRows"></tbody></table>
         <button type="button" class="bd-add" id="bdAdd">+ Geburtstag hinzufügen</button>
         <div class="st-hint">Mit Jahr kennt das Dashboard das Alter. Wer am 29. Februar Geburtstag hat, wird in anderen Jahren am 28. Februar gefeiert. Fehlende Namen, Jahre in der Zukunft und doppelte Einträge werden beim Speichern markiert.</div>
+    </div>
+</section>
+
+<section class="st-sec">
+    <h3 class="st-h">Urlaubsbild</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="urlaubEnabled" value="true" data-default="true" data-since="19"><span>Im Urlaub eine Abfahrtstafel zeigen <span class="st-note">statt des Dashboards: Reiseziel, Rückkehr, Resttage und das Wetter am Ziel und zu Hause</span></span></label>
+    <div class="st-sub" data-parent="urlaubEnabled">
+        <div class="st-field">
+            <label for="urlaubWords">Stichwörter im Terminnamen</label>
+            <input type="text" id="urlaubWords" name="urlaubWords" class="form-input" placeholder="Urlaub, Ferien, Reise" />
+        </div>
+        <div class="st-line"><span>Ab</span><input type="number" min="1" max="60" step="1" id="urlaubMinDays" name="urlaubMinDays" class="form-input st-num" /><span>Tagen Dauer</span></div>
+        <div class="st-hint">Gilt für ganztägige Termine, die heute laufen. Das Reiseziel steht im Ort des Termins oder im Titel („Urlaub in Lyon“). Das Wetter am Ziel braucht eine Internetabfrage; findet sie den Ort nicht, zeigt die Tafel nur das Wetter zu Hause.</div>
+    </div>
+</section>
+
+<section class="st-sec">
+    <h3 class="st-h">Wahlkampf</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="wahlEnabled" value="true" data-default="true" data-since="19"><span>Karte an Wahlkampftagen <span class="st-note">oben in der Terminliste: Zeit, Wetter, Dämmerung und der Countdown bis zur Wahl; am Wahltag und am Tag davor immer</span></span></label>
+    <div class="st-sub" data-parent="wahlEnabled">
+        <div class="st-line">
+            <span>Wahl</span>
+            <select id="wahlArt" name="wahlArt" class="form-input st-select">
+                <option value="landtag">Landtagswahl</option>
+                <option value="bundestag">Bundestagswahl</option>
+                <option value="europa">Europawahl</option>
+                <option value="kommunal">Kommunalwahl</option>
+            </select>
+        </div>
+        <div class="st-line"><span>Wahltag</span><input type="date" id="wahlTag" name="wahlTag" class="form-input st-time" /></div>
+        <div class="st-field">
+            <label for="wahlWords">Stichwörter für Wahlkampftermine</label>
+            <input type="text" id="wahlWords" name="wahlWords" class="form-input" placeholder="Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion" />
+        </div>
+        <div class="st-hint">Ohne Wahltag gilt bei der Landtagswahl der 25.04.2027 (NRW). Für alle anderen Wahlen bitte das Datum eintragen, sonst bleibt die Karte aus. Nach dem Wahltag verschwindet sie von selbst.</div>
     </div>
 </section>
 
@@ -416,7 +452,9 @@
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml',
         newsFrUrl: 'https://www.francetvinfo.fr/titres.rss',
         airLevel: '3', airRadius: '3', airStation: 'DENW062',
-        pollenLevel: '1' };
+        pollenLevel: '1',
+        urlaubWords: 'Urlaub, Ferien, Reise', urlaubMinDays: '2',
+        wahlArt: 'landtag', wahlWords: 'Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion' };
     const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 
@@ -598,7 +636,7 @@
         // Filter darf bewusst leer sein; nur ohne gespeicherten Wert den Standard eintragen
         document.getElementById('newsBonnFilter').value = ('newsBonnFilter' in saved) ? saved.newsBonnFilter : '/bonn/';
         ['latitude', 'longitude', 'customTitle', 'uvCity', 'nextcloudUrl', 'username', 'passwordKey', 'calendars',
-         'tripStart', 'tripPlaces', 'pollenRegion'].forEach(id => {
+         'tripStart', 'tripPlaces', 'pollenRegion', 'wahlTag'].forEach(id => {
             document.getElementById(id).value = saved[id] ?? '';
         });
         Object.entries(DEFAULTS).forEach(([id, def]) => { document.getElementById(id).value = saved[id] || def; });

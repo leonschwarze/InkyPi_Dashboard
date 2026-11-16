@@ -1,12 +1,22 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.22
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.23
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Neu: Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche und Geburtstag. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Neu: ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.23: Urlaubsbild, Wahlkampf-Karte, ISS-Überflug
+
+![Urlaubsbild](docs/urlaub_800x480.png)
+
+- **Urlaubsbild (Abfahrtstafel):** Steht ein ganztägiger Termin mit „Urlaub“, „Reise“, „Ferien“ oder „Städtetrip“ im Kalender (mindestens 2 Tage), zeigt das Dashboard solange eine Abfahrtstafel: Reiseziel (aus „Urlaub in Lyon“), Rückreisetag, „Noch 5 Tage“ und darunter das Wetter am Ziel neben dem Wetter zu Hause. Das Zielwetter ist eine Zugabe: Findet der Dienst keinen Ort, fehlt nur die Spalte.
+- **Wahlkampf-Karte:** Eine Karte über den Terminen, nur an Tagen mit einem Wahlkampftermin („Haustür“, „Infostand“, „Wahlkampf“, „Plakat“, „Verteilaktion“), am Wahltag und am Tag davor; mit Tagen bis zur Wahl. In den Einstellungen wählst du die Wahlart (Landtags-, Bundestags-, Europa-, Kommunalwahl) und den Wahltermin. Für die Landtagswahl NRW (25.4.2027) ist der Termin schon hinterlegt, für die anderen Wahlarten musst du ihn eintragen, sonst bleibt die Karte still.
+- **ISS-Überflug (nur Nachtbild):** Eine Zeile wie „ISS morgen früh 5:51: von Südwest nach Nordost · hoch im Südosten · 6 Min · hell“, bei klarem Himmel zusätzlich die Bahn als gestrichelte Linie mit kleiner Station. Gezeigt werden nur auffällige Überflüge (mindestens 25° hoch, hell). Die Bahndaten kommen von Celestrak (höchstens alle 2 Stunden), gerechnet wird auf dem Pi. Vergleiche die Zeiten einmal mit Heavens-Above.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 19). Nach dem Update einmal speichern; Urlaubsbild, Wahlkampf-Karte und ISS sind sofort an. Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen (er enthält jetzt `lib/sgp4/` für die Bahnberechnung) und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.22: „4° kälter als gestern“
 
@@ -213,5 +223,8 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
 - `gestern_800x480.png` – Schnee, gefühlt bis −8° · 4° kälter als gestern (1.22)
 - `gestern_480x800.png` – hochkant, abends: morgen 5° kälter als heute (1.22)
+- `urlaub_800x480.png`, `urlaub_480x800.png` – Urlaubsbild: Abfahrtstafel mit Zielwetter (1.23)
+- `wahlkampf_800x480.png`, `wahlkampf_480x800.png` – Wahlkampf-Karte am Tag mit Wahlkampftermin (1.23)
+- `iss_800x480.png`, `iss_480x800.png` – Nachtbild mit ISS-Überflug (erfundene Bahndaten, 1.23)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.
