@@ -156,13 +156,15 @@ def geocode(dest, session=None):
     return pos
 
 
-def fetch_records(pos, tz, now, parse_ts, session=None):
-    """Stündliche Vorhersage für heute und morgen am Ziel (Liste von Datensätzen mit `dt`) oder []."""
+def fetch_records(pos, tz, now, parse_ts, session=None, source="Reiseziel"):
+    """Stündliche Vorhersage für heute und morgen am Ziel (Liste von Datensätzen mit `dt`) oder [].
+
+    `source` = Name in der Statusanzeige (das Wetter am Zielort nutzt dieselbe Abfrage, seit 1.30)."""
     key = (round(pos[0], 2), round(pos[1], 2))
     hit = _wx.get(key)
     if hit and _time.monotonic() - hit[0] < WX_CACHE_MIN * 60:
         return hit[1]
-    status.use("Reiseziel")
+    status.use(source)
     records = []
     try:
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -180,10 +182,10 @@ def fetch_records(pos, tz, now, parse_ts, session=None):
             except (KeyError, ValueError):
                 continue
         records.sort(key=lambda x: x["dt"])
-        status.ok("Reiseziel")
+        status.ok(source)
     except Exception as exc:
-        logger.warning("Wetter am Reiseziel nicht verfügbar: %s", exc)
-        status.fail("Reiseziel", exc)
+        logger.warning("Wetter am %s nicht verfügbar: %s", source, exc)
+        status.fail(source, exc)
     _wx[key] = (_time.monotonic(), records)
     return records
 

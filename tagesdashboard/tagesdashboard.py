@@ -48,11 +48,12 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
-                   pegel, pizustand, advent)
+                   pegel, pizustand, advent, zielort)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
-                                        status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent)
+                                        status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
+                                        zielort)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -171,6 +172,8 @@ DEFAULTS = {
     # Freie Abende in der Wochenvorschau, Adventskranz im Kopf (seit cfgVersion 22)
     "freeEnabled": "true", "freeFrom": "18:00", "freeTo": "22:00",
     "adventEnabled": "true",
+    # Wetter am Zielort: Zeile an auswärtigen Terminen (seit cfgVersion 23)
+    "zielEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -195,7 +198,8 @@ SINCE_VERSION.update({"urlaubEnabled": 19, "wahlEnabled": 19, "issEnabled": 19})
 SINCE_VERSION["liveEnabled"] = 20
 SINCE_VERSION.update({"pegelEnabled": 21, "piEnabled": 21})
 SINCE_VERSION.update({"freeEnabled": 22, "adventEnabled": 22})
-CFG_VERSION = 22  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["zielEnabled"] = 23
+CFG_VERSION = 23  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -444,6 +448,18 @@ class Tagesdashboard(BasePlugin):
                 params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
                                            uv=weather.get("uv"))
 
+        # ---- Wetter am Zielort (seit 1.30): Termine heute und morgen, die mindestens 30 km entfernt
+        # liegen, bekommen eine Zeile mit dem Wetter dort (Variante A „am Termin“) ----
+        if flag("zielEnabled") and mode == "normal" and records and params["calendar"]:
+            try:
+                away = zielort.find(params["calendar"], self.home_position(settings), tz, now,
+                                    today + timedelta(days=1), weather["dwd_plugin"], dwd, icons, dwd.parse_ts,
+                                    places=anfahrt.parse_places(opt("tripPlaces")))
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                away = []
+                logger.exception("Zielort konnte nicht bestimmt werden")
+            for it in away:
+                zielort.annotate(it)
         if laundry_win and records and waesche.in_window(now, *laundry_win):
             params["laundry"] = waesche.check(records, now, covered=flag("laundryCovered"))
         if news_now:

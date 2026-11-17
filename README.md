@@ -1,12 +1,27 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.29
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.30
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. Neu: In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Neu: Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.30: Wetter am Zielort
+
+![Wetter am Zielort](docs/zielort_800x480.png)
+
+- Liegt ein Termin **mindestens 30 km** vom Wetter-Ort entfernt (Düsseldorf, Aachen; Köln zählt noch als zu Hause), steht unter dem Termin eine Zeile mit dem Wetter dort: „**Düsseldorf 10° · Regen ab 14 Uhr**“ mit kleinem Wettersymbol. Gilt für Termine von **heute und morgen**.
+- Ausgewertet wird die **Dauer des Termins**: Temperatur (bei großer Spanne „6–9°“), Regen ab 50 % Wahrscheinlichkeit oder messbarem Niederschlag – „Regen ab 14 Uhr“, wenn er erst während des Termins beginnt, sonst „Regen 80 %“; bleibt es trocken, die Bewölkung („Heiter“, „Stark bewölkt“). Läuft der Termin schon, zählt nur noch der Rest. Abends steht der Mond statt der Sonne.
+- Der Regenhinweis am Termin („85 % Regen“), der bisher immer für Bonn galt, entfällt bei solchen Terminen – der Regen am Ziel steht ja in der eigenen Zeile. Der Ort wird auf seinen ersten Teil gekürzt („Landtag NRW“).
+- **Wie der Ort gefunden wird:** aus dem Ortsfeld des Termins – „Platz des Landtags 1, 40221 Düsseldorf“, „Rathaus, Eschweiler“, „Köln Hbf“. Straßen, Hausnummern und Links werden übersprungen; es zählen nur echte Orte (in Deutschland jeder, im Ausland nur Großstädte), damit z. B. „Post Tower“ nicht als Städtchen in Texas gilt. **Kurznamen** wie „Landtag“ kennt das Dashboard über „**Eigene Orte**“ bei der Anfahrt („Landtag = 51.2259, 6.7730“) – das gilt auch, wenn die Anfahrt selbst aus ist.
+- Die **Kleidungsempfehlung** bleibt beim Wetter-Ort.
+- Daten: Geokodierung von Open-Meteo und Bright Sky am Zielort (wie beim Urlaubsbild), ohne Schlüssel; Orte werden gemerkt, das Wetter eine Stunde lang. Fällt der Dienst aus, steht „● Zielort“ in der Statusanzeige und die Zeile fehlt.
+- Schalter „Wetter am Zielort“ unter „Termine“, standardmäßig **an**.
+- **Behoben (seit 1.16):** Kam im Querformat eine siebte Kachel dazu (Pollenflug), verschwand die Temperaturkurve, und die Stundenzahlen wurden unten abgeschnitten. Jetzt fällt in diesem Fall die Symbolzeile über der Kurve weg (wie beim Wetter-Plugin), wenn es noch enger ist, wird auch die Regenzeile niedriger.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion 23); der neue Schalter ist von selbst an. Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen, `sudo systemctl restart inkypi.service` und die Einstellungen einmal speichern. Prüfen: `journalctl -u inkypi.service | grep Zielort`.
 
 ## Neu in 1.29: Adventskranz, freie Abende
 
@@ -304,5 +319,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `pi_800x480.png`, `pi_480x800.png` – Wochenvorschau mit dem Zustand des Pi: Kalender zweimal ausgefallen (1.28; seit 1.29 mit freien Abenden)
 - `advent_800x480.png`, `advent_480x800.png` – 3. Advent: Kranz mit drei brennenden Kerzen im Kopf (1.29)
 - `abende_800x480.png`, `abende_480x800.png` – Wochenvorschau am 1. Advent: Kranz und „Freie Abende: Di, Sa“ (1.29)
+- `zielort_800x480.png` – Ausschuss im Landtag Düsseldorf: „Düsseldorf 10° · Regen ab 14 Uhr“, morgen Sprechstunde in Eschweiler (1.30)
+- `zielort_480x800.png` – hochkant, während des Termins: „Düsseldorf 9° · Regen 80 %“ (1.30)
 
 Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.

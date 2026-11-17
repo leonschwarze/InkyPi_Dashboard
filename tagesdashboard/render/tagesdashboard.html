@@ -375,6 +375,8 @@
             {% if ev.rain %}{% set _ = sub.append(ev.rain) %}{% endif %}
             {% if ev.now and ev.until %}{% set _ = sub.append(ev.until) %}{% endif %}
             {% if sub %}<div class="ev-sub">{{ sub | join(" · ") }}</div>{% endif %}
+            {# Wetter am Zielort (seit 1.30): Termin ab 30 km Entfernung, heute oder morgen #}
+            {% if ev.away_line %}<div class="ev-away">{{ ev.away.icon | safe }}<span>{{ ev.away_line }}</span></div>{% endif %}
           </div>
         </div>
         {% endfor %}
@@ -630,7 +632,25 @@
     adv.style.display = 'none';
     if (cuts() >= withAdv) { adv.style.display = ''; cuts(); }
   }
+  // Tageskurve (seit 1.30): Quer mit einer siebten, breiten Kachel (Pollenflug, Fehler seit 1.16)
+  // blieb für die Kurve selbst 0 px Höhe, und die Stundenzahlen ragten aus der Spalte. Stufe 1
+  // (g-tight): Symbolzeile und Werte an der Kurve weg. Stufe 2 (g-tighter, z. B. zusätzlich mit
+  // Unwetterwarnung): Regenzeile niedriger. Gemessen wird erst ohne beide Stufen.
+  function fitGraph(g) {
+    g.classList.remove('g-tight', 'g-tighter');
+    const icons = g.querySelector('.g-icons'), plot = g.querySelector('.g-plot');
+    const xs = g.querySelector('.g-x'), col = g.closest('.wx');
+    if (!icons || !plot || !xs || !col) return;
+    const u = icons.getBoundingClientRect().height / 2.8;
+    if (!(u > 0)) return;
+    const bad = () => plot.getBoundingClientRect().height < u
+      || xs.getBoundingClientRect().bottom > col.getBoundingClientRect().bottom + 0.5;
+    if (!bad()) return;
+    g.classList.add('g-tight');
+    if (bad()) g.classList.add('g-tighter');
+  }
   function fitAll() {
+    document.querySelectorAll('.graph').forEach(fitGraph);
     fitQr(false);
     document.querySelectorAll('.db > .head').forEach(fitHead);
     document.querySelectorAll('.wear-why.has-cmp').forEach(fitWhy);

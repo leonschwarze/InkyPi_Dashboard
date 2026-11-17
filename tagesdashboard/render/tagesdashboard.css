@@ -664,3 +664,24 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .wk-cut .wk-sum { flex: 0 1 auto; min-width: 0; overflow: hidden; }
 .wk-cut .wk-part { display: block; overflow: hidden; text-overflow: ellipsis; }
 .portrait .wk-cut .wk-sum { flex: 1 1 0; }
+
+/* ---------------- Wetter am Zielort (seit 1.30) ----------------
+ * Eigene Zeile unter dem Termin: kleines Wettersymbol + „Düsseldorf 10° · Regen ab 14 Uhr“. Gleiche
+ * Schriftgröße wie die Ortszeile; das Symbol ragt oben und unten etwas in den Zeilenabstand, damit die
+ * Zeile nicht höher wird als eine Textzeile. */
+.ev-away { display: flex; align-items: center; gap: calc(var(--u) * 0.5); font-size: calc(var(--u) * 1.7);
+  white-space: nowrap; }
+.ev-away span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ev-away .zo-icon { width: calc(var(--u) * 2.6); height: calc(var(--u) * 2.6); flex: 0 0 auto; margin: calc(var(--u) * -0.3) 0; }
+
+/* Siebte, breite Kachel (Pollenflug) im Querformat: Die Tageskurve hat feste Zeilen (Kopf, Symbole,
+ * Regen, Stunden); mit der zusätzlichen Kachelreihe blieb für die Kurve selbst 0 px Höhe und die
+ * Stundenzahlen wurden abgeschnitten (Fehler seit 1.16, behoben in 1.30). fitGraph() im Template misst
+ * und setzt Stufe 1 (wie .dense/.tight im Wetter-Plugin: Symbolzeile weg; die Werte an der nun flachen
+ * Kurve stießen an den Kopf und fallen auch weg – Höchst-/Tiefstwert stehen oben) und, wenn die
+ * Stunden dann noch überstehen, Stufe 2 (Regenzeile niedriger). 600×448 hat genug Platz. */
+.graph.g-tight { min-height: 0; }  /* 11 u Mindesthöhe schoben die Stunden aus der Spalte */
+.graph.g-tight .g-icons { display: none; }
+.graph.g-tight .now-line { top: 0; }
+.graph.g-tight .t-label { display: none; }
+.graph.g-tighter .g-rainrow { flex-basis: calc(var(--u) * 2.6); }

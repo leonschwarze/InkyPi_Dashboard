@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="22" />
+<input type="hidden" name="cfgVersion" value="23" />
 
 <div class="st">
 
@@ -147,6 +147,7 @@
         <span class="st-note">was nicht passt, wird gekürzt</span>
     </div>
     <label class="st-check"><input type="checkbox" class="db-check" name="rainOnEvents" value="true" data-default="true"><span>Regenrisiko an Terminen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="zielEnabled" value="true" data-default="true" data-since="23"><span>Wetter am Zielort <span class="st-note">bei Terminen ab 30 km Entfernung (heute und morgen) eine Zeile mit dem Wetter dort; Kurznamen wie „Landtag“ über „Eigene Orte“ bei der Anfahrt</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></label>
