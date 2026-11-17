@@ -1,12 +1,24 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.30
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.31
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Neu: Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Neu: Das **Nachtbild reicht bis an den Rand** des Displays.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.31: Nachtbild bis zum Rand
+
+![Nachtbild bis zum Rand](docs/katze_nacht_800x480.png)
+
+- Die Bonner Silhouette im Nachtbild reicht jetzt **links, rechts und unten bis an den Rand** des Displays – ohne weißen Rahmen, wie Festbild und Urlaubsbild. Das Band ist dabei etwas höher geworden, Bonn wird etwas größer gezeichnet. Text und Termine darüber stehen wie bisher.
+- Die Szene wird für jedes Seitenverhältnis passend breit gezeichnet, nicht gestreckt (quer und hochkant).
+- Am linken Rand hält der Mond mit Katze etwas Abstand, damit sie nicht an der Kante klebt.
+- Behoben: Am Höhepunkt eines Planeten konnte der Punkt der Venus (Morgen-/Abendstern) hinter dem Mond verschwinden. Er weicht ihm jetzt aus.
+- Kein Schalter, keine neue Einstellung. Mit ausgeschalteter Silhouette bleibt das Nachtbild, wie es war (mit Rahmen).
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion bleibt 23). Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.30: Wetter am Zielort
 
@@ -303,7 +315,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `strecke_800x480.png`, `strecke_480x800.png` – Zug pünktlich, darunter Signalstörung auf der Strecke und Baustelle (Beispielmeldungen)
 - `katze_800x480.png` – Katze bei Regen unter dem Schirm auf der Kopfzeile
 - `katze_480x800.png` – hochkant, bei Frost mit Schal
-- `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn
+- `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn, Band bis zum Rand (1.31)
 - `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
 - `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
 - `katze_posen.png` – alle 26 Posen (groß und in Displaygröße)

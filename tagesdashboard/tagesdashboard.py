@@ -543,7 +543,8 @@ class Tagesdashboard(BasePlugin):
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
                               eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
                               iss_pos=self.home_position(settings) if flag("issEnabled") else None,
-                              river=river_info, pi=flag("piEnabled"), free_win=self.free_window(opt, flag))
+                              river=river_info, pi=flag("piEnabled"), free_win=self.free_window(opt, flag),
+                              dims=dimensions)
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -673,7 +674,7 @@ class Tagesdashboard(BasePlugin):
 
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
-                     pi=False, free_win=None):
+                     pi=False, free_win=None, dims=(800, 480)):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -703,6 +704,7 @@ class Tagesdashboard(BasePlugin):
                 felis = ostereier.felis_night(d, wx)  # Osterei (seit 1.24): Sternbild Katze
                 if felis:
                     logger.info("Osterei: Sternbild Katze")
+                art_w = nachtgrafik.band_width(*dims)  # randlos bis an den Displayrand (seit 1.31)
                 iss_line, iss_svg = "", None
                 end = night_end or now + timedelta(hours=7)
                 nxt = [p for p in iss.passes(now, *iss_pos) if iss.worth(p) and p["end"] > now] if iss_pos else []
@@ -713,9 +715,9 @@ class Tagesdashboard(BasePlugin):
                     iss_line = (f"ISS {when} {txt['time']}: {txt['route']} · {txt['peak']} · {txt['mins']} · "
                                 f"{txt['bright']}")
                     clear = (wx or {}).get("cloud", 100) < 60 and not (wx or {}).get("wet")
-                    iss_svg = iss.night_arc(480 if params["orientation"] == "portrait" else 800) if clear else None
+                    iss_svg = iss.night_arc(art_w) if clear else None
                 params["night"]["art"] = {
-                    "svg": nachtgrafik.svg(now, wx, width=480 if params["orientation"] == "portrait" else 800,
+                    "svg": nachtgrafik.svg(now, wx, width=art_w,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
                                            blood_moon=blood, planet=planet_dot, extra=iss_svg,
                                            felis=ostereier.felis_svg if felis else None, pegel=river),

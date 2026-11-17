@@ -26,6 +26,34 @@ from datetime import date, datetime, timedelta, timezone
 SKY, STAR, INK, WHITE, CLOUD = "#0B3D91", "#FFE500", "#000000", "#FFFFFF", "#BFDCFF"
 BLOOD = "#E3001B"  # Mondfarbe bei einer totalen Mondfinsternis (seit 1.18), dieselbe Rottönung wie überall sonst
 WATER, H = 104, 130
+# Randloses Nachtbild (seit 1.31): Das Band reicht links, rechts und unten bis an den Displayrand und ist
+# BAND_U × --u hoch (quer, hochkant). Damit es die ganze Breite füllt, ohne gestreckt zu werden, wird die
+# Szene so breit gezeichnet, wie das Seitenverhältnis verlangt (band_width). --u wie im CSS von .nt.
+BAND_U = (17.2, 19.2)
+
+
+def scale(W):
+    """Maßstab von Stadt und Bergen für eine Szene der Breite W (1 ab 630, hochkant kleiner)."""
+    return min(1.0, (W - 230) / 400, (W - 54) / 670)
+
+
+FELIS_K = 0.85
+
+
+def felis_x(W):
+    """Linke Kante des Sternbilds Katze (Osterei seit 1.24): ganz rechts über dem Siebengebirge, rechts vom
+    höchsten Mondplatz (hills_x + 54) und – seit 1.31 auch bei schmalen Szenen wie 467 – rechts vom Ende der
+    ISS-Bahn (0,88 W)."""
+    hills_x = W - 300 * scale(W)
+    return max(hills_x + 54, W - 38 * FELIS_K - 20, W * 0.88 + 5)
+
+
+def band_width(wpx, hpx):
+    """Breite der Szene in SVG-Einheiten (Höhe immer H) für ein Display von wpx × hpx Pixeln.
+    800×480, 600×448, 1600×1200 → 756; 480×800 → 467; 448×600 → 516."""
+    portrait = hpx > wpx
+    u = (min(1.45 * wpx, 0.98 * hpx) if portrait else min(wpx, 1.667 * hpx)) / 100
+    return round(H * wpx / (BAND_U[portrait] * u))
 SYNODIC = 29.530588853
 NEW_MOON_REF = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
 
@@ -227,7 +255,10 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     pegel: Ergebnis von pegel.load ({"cm", "label", "trend"}) oder None (seit 1.28); dann steht das Wasser so
     hoch wie am Pegel Bonn, mit Pegellatte. None → Rhein wie bisher (pixelgleich)."""
     W = width
-    s = min(1.0, (W - 230) / 400)  # Stadt im Hochformat etwas kleiner
+    # Stadt im Hochformat etwas kleiner. Seit 1.31 kommen auch Breiten zwischen 480 und 800 vor (band_width,
+    # z. B. 516 bei 448×600); dort wüchse die Stadt schneller als die Szene und die Kennedybrücke verschwände.
+    # Deshalb höchstens so groß, dass die Brücke (W − 670 s − 4) mindestens 50 breit bleibt.
+    s = scale(W)
     rnd = random.Random(seed if seed is not None else now.date().toordinal())
     cloud = (wx or {}).get("cloud") or 0
     wet, snowy, fog = (wx or {}).get("wet"), (wx or {}).get("snowy"), (wx or {}).get("fog")
@@ -254,9 +285,11 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     # Mond: Lage wechselt täglich, nie hinter dem Post Tower
     city_w = 400 * s
     hills_x = W - 300 * s
-    slots = [x for x in range(int(city_w) + 20, int(hills_x) + 40, 12)] + [x for x in range(20, int(250 * s), 12)]
+    # Links beginnen die Plätze seit 1.31 (randloses Bild) etwas weiter innen (26 statt 20, mit Katze 32 statt 26):
+    # Vorher hielt InkyPis Rahmen den Mond von der Displaykante fern, jetzt läge die Katze sonst ~5 px davor.
+    slots = [x for x in range(int(city_w) + 20, int(hills_x) + 40, 12)] + [x for x in range(26, int(250 * s), 12)]
     if cat:  # Mond sitzt tiefer: nur über niedriger Bebauung (Brücke, Häuser links), nie hinter Münster/Langem Eugen
-        slots = [x for x in range(int(city_w) + 26, int(hills_x) + 34, 12)] + [x for x in range(26, int(50 * s), 12)]
+        slots = [x for x in range(int(city_w) + 26, int(hills_x) + 34, 12)] + [x for x in range(32, int(50 * s) + 6, 12)]
     mx = slots[(now.date().toordinal() * 7) % len(slots)] if slots else W // 2
     if not (wet and cloud >= 85):
         # Mit Katze etwas größer und tiefer, damit sie oben auf dem Mond Platz hat
@@ -270,11 +303,14 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     if planet and not (wet and cloud >= 85):
         low_slots = ([x for x in range(int(city_w) + 26, int(hills_x) + 34, 12)] +
                      [x for x in range(26, int(50 * s), 12)])
+        # Nie hinter dem Mond (die Zonen teilen sich die Plätze mit ihm; seit 1.31 aufgefallen, als der Mond in
+        # der breiteren Szene auf den linken Platz fiel und die Venus am 25.11. hinter dem Vollmond verschwand)
+        away = [x for x in low_slots if abs(x - mx) > (18 if cat else 14) + 16] or low_slots
         if planet == "Morgenstern":
-            zone = [x for x in low_slots if x < city_w] or low_slots
+            zone = [x for x in away if x < city_w] or away
             px, py = rnd.choice(zone), rnd.uniform(48, 60)
         elif planet == "Abendstern":
-            zone = [x for x in low_slots if x >= city_w] or low_slots
+            zone = [x for x in away if x >= city_w] or away
             px, py = rnd.choice(zone), rnd.uniform(48, 60)
         else:  # Opposition: die ganze Nacht sichtbar, hoch über dem Siebengebirge (niedriger als die
                # Stadt, sonst verschwindet der Punkt hinter Münster, Langem Eugen oder Post Tower) und
@@ -290,8 +326,7 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     # Platz hills_x + 40, Radius ≤ 18) und rechts vom Ende der ISS-Bahn (0,88 W). In der Nacht einer Opposition
     # steht dort der Planet, dann bleibt das Sternbild weg. felis = Funktion (x, y, k) → SVG
     if felis and planet != "Opposition":
-        k = 0.85
-        out.append(felis(max(hills_x + 54, W - 38 * k - 20), 4, k))
+        out.append(felis(felis_x(W), 4, FELIS_K))
 
     if extra:  # z. B. ISS-Bahn (iss.night_arc)
         out.append(extra)

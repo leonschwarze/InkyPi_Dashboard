@@ -30,7 +30,8 @@
 </div>
 {% elif night %}
 <!-- ===================== Nachtbild ===================== -->
-<div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}">
+<div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}"{% if night.art %}
+     style="--et: calc(1.5vw + {{ plugin_settings.topMargin or plugin_settings.margin or 5 }}px); --el: calc(1.5vw + {{ plugin_settings.leftMargin or plugin_settings.margin or 5 }}px); --er: calc(1.5vw + {{ plugin_settings.rightMargin or plugin_settings.margin or 5 }}px);"{% endif %}>
   <section class="nt-day">
     <div class="nt-wd">{{ night.weekday }}</div>
     <div class="nt-date">{{ night.date }} · KW {{ night.kw }}</div>
