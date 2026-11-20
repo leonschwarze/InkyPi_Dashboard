@@ -1,12 +1,21 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.31
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.32
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Neu: Das **Nachtbild reicht bis an den Rand** des Displays.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Neu: Ohne Zug zeichnet das Dashboard wieder im gewohnten Takt neu statt alle 5 Minuten.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.32: Takt ohne Zug behoben
+
+- Behoben: War der Zug **ausgeschaltet** oder **kein Wochentag** angehakt, zeichnete das Dashboard bei einem Wechselintervall von 5 Minuten (wie für den Zug empfohlen) **den ganzen Tag alle 5 Minuten** neu – „Sonst alle … min“ galt nur mit Zug. Jetzt gilt die eingestellte Aktualisierung (Standard alle 15 min) immer außerhalb eines aktiven Zugfensters; im Zugfenster bleibt es bei 5 Minuten.
+- Das Dashboard kennt dafür InkyPis Wechselintervall und verlängert es nie: Bei 15 oder 20 Minuten Wechselintervall wird wie bisher bei jedem Wechsel neu gezeichnet. Nachrichten, Wäsche, Nachtbild usw. erscheinen weiter pünktlich beim ersten Wechsel nach ihrer Uhrzeit.
+- „Jetzt aktualisieren“ zeichnet wie bisher immer sofort neu.
+- Die Einstellung steht deshalb nicht mehr unter „Zug“, sondern in einem eigenen Abschnitt **„Aktualisierung“** am Ende der Einstellungsseite: „Alle … min neu zeichnen“. Sie lässt sich jetzt auch bei ausgeschaltetem Zug ändern. Dein gespeicherter Wert bleibt erhalten.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion bleibt 23). Der Python-Teil hat sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.31: Nachtbild bis zum Rand
 
@@ -263,7 +272,7 @@ Keine neue Einstellung (cfgVersion bleibt 19). Der Python-Teil hat sich geänder
 
 Die Einstellungsseite ist neu gegliedert, das Bild auf dem Display bleibt gleich.
 
-- Abschnitte mit Überschrift in der Reihenfolge des Tages: Wetter-Ort, Nextcloud, Wetter, Termine, dann Nachrichten am Morgen, Zug, Anfahrt, Wäsche, Wochenvorschau, Nachtbild, Festtage und Geburtstage.
+- Abschnitte mit Überschrift in der Reihenfolge des Tages: Wetter-Ort, Nextcloud, Wetter, Termine, dann Nachrichten am Morgen, Zug, Anfahrt, Wäsche, Wochenvorschau, Nachtbild, Festtage und Geburtstage (seit 1.32 am Ende zusätzlich „Aktualisierung“).
 - Jede Funktion hat einen Hauptschalter; ihre Einstellungen stehen eingerückt darunter und werden blass, wenn sie aus ist. Die Werte bleiben dabei gespeichert.
 - Längere Erklärungen (wie Wäsche und Anfahrt entscheiden, Takt und API-Schlüssel beim Zug) stehen hinter „So wird entschieden“ bzw. „Aktualisierung und API-Schlüssel“.
 - Wochentage des Zuges als Schalter, Geburtstage auf dem Handy als Karten statt als zu breite Tabelle.

@@ -81,7 +81,7 @@ def today(now):
 
 
 def boundaries(now, days=2):
-    """Grenzen für den Bild-Cache (nur mit Zug aktiv): Mitternacht und am 11.11. um 11:11."""
+    """Grenzen für den Bild-Cache (außerhalb des Zugfensters): Mitternacht und am 11.11. um 11:11."""
     tz = now.tzinfo
     out = []
     for k in range(days):

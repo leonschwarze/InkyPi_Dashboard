@@ -41,7 +41,7 @@ def candles(d):
 
 
 def boundaries(now, days=2):
-    """Mitternacht der nächsten Tage, falls sich dort der Kranz ändert (für den Bild-Cache mit Zug)."""
+    """Mitternacht der nächsten Tage, falls sich dort der Kranz ändert (für den Bild-Cache außerhalb des Zugfensters)."""
     out = []
     for i in range(1, days + 1):
         d = now.date() + timedelta(days=i)

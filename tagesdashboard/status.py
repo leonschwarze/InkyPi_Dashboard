@@ -101,7 +101,7 @@ def report(now):
 
 
 def boundaries(now):
-    """Zeitpunkte, an denen ein kurzer Hinweis zum langen wird (für den Bild-Cache mit Zug)."""
+    """Zeitpunkte, an denen ein kurzer Hinweis zum langen wird (für den Bild-Cache außerhalb des Zugfensters)."""
     return [st["since"] + LONG_AFTER for src, st in _state.items()
             if src in _used and st["since"] + LONG_AFTER > now]
 

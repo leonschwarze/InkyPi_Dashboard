@@ -103,7 +103,7 @@ def card(events, words, url, now):
 
 
 def boundaries(events, words, now):
-    """Beginn und Ende der heutigen Termine mit Stichwort (für den Bild-Cache, nur mit Zug aktiv)."""
+    """Beginn und Ende der heutigen Termine mit Stichwort (für den Bild-Cache außerhalb des Zugfensters)."""
     out = []
     for ev in events or []:
         if ev.get("all_day") or not matches(ev.get("title"), words):

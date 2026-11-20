@@ -207,6 +207,32 @@ _NIGHT_CACHE = {}
 
 # Außerhalb des Zug-Zeitfensters wird ein fertiges Bild wiederverwendet (siehe generate_image)
 _IMAGE_CACHE = {}
+EDGE_TOLERANCE = timedelta(minutes=1)
+
+
+def cycle_seconds(device_config):
+    """InkyPis Playlist-Takt in Sekunden (Einstellungen → Plugin Cycle Interval), sonst None."""
+    try:
+        value = int(device_config.get_config("plugin_cycle_interval_seconds", default=None))
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def cache_fresh(now, quiet_until, edge, takt):
+    """Darf das gemerkte Bild jetzt noch einmal ausgeliefert werden?
+
+    edge: nächste Fenstergrenze (Nachrichten, Zug, Wäsche …). Ab da muss ein neues Bild her;
+    1 Minute Toleranz, damit ein Aufruf knapp davor nicht bis zum nächsten Takt wartet.
+    quiet_until: Ende von „Sonst alle … min“. InkyPi fragt nur im eigenen Takt; neu gezeichnet
+    wird beim Aufruf, der am nächsten an quiet_until liegt (ab einem halben Takt davor). So wird
+    aus 5-min-Takt + 15 min Ruhe alle 15 min, und ein Takt von 15 oder 20 min bleibt, wie er ist
+    (der Fehler aus 1.3 – 15-min-Takt wurde zu 30 min – kann nicht wiederkommen).
+    """
+    if edge and now >= edge - EDGE_TOLERANCE:
+        return False
+    slack = max(EDGE_TOLERANCE, timedelta(seconds=takt / 2)) if takt else EDGE_TOLERANCE
+    return now < quiet_until - slack
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
 # Regenstärke in mm pro Stunde. Bewusst alltagsnah gewählt; die offizielle DWD-Einteilung
@@ -298,8 +324,6 @@ class Tagesdashboard(BasePlugin):
         train_now = bool(train_cfg) and bahn.in_window(now, train_cfg)
         news_cfg = nachrichten.read_config(opt, flag, bahn.parse_hhmm)
         news_now = bool(news_cfg) and nachrichten.in_window(now, news_cfg)
-        # Nur mit Zug: Nur dafür muss InkyPi schneller laufen als sonst. Ohne Zug gilt allein das
-        # Intervall der Playlist (ein Cache würde es sonst stillschweigend verlängern).
         laundry_win = None
         if flag("laundryEnabled"):
             lf, lt = bahn.parse_hhmm(opt("laundryFrom")), bahn.parse_hhmm(opt("laundryTo"))
@@ -323,7 +347,10 @@ class Tagesdashboard(BasePlugin):
         if mode != "normal":
             news_now = train_now = False  # Sonderansichten zeigen weder Nachrichten noch Live-Zug
 
-        use_cache = bool(train_cfg) and not train_now
+        # Bild-Cache außerhalb des Zugfensters – auch ohne Zug bzw. ohne gewählten Wochentag: Steht
+        # die Playlist noch auf dem schnellen Zug-Takt (5 min), gilt sonst „Sonst alle … min“ nie
+        # (Fehler bis 1.31). Verlängern kann der Cache einen langsameren Takt nicht (cache_fresh).
+        use_cache = not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
         if mode == "night" and flag("nightFreeze") and not self._manual_refresh():
             hit = _NIGHT_CACHE.get(cache_key)
@@ -332,9 +359,11 @@ class Tagesdashboard(BasePlugin):
                 return hit["image"].copy()
         if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
-            # 1 Minute Toleranz: Kommt InkyPi im eingestellten Takt, wird nie ein fälliges Bild ausgelassen
-            if hit and now < hit["until"] - timedelta(minutes=1):
-                logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet", hit["made"])
+            takt = cycle_seconds(device_config)
+            if hit and cache_fresh(now, hit["quiet"], hit["edge"], takt):
+                logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet (Takt %s, neu um %s)",
+                            hit["made"], f"{takt // 60} min" if takt else "unbekannt",
+                            min(t for t in (hit["quiet"], hit["edge"]) if t).strftime("%H:%M"))
                 return hit["image"].copy()
 
         status.begin()  # ab hier melden die Module, welche Quelle antwortet (Statusanzeige im Kopf)
@@ -561,7 +590,7 @@ class Tagesdashboard(BasePlugin):
             # Bild höchstens quietMinutes lang wiederverwenden und nie über eine Fenstergrenze
             # hinweg (Zugfenster beginnt, Nachrichten erscheinen oder verschwinden).
             quiet = self._opt(settings, "quietMinutes")
-            until = now + timedelta(minutes=int(quiet) if quiet.isdigit() else 30)
+            quiet_until = now + timedelta(minutes=int(quiet) if quiet.isdigit() else 15)
             edges = [bahn.next_window_start(now, train_cfg)] if train_cfg else []
             edges += nachrichten.boundaries(now, news_cfg) if news_cfg else []
             edges += waesche.boundaries(now, *laundry_win) if laundry_win else []
@@ -574,11 +603,10 @@ class Tagesdashboard(BasePlugin):
             edges += advent.boundaries(now) if flag("adventEnabled") else []  # Kranz kommt, bekommt eine Kerze mehr, geht nach Heiligabend
             if flag("liveEnabled"):  # Livestream-Karte kommt zu Beginn der Sitzung und geht an ihrem Ende
                 edges += livestream.boundaries(today_events, live_words, now)
-            for edge in edges:
-                if edge and now < edge < until:
-                    until = edge
+            edge = min((e for e in edges if e and e > now), default=None)
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
-            _IMAGE_CACHE[cache_key] = {"image": image.copy(), "until": until, "made": now.strftime("%H:%M")}
+            _IMAGE_CACHE[cache_key] = {"image": image.copy(), "quiet": quiet_until, "edge": edge,
+                                       "made": now.strftime("%H:%M")}
         return image
 
     # ==================================================================

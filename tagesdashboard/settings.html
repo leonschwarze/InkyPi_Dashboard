@@ -213,10 +213,9 @@
                 <div class="st-hint">Quelle ist die Fahrplanauskunft des VRR (Open Service, ganz NRW). Gezeigt werden Meldungen zu deiner Linie, die einen Bahnhof oder eine Stadt auf dem Weg deines Zuges bis zum Ausstieg nennen – auch vor deinem Einstieg (z. B. Koblenz–Remagen). Abschnitte hinter dem Ausstieg und gleichnamige Linien anderswo bleiben draußen. Die Zeile mit dem Gleis-Symbol ist eine Vorwarnung und immer gelb; rot wird es erst, wenn die Bahn den Zug selbst als verspätet meldet. „Störung beendet“ steht eine Stunde lang da. Der Ausstieg muss eingetragen sein.</div>
             </details>
         </div>
-        <div class="st-line"><span>Sonst alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input st-num" /><span>min neu zeichnen</span></div>
         <details class="st-why">
             <summary>Aktualisierung und API-Schlüssel</summary>
-            <div class="st-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur im Takt „Sonst alle … min“ neu (dein gewohnter Takt; InkyPi bekommt dazwischen dasselbe Bild und lässt das Display in Ruhe). Ohne Zug gilt einfach das Intervall der Playlist.</div>
+            <div class="st-hint">Damit die Zugdaten aktuell bleiben, unter <b>Einstellungen</b> das Wechselintervall (Plugin Cycle Interval) und bei diesem Dashboard das Aktualisierungsintervall auf <b>5 Minuten</b> stellen. Außerhalb des Zeitfensters zeichnet das Dashboard nur so oft neu, wie unter <b>Aktualisierung</b> (unten) eingestellt.</div>
             <div class="st-hint">Optional unter <b>API Keys</b>: <code>DB_CLIENT_ID</code> und <code>DB_API_KEY</code> vom DB API Marketplace (kostenlos, Timetables-API). Ohne Schlüssel nutzt das Dashboard die öffentliche Abfahrtstafel der Bahn.</div>
         </details>
     </div>
@@ -343,6 +342,12 @@
         <label class="st-check"><input type="checkbox" class="db-check" name="catWeather" value="true" data-default="true" data-since="13"><span>Sie passt sich dem Wetter an <span class="st-note">Schirm bei Regen, Schal bei Frost oder Schnee, Sonnenbad, festhalten bei Sturm</span></span></label>
         <label class="st-check"><input type="checkbox" class="db-check" name="catNight" value="true" data-default="true" data-since="14"><span>Auch im Nachtbild <span class="st-note">schläft auf dem Mond über Bonn (mit Bonner Silhouette)</span></span></label>
     </div>
+</section>
+
+<section class="st-sec">
+    <h3 class="st-h">Aktualisierung</h3>
+    <div class="st-line"><span>Alle</span><input type="number" min="5" max="180" step="5" id="quietMinutes" name="quietMinutes" class="form-input st-num" /><span>min neu zeichnen</span></div>
+    <div class="st-hint">Gilt immer – nur im Zeitfenster des Zugs zeichnet das Dashboard bei jedem Wechsel von InkyPi neu. Nachrichten, Wäsche, Nachtbild und Co. erscheinen trotzdem pünktlich. Ist das Wechselintervall von InkyPi (<b>Einstellungen</b> → Plugin Cycle Interval) länger, gilt dieses.</div>
 </section>
 
 <details class="st-more" id="moreBox">
