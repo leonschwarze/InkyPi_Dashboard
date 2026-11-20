@@ -786,18 +786,16 @@ class Tagesdashboard(BasePlugin):
         url = (settings.get("nextcloudUrl") or "").strip()
         if not user or not url:
             raise RuntimeError("Nextcloud-Adresse oder Benutzername fehlt.")
-        key = (settings.get("passwordKey") or "NEXTCLOUD_APP_PASSWORD").strip()
-        password = device_config.load_env_key(key)
-        if not password:
-            raise RuntimeError(f"App-Passwort fehlt (API Keys → {key}).")
+        client, confirm = nc.open_client(settings, device_config, user, flag("verifySSL"))
 
         days = int(self._opt(settings, "calendarDays")) if self._opt(settings, "calendarDays").isdigit() else 7
         start = datetime.combine(today, time.min, tz)
         end = start + timedelta(days=max(days, 2, min_days) + 1)
 
-        client = nc.CalDavClient(nc.dav_root(url), user, password, verify=flag("verifySSL"))
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
-        calendars = helper.select_calendars(client.calendars(), settings.get("calendars", ""))
+        found = client.calendars()  # wirft bei falscher Anmeldung – erst danach die Nextcloud merken
+        confirm()
+        calendars = helper.select_calendars(found, settings.get("calendars", ""))
         events = []
         for cal in calendars:
             try:

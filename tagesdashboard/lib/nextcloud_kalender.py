@@ -16,11 +16,15 @@ Ablauf (RFC 4791 / RFC 6764):
 """
 
 import calendar as pycal
+import ipaddress
+import json
 import logging
+import os
 import re
+import socket
 import xml.etree.ElementTree as ET
 from datetime import date, datetime, time, timedelta, timezone
-from urllib.parse import urljoin, unquote
+from urllib.parse import urljoin, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 import icalendar
@@ -109,6 +113,152 @@ def dav_root(url):
     return url.rstrip("/") + "/remote.php/dav/"
 
 
+# --------------------------------------------------------------------------
+# Schutz des App-Passworts (seit 1.33)
+# --------------------------------------------------------------------------
+# Adresse und Schlüsselname stehen in den Plugin-Einstellungen, das Passwort in der .env.
+# Damit das Passwort nur bei der eigenen Nextcloud ankommt, gelten drei Regeln:
+#   1. Nur Schlüssel, die nach Nextcloud heißen (NEXTCLOUD_… oder NC_…).
+#   2. Unverschlüsselt (http) oder ohne Zertifikatsprüfung nur zu Servern im Heimnetz.
+#   3. Ein Schlüssel gehört zu genau einer Nextcloud: beim ersten erfolgreichen Abruf gemerkt
+#      (Datei neben InkyPis device.json). Ist noch nichts gemerkt, nur eine Adresse, die in
+#      einer gespeicherten Instanz steht.
+KEY_RE = re.compile(r"^(NEXTCLOUD|NC)_[A-Z0-9_]{1,40}$")
+PIN_FILE = "nextcloud_pin.json"
+
+
+def checked_key(name):
+    """Name des Schlüssels für das App-Passwort, nur NEXTCLOUD_… oder NC_… (sonst RuntimeError)."""
+    name = (name or DEFAULT_PASSWORD_KEY).strip()
+    if not KEY_RE.match(name):
+        raise RuntimeError(f"Der Name des Schlüssels („{name[:40]}“) muss mit NEXTCLOUD_ oder NC_ beginnen "
+                           "(Großbuchstaben, z. B. NEXTCLOUD_APP_PASSWORD).")
+    return name
+
+
+def is_home(host):
+    """Liegt der Server im Heimnetz? Ja, wenn alle Adressen privat, Loopback oder link-local sind
+    (192.168.…, 10.…, fd…, nextcloud.local, fritz.box …). Unbekannte Namen gelten als fremd."""
+    host = (host or "").strip("[]").lower()
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        ips = {ipaddress.ip_address(host)}
+    except ValueError:
+        try:
+            ips = {ipaddress.ip_address(info[4][0].split("%")[0]) for info in socket.getaddrinfo(host, None)}
+        except (OSError, ValueError):
+            return False
+    return bool(ips) and all(ip.is_private or ip.is_loopback or ip.is_link_local for ip in ips)
+
+
+def origin_of(root):
+    """'https://host:port' der CalDAV-Wurzel. http nur für Server im Heimnetz."""
+    parts = urlsplit(root)
+    host = (parts.hostname or "").lower()
+    if parts.scheme not in ("http", "https") or not host:
+        raise RuntimeError("Die Nextcloud-Adresse ist ungültig.")
+    if parts.scheme == "http" and not is_home(host):
+        raise RuntimeError("Nextcloud außerhalb des Heimnetzes bitte mit https:// angeben – "
+                           "sonst ginge das App-Passwort unverschlüsselt durchs Internet.")
+    return f"{parts.scheme}://{host}:{parts.port or (443 if parts.scheme == 'https' else 80)}"
+
+
+def tls_verify(root, wanted):
+    """Zertifikatsprüfung abschalten geht nur bei Servern im Heimnetz (selbst signiert)."""
+    if wanted:
+        return True
+    host = urlsplit(root).hostname or ""
+    if is_home(host):
+        return False
+    logger.warning("Kalender: %s liegt nicht im Heimnetz – Zertifikat wird trotz Einstellung geprüft", host)
+    return True
+
+
+class OriginPin:
+    """Merkt sich, zu welcher Nextcloud ein Schlüssel gehört, und schickt das Passwort nur dorthin."""
+
+    def __init__(self, device_config, key):
+        cfg = getattr(device_config, "config_file", None)
+        self.path = os.path.join(os.path.dirname(cfg), PIN_FILE) if isinstance(cfg, str) and cfg else None
+        self.key = key
+        self.pins = {}
+        if self.path and os.path.exists(self.path):
+            try:
+                with open(self.path, encoding="utf-8") as f:
+                    data = json.load(f)
+            except (OSError, ValueError):
+                data = None
+            if not isinstance(data, dict):
+                raise RuntimeError(f"{self.path} ist beschädigt – App-Passwort wird nicht gesendet "
+                                   "(Datei auf dem Pi löschen, dann wird neu gemerkt).")
+            self.pins = data
+
+    def check(self, origin):
+        known = self.pins.get(self.key)
+        if known and known != origin:
+            logger.warning("Kalender: %s gehört zu %s, die Einstellungen nennen %s – App-Passwort nicht gesendet",
+                           self.key, known, origin)
+            raise RuntimeError(f"Die Nextcloud-Adresse weicht von {known} ab – App-Passwort wird nicht gesendet. "
+                               f"Absichtlich umgezogen? Auf dem Pi {self.path} löschen.")
+
+    def commit(self, origin):
+        if not self.path or self.pins.get(self.key) == origin:
+            return
+        self.pins[self.key] = origin
+        tmp = self.path + ".tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.pins, f, indent=1)
+            os.replace(tmp, self.path)  # nie eine halb geschriebene Datei
+            logger.info("Kalender: %s an %s gebunden (%s)", self.key, origin, self.path)
+        except OSError as exc:
+            logger.warning("Kalender: Bindung an %s nicht gespeichert: %s", origin, exc)
+
+
+CALENDAR_PLUGINS = ("tagesdashboard", "nextcloud_kalender")
+
+
+def saved_origins(device_config):
+    """Nextcloud-Adressen aus den gespeicherten Instanzen beider Plugins (InkyPis Playlists)."""
+    try:
+        get_pm = getattr(device_config, "get_playlist_manager", None)
+        data = get_pm().to_dict() if get_pm else device_config.get_config("playlist_config", {})
+        found = set()
+        for playlist in (data or {}).get("playlists") or []:
+            for inst in playlist.get("plugins") or []:
+                url = ((inst.get("plugin_settings") or {}).get("nextcloudUrl") or "").strip()
+                if inst.get("plugin_id") in CALENDAR_PLUGINS and url:
+                    try:
+                        found.add(origin_of(dav_root(url)))
+                    except RuntimeError:
+                        pass
+        return found
+    except Exception as exc:  # Aufbau von InkyPi geändert: lieber nichts senden als raten
+        logger.warning("Kalender: gespeicherte Instanzen nicht lesbar: %s", exc)
+        return set()
+
+
+def open_client(settings, device_config, user, verify_wanted):
+    """CalDavClient nur nach den drei Regeln oben. Gibt (client, confirm) zurück;
+    confirm() nach dem ersten erfolgreichen Abruf aufrufen (merkt die Nextcloud)."""
+    key = checked_key(settings.get("passwordKey"))
+    root = dav_root(settings.get("nextcloudUrl"))
+    origin = origin_of(root)
+    pin = OriginPin(device_config, key)
+    pin.check(origin)  # abweichende Adresse → Passwort gar nicht erst lesen
+    if pin.path and not pin.pins.get(key) and origin not in saved_origins(device_config):
+        logger.warning("Kalender: %s steht in keiner gespeicherten Instanz – App-Passwort nicht gesendet", origin)
+        raise RuntimeError("Neue Nextcloud-Adresse: bitte die Einstellungen erst speichern, dann aktualisieren.")
+    password = device_config.load_env_key(key)
+    if not password:
+        raise RuntimeError(f"App-Passwort fehlt: Unter „API Keys“ den Schlüssel {key} anlegen.")
+    client = CalDavClient(root, user, password, verify=tls_verify(root, verify_wanted))
+    return client, (lambda: pin.commit(origin))
+
+
 class CalDavClient:
     def __init__(self, root, user, password, verify=True):
         self.root = root
@@ -126,8 +276,8 @@ class CalDavClient:
                 headers={"Depth": str(depth), "Content-Type": "application/xml; charset=utf-8"},
             )
         except requests.exceptions.SSLError as exc:
-            raise RuntimeError("SSL-Fehler – Zertifikat der Nextcloud prüfen "
-                               "(oder in den Einstellungen die Prüfung abschalten).") from exc
+            raise RuntimeError("SSL-Fehler – Zertifikat der Nextcloud prüfen (eigener Server im Heimnetz "
+                               "mit selbst signiertem Zertifikat: unter „Erweitert“ die Prüfung abschalten).") from exc
         except requests.exceptions.RequestException as exc:
             raise RuntimeError(f"Nextcloud nicht erreichbar: {exc.__class__.__name__}") from exc
 
@@ -283,6 +433,28 @@ def declined_by(ev, own):
     return bool(mine) and all(str(a.params.get("PARTSTAT", "")).upper() == "DECLINED" for a in mine)
 
 
+# Serien, die mehr als MAX_PER_DAY Vorkommen am Tag erzeugen, werden nicht aufgelöst (seit 1.33).
+# Kalenderprogramme legen so etwas nicht an; die Grenze hält Rechenzeit und Speicher auf dem Pi klein.
+MAX_PER_DAY = 96
+_BASE_PER_DAY = {"SECONDLY": 86400, "MINUTELY": 1440, "HOURLY": 24}
+_FINER = {"SECONDLY": (), "MINUTELY": ("BYSECOND",), "HOURLY": ("BYMINUTE", "BYSECOND")}
+
+
+def too_dense(rrule):
+    """Schätzt die Vorkommen je Tag einer RRULE (obere Grenze) und vergleicht mit MAX_PER_DAY."""
+    if not rrule:
+        return False
+    freq = str((rrule.get("FREQ") or [""])[0]).upper()
+    try:
+        interval = max(int((rrule.get("INTERVAL") or [1])[0]), 1)
+    except (TypeError, ValueError):
+        interval = 1
+    per_day = _BASE_PER_DAY.get(freq, 1) / interval
+    for part in _FINER.get(freq, ("BYHOUR", "BYMINUTE", "BYSECOND")):
+        per_day *= max(len(rrule.get(part) or []), 1)
+    return per_day > MAX_PER_DAY
+
+
 def contrast_color(hex_color):
     h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
@@ -340,10 +512,7 @@ class NextcloudKalender(BasePlugin):
         user = (settings.get("username") or "").strip()
         if not user:
             raise RuntimeError("Bitte den Nextcloud-Benutzernamen angeben.")
-        key_name = (settings.get("passwordKey") or DEFAULT_PASSWORD_KEY).strip()
-        password = device_config.load_env_key(key_name)
-        if not password:
-            raise RuntimeError(f"App-Passwort fehlt: Unter „API Keys“ den Schlüssel {key_name} anlegen.")
+        client, confirm = open_client(settings, device_config, user, flag("verifySSL"))
 
         tz_name = device_config.get_config("timezone", default="Europe/Berlin") or "Europe/Berlin"
         try:
@@ -375,9 +544,9 @@ class NextcloudKalender(BasePlugin):
         start_dt = datetime.combine(range_start, time.min, tz)
         end_dt = datetime.combine(range_end, time.min, tz)
 
-        client = CalDavClient(dav_root(settings.get("nextcloudUrl")), user, password,
-                              verify=flag("verifySSL"))
-        calendars = self.select_calendars(client.calendars(), settings.get("calendars", ""))
+        found = client.calendars()  # wirft bei falscher Anmeldung – erst danach die Nextcloud merken
+        confirm()
+        calendars = self.select_calendars(found, settings.get("calendars", ""))
 
         events = []
         failed = []
@@ -487,6 +656,11 @@ class NextcloudKalender(BasePlugin):
         Einladungen, die man selbst abgelehnt hat, fallen weg (Anzahl in self.declined_hidden)."""
         try:
             vcal = icalendar.Calendar.from_ical(ics_text)
+            dense = [c for c in vcal.walk("VEVENT") if too_dense(c.get("RRULE"))]
+            if dense:  # z. B. FREQ=SECONDLY
+                logger.warning("Kalender %s: %d Serie(n) mit mehr als %d Vorkommen am Tag übersprungen",
+                               cal["name"], len(dense), MAX_PER_DAY)
+                return []
             occurrences = recurring_ical_events.of(vcal).between(start_dt, end_dt)
         except Exception:
             logger.warning("Termin in %s konnte nicht gelesen werden", cal["name"], exc_info=True)

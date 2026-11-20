@@ -356,8 +356,9 @@
         <label for="passwordKey">Name des Schlüssels für das App-Passwort</label>
         <input type="text" id="passwordKey" name="passwordKey" class="form-input" placeholder="NEXTCLOUD_APP_PASSWORD" />
     </div>
+    <div class="st-hint">Muss mit NEXTCLOUD_ oder NC_ beginnen. Das Passwort geht nur an die Nextcloud, mit der es zuerst funktioniert hat.</div>
     <label class="st-check"><input type="checkbox" class="db-check" name="verifySSL" value="true" data-default="true"><span>SSL-Zertifikat prüfen</span></label>
-    <div class="st-hint">Nur bei selbst signierten Zertifikaten abschalten.</div>
+    <div class="st-hint">Abschalten wirkt nur bei einer Nextcloud im Heimnetz (selbst signiertes Zertifikat). Im Internet wird immer geprüft.</div>
     <label class="st-check"><input type="checkbox" class="db-check" name="einkSnap" value="true" data-default="true"><span>Schärfer auf Inky-Displays (Farben einrasten statt rastern)</span></label>
 </details>
 
@@ -484,6 +485,17 @@
     const DEFAULT_KEY = 'NEXTCLOUD_APP_PASSWORD';
     const isNum = v => typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v.replace(',', '.')));
 
+    // Gleiche Regel wie nextcloud_kalender.KEY_RE (seit 1.33): nur Schlüssel, die nach Nextcloud heißen
+    function keyOk() {
+        const key = document.getElementById('passwordKey').value.trim();
+        if (key && !/^(NEXTCLOUD|NC)_[A-Z0-9_]{1,40}$/.test(key)) {
+            document.getElementById('moreBox').open = true;
+            showResponseModal('failure', 'Der Name des Schlüssels muss mit NEXTCLOUD_ oder NC_ beginnen (Großbuchstaben).');
+            return false;
+        }
+        return true;
+    }
+
     function validate() {
         const lat = document.getElementById('latitude').value.trim().replace(',', '.');
         const lon = document.getElementById('longitude').value.trim().replace(',', '.');
@@ -493,6 +505,7 @@
         }
         document.getElementById('latitude').value = lat;
         document.getElementById('longitude').value = lon;
+        if (!keyOk()) return false;
         if (!collectBirthdays()) {
             showResponseModal('failure', 'Bitte die markierten Geburtstage korrigieren.');
             return false;

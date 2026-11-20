@@ -250,7 +250,8 @@ def find(calendar, home, tz, now, last_day, w, dwd, icons, parse_ts,
             if not wx:
                 continue
             it["away"] = dict(wx, place=place["name"], km=round(dist))
-            logger.info("Zielort: %s → %s (%d km): %s · %s", it["title"], place["name"], dist, wx["temp"],
-                        wx["rain"] or wx["text"])
+            # ohne Termintitel (seit 1.33, so wenig persönliche Daten im Log wie nötig)
+            logger.info("Zielort: Termin %s → %s (%d km): %s · %s", f"{ev['start']:%d.%m. %H:%M}", place["name"], dist,
+                        wx["temp"], wx["rain"] or wx["text"])
             found.append(it)
     return found
