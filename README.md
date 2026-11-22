@@ -1,4 +1,4 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.38
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.39
 
 Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**.
 
@@ -7,6 +7,10 @@ Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, P
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.39: Pi-Zeile wird nicht mehr abgeschnitten
+
+- **Fehlerbehebung:** Gab es in einer Woche mehrere Ausfälle, wurde die Zeile „Pi: …“ unter der Wochenvorschau mitten im Wort abgeschnitten („GA 1× we…“), und alles dahinter fehlte. Jetzt wird sie sinnvoll gekürzt, bis sie passt (quer eine Zeile, hochkant zwei): erst fallen die ruhigen Werte weg (online, Temperatur, Speicher), dann verlieren die hinteren Probleme ihre Details in Klammern („Kalender 3× weg“), zuletzt werden die hintersten zu „+3 weitere“ zusammengefasst. Die vollständige Zeile steht weiter im Log (`journalctl -u inkypi.service | grep "Pi:"`). Passt die Zeile, sieht alles aus wie bisher. Keine neue Einstellung.
 
 ## Neu in 1.38: Warnungen aus NINA, volle Woche, Laufen der Woche, Monatsbild
 

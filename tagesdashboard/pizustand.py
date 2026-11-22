@@ -4,7 +4,9 @@ Wie geht's dem Pi? (seit 1.28) – eine Fußzeile in der Wochenvorschau (Variant
   Pi: Kalender 2× weg (40 min, zuletzt Do 3:10) · 23 Tage online · bis 52 °C · 9,8 GB frei
   Pi: 23 Tage online · bis 52 °C · 9,8 GB frei · Woche ohne Ausfälle
 
-Probleme stehen vorn (wird die Zeile zu lang, fallen hinten die ruhigen Werte weg):
+Probleme stehen vorn. Wird die Zeile zu lang (quer eine, hochkant zwei Zeilen), kürzt fitPi im Template
+(seit 1.39, vorher schnitt CSS mitten im Wort ab): erst fallen hinten die ruhigen Werte weg, dann verlieren
+Probleme von hinten ihre Klammer („Kalender 3× weg“), zuletzt werden hintere Probleme zu „+N weitere“:
   * Unterspannung: Der Pi meldet zu wenig Spannung am Netzteil (vcgencmd get_throttled, Bit 0 = gerade,
     Bit 16 = seit dem Start; Rückfall: hwmon „rpi_volt“, in0_lcrit_alarm)
   * Neustarts der letzten 7 Tage (Startzeit = jetzt − /proc/uptime)
@@ -243,19 +245,26 @@ def _names(names):
 
 def summary(now, state, system):
     """(Probleme, ruhige Werte) als Textlisten."""
+    problems, facts = _summary(now, state, system)
+    return [long for long, _ in problems], facts
+
+
+def _summary(now, state, system):
+    """Wie summary, Probleme aber als (Langform, Kurzform) – die Kurzform braucht fitPi im Template."""
     since = now - WINDOW
     problems = []
 
     volt = sorted(_t(v) for v in state["volt"] if _t(v) >= since)
     if volt:
         # Wann genau, weiß der Pi nur ungefähr (Bit 16 = irgendwann seit dem Start) – deshalb der Rat statt einer Uhrzeit
-        problems.append("Unterspannung (Netzteil prüfen)" if len(volt) == 1
-                        else f"Unterspannung {len(volt)}× (Netzteil prüfen)")
+        short = "Unterspannung" if len(volt) == 1 else f"Unterspannung {len(volt)}×"
+        problems.append((f"{short} (Netzteil prüfen)", short))
 
     boots = sorted(_t(b) for b in state["boots"] if _t(b) >= since)
     if boots:
-        problems.append(f"Neustart {when_text(boots[-1], now)}" if len(boots) == 1
-                        else f"{len(boots)} Neustarts, zuletzt {when_text(boots[-1], now)}")
+        problems.append((f"Neustart {when_text(boots[-1], now)}", f"Neustart {when_text(boots[-1], now)}")
+                        if len(boots) == 1
+                        else (f"{len(boots)} Neustarts, zuletzt {when_text(boots[-1], now)}", f"{len(boots)} Neustarts"))
 
     by_src = {}
     for e in state["episodes"]:
@@ -278,9 +287,10 @@ def summary(now, state, system):
     for total, name, eps in sorted(rows, key=lambda r: -r[0]):
         latest = max(st for st, _ in eps)
         if len(eps) == 1:
-            problems.append(f"{name} 1× weg ({when_text(latest, now)}, {duration_text(total)})")
+            problems.append((f"{name} 1× weg ({when_text(latest, now)}, {duration_text(total)})", f"{name} 1× weg"))
         else:
-            problems.append(f"{name} {len(eps)}× weg ({duration_text(total)}, zuletzt {when_text(latest, now)})")
+            problems.append((f"{name} {len(eps)}× weg ({duration_text(total)}, zuletzt {when_text(latest, now)})",
+                             f"{name} {len(eps)}× weg"))
 
     facts = []
     if system.get("uptime") is not None:
@@ -295,11 +305,19 @@ def summary(now, state, system):
     return problems, facts
 
 
-def line(now, path):
-    """Text der Fußzeile ohne „Pi:“ (das setzt das Template fett davor)."""
+def parts(now, path):
+    """Teile der Fußzeile ohne „Pi:“ (das setzt das Template fett davor), in Anzeigereihenfolge:
+    [{"text": Langform, "short": Kurzform, "kind": "problem" | "fact"}, …]. Das Template setzt „ · “
+    dazwischen und kürzt bei Platzmangel (fitPi)."""
     state = load(path) if path else empty()
     system = _last_system if _last_system is not None else read_system()
-    problems, facts = summary(now, state, system)
+    problems, facts = _summary(now, state, system)
     if not problems:
         facts.append("Woche ohne Ausfälle")
-    return " · ".join(problems + facts)
+    return ([{"text": long, "short": short, "kind": "problem"} for long, short in problems]
+            + [{"text": fact, "short": fact, "kind": "fact"} for fact in facts])
+
+
+def line(now, path):
+    """Ganzer Text der Fußzeile ohne „Pi:“ (fürs Log – auf dem Display kürzt fitPi bei Platzmangel)."""
+    return " · ".join(p["text"] for p in parts(now, path))

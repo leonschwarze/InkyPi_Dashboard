@@ -450,6 +450,8 @@
 .wk-pi { flex: 0 0 auto; font-size: calc(var(--u) * 1.75); line-height: 1.25; padding-top: calc(var(--u) * 0.6);
   border-top: calc(var(--u) * 0.3) solid currentColor; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .portrait .wk-pi { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.wk-pi .pt { white-space: nowrap; }  /* ein Eintrag („Kalender 3× weg“) bricht nicht in sich um; fitPi kürzt */
+.wk-pi.pi-fit { white-space: normal; display: block; -webkit-line-clamp: none; overflow: visible; }  /* nur während fitPi misst */
 .wk-row {
   display: flex; align-items: center; gap: calc(var(--u) * 1.4);
   min-height: 0; overflow: hidden;

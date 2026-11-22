@@ -191,7 +191,9 @@
   {# Wie voll ist die Woche und Laufen der Woche (seit 1.38, Variante C + Laufen A): Fußzeilen über der Pi-Zeile #}
   {% if load %}<div class="wk-line wk-load-{{ load.level }}"><b>Woche:</b> {{ load.total_text }}{% if load.word %} · <span class="wl-word">{{ load.word }}</span>{% endif %}{% if load.avg_text %} ({{ load.avg_text }}){% endif %}{% if load.peak_text %} · {{ load.peak_text }}{% endif %}</div>{% endif %}
   {% if runs %}<div class="wk-line"><b>Laufen:</b> {{ runs.km_text }} · {{ runs.count_text }}{% if runs.avg_text %} · {{ runs.avg_text }} in den vier Wochen davor{% endif %}</div>{% endif %}
-  {% if pi_line %}<div class="wk-pi"><b>Pi:</b> {{ pi_line }}</div>{% endif %}
+  {# Zustand des Pi: ganzer Text wie bis 1.38; die Teile stehen in data-parts, damit fitPi bei Platzmangel
+     ganze Einträge kürzen kann statt mitten im Wort (seit 1.39) #}
+  {% if pi_parts %}<div class="wk-pi" data-parts='{{ pi_parts | tojson }}'><b>Pi:</b> {{ pi_parts | map(attribute="text") | join(" · ") }}</div>{% endif %}
   {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
 </div>
 <script>
@@ -214,10 +216,61 @@
     if (!restFits()) head.classList.add('wk-stack');
     if (!restFits()) head.classList.add('wk-cut');
   }
-  function fitWeek() { document.querySelectorAll('.wk-head').forEach(fitWeekHead); }
+  /* Pi-Zeile (seit 1.39): quer eine, hochkant zwei Zeilen. Vorher kürzte CSS blind an der Kante
+     („GA 1× we…“), und alles dahinter fehlte. Jetzt, bis es passt: 1. ruhige Werte (online, °C, GB) von
+     hinten weg, 2. Probleme von hinten ohne Klammer („Kalender 3× weg“), 3. hintere Probleme zu
+     „+N weitere“ zusammenfassen (das erste bleibt immer). Passt der ganze Text, bleibt er ein Text (Bild
+     pixelgleich zu 1.38); erst sonst wird er in Einträge zerlegt. Gemessen wird mit Umbruch an der Höhe
+     der Zeile; Ellipse/line-clamp bleiben als Netz für extreme Fälle. */
+  function fitPi(el) {
+    const data = JSON.parse(el.dataset.parts || '[]');
+    const label = document.createElement('b');
+    label.textContent = 'Pi:';
+    el.replaceChildren(label, ' ' + data.map(p => p.text).join(' · '));  // Ausgangslage wie im Template
+    el.classList.add('pi-fit');
+    const cs = getComputedStyle(el), lines = el.closest('.portrait') ? 2 : 1;
+    // Höhe des Blocks ohne Rand und Innenabstand = Zahl der Zeilen × Zeilenhöhe (die Rechtecke der Buchstaben
+    // ragen bei Jost über die Zeilenhöhe hinaus und taugen deshalb nicht zum Zählen)
+    const extra = ['borderTopWidth', 'borderBottomWidth', 'paddingTop', 'paddingBottom']
+                    .reduce((sum, k) => sum + parseFloat(cs[k]), 0);
+    // Einträge brechen nicht in sich um (.pt nowrap) – ein zu langer Eintrag ragt dann seitlich hinaus
+    const fits = () => el.getBoundingClientRect().height - extra <= lines * parseFloat(cs.lineHeight) + 0.5
+                       && el.scrollWidth <= el.clientWidth + 1;
+    if (fits()) { el.classList.remove('pi-fit'); return; }  // passt: ein Text, Bild wie bis 1.38
+    // Passt nicht: in Einträge zerlegen
+    const parts = data.map((p, i) => {
+      const span = document.createElement('span'), pt = document.createElement('span');
+      span.className = 'pp pp-' + p.kind;
+      span.dataset.long = p.text; span.dataset.short = p.short;
+      pt.className = 'pt'; pt.textContent = p.text;
+      span.append(i ? ' · ' : '', pt);
+      return span;
+    });
+    el.replaceChildren(label, ' ', ...parts);
+    const text = p => p.querySelector('.pt');
+    let more = null;
+    for (let i = parts.length - 1; i > 0 && !fits(); i--)
+      if (parts[i].classList.contains('pp-fact')) parts[i].hidden = true;
+    const problems = parts.filter(p => p.classList.contains('pp-problem'));
+    for (let i = problems.length - 1; i >= 0 && !fits(); i--) text(problems[i]).textContent = problems[i].dataset.short;
+    let hidden = 0;
+    for (let i = problems.length - 1; i > 0 && !fits(); i--) {
+      problems[i].hidden = true; hidden++;
+      if (!more) { more = document.createElement('span'); more.className = 'pp-more'; el.appendChild(more); }
+      more.textContent = ' · +' + hidden + ' weitere';
+    }
+    el.classList.remove('pi-fit');
+  }
+  function fitWeek() {
+    document.querySelectorAll('.wk-head').forEach(fitWeekHead);
+    document.querySelectorAll('.wk-pi').forEach(fitPi);
+  }
   fitWeek();
   window.addEventListener('load', fitWeek);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitWeek);
+  // Headless-Chrome baut die Seite zuerst kleiner auf und vergrößert sie für den Screenshot – dann neu messen
+  // (seit 1.39; die Wurzel ist so groß wie das Fenster, fitWeek ändert ihre Größe nicht → keine Schleife)
+  if (window.ResizeObserver) document.querySelectorAll('.wk').forEach(w => new ResizeObserver(fitWeek).observe(w));
 </script>
 {% else %}
 <div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}{% if warn %} has-band{% endif %}"

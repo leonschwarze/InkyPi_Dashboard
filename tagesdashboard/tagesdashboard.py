@@ -928,8 +928,8 @@ class Tagesdashboard(BasePlugin):
                     logger.exception("Laufbuch konnte nicht gelesen werden")
             if pi:  # Zustand des Pi in der Fußzeile (seit 1.28)
                 try:
-                    params["pi_line"] = pizustand.line(now, getattr(self, "_pi_path", None))
-                    logger.info("Pi: %s", params["pi_line"])
+                    params["pi_parts"] = pizustand.parts(now, getattr(self, "_pi_path", None))
+                    logger.info("Pi: %s", " · ".join(p["text"] for p in params["pi_parts"]))
                 except Exception:  # Zusatz: nie das ganze Bild verlieren
                     logger.exception("Zustand des Pi konnte nicht ermittelt werden")
         params["view_error"] = cal_error or params.get("wx_error")
