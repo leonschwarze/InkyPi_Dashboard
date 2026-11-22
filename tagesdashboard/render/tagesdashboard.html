@@ -1,6 +1,18 @@
 {% extends "plugin.html" %}
 
 {% block content %}
+{# Warnungen aus NINA (seit 1.38, Variante B „Band“): rotes Band unter dem Kopf, in jeder Ansicht.
+   Erste Zeile Titel, zweite Zeile erster Satz der Handlungsempfehlung, Uhrzeit der Meldung und weitere. #}
+{% macro warnband(warn) %}{% set w = warn.first %}
+  <div class="nina-band nina-{{ w.level }}">
+    <div class="nb-icon">{{ warn.icon | safe }}</div>
+    <div class="nb-main">
+      <div class="nb-top">{{ w.title }}</div>
+      <div class="nb-sub">{% if w.instruction %}{{ w.instruction }} · {% endif %}NINA {{ w.since_text }}</div>
+    </div>
+    {% if warn.more %}<div class="nb-more">+{{ warn.more }}<small>weitere</small></div>{% endif %}
+  </div>
+{% endmacro %}
 {% if urlaub %}
 <!-- ===================== Urlaubsbild (Abfahrtstafel) ===================== -->
 <div lang="de" class="ur {{ orientation }}">{{ urlaub.svg | safe }}</div>
@@ -28,10 +40,46 @@
     </div>
   </div>
 </div>
+{% elif month %}
+<!-- ===================== Monatsbild (seit 1.38, Variante C „Raster + Liste“) ===================== -->
+{% set M = month %}
+<div lang="de" class="mo {{ orientation }}">
+  {% if warn %}{{ warnband(warn) }}{% endif %}
+  <header class="wk-head mo-head">
+    <span class="wk-title">{{ M.title }}</span>
+    <span class="wk-sum">{% for part in M.summary %}<span class="wk-part">{{ part }}</span>{% endfor %}</span>
+  </header>
+  <div class="mo-body">
+    <div class="mo-grid">
+      <div class="mo-wd">{% for h in M.head %}<span{% if loop.index > 5 %} class="we"{% endif %}>{{ h }}</span>{% endfor %}</div>
+      {% for wk in M.weeks %}
+      <div class="mo-week">
+        {% for c in wk.days %}
+        <div class="mo-day{% if not c.inside %} out{% endif %}{% if c.weekend %} we{% endif %}{% if c.holiday %} hol{% endif %}{% if c.today %} today{% endif %}">
+          {% if c.inside %}
+          <div class="mo-num"><b>{{ c.num }}</b></div>
+          {% for b in c.band or [] %}<div class="mo-band{% if b.start %} s{% endif %}{% if b.end %} e{% endif %}" style="background: {{ b.color }};"></div>{% endfor %}
+          <div class="mo-dots">{% for col in c.dots[:5] %}<i style="background: {{ col }};"></i>{% endfor %}{% if c.dots | length > 5 %}<span>+</span>{% endif %}{% if c.bdays %}<span class="mo-cake">{{ M.bday_icon | safe }}</span>{% endif %}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% set lmax = 10 if orientation == "landscape" else 8 %}
+    <aside class="mo-list">
+      {% for it in M.entries[:lmax] %}<div class="mo-li mo-{{ it.kind }}"><b>{{ it.day }}</b><span>{% if it.kind == "multi" %}<i style="background: {{ it.color }};"></i>{% elif it.kind == "bday" %}{{ M.bday_icon | safe }}{% endif %}{{ it.text }}</span></div>{% endfor %}
+      {% if M.entries | length > lmax %}<div class="mo-li mo-more"><span>+ {{ M.entries | length - lmax }} weitere</span></div>{% endif %}
+      {% if not M.entries %}<div class="mo-li mo-none"><span>Keine Feiertage, Reisen oder Geburtstage</span></div>{% endif %}
+    </aside>
+  </div>
+  {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
+</div>
 {% elif night %}
 <!-- ===================== Nachtbild ===================== -->
-<div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}"{% if night.art %}
+<div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}{% if warn %} has-warn{% endif %}"{% if night.art %}
      style="--et: calc(1.5vw + {{ plugin_settings.topMargin or plugin_settings.margin or 5 }}px); --el: calc(1.5vw + {{ plugin_settings.leftMargin or plugin_settings.margin or 5 }}px); --er: calc(1.5vw + {{ plugin_settings.rightMargin or plugin_settings.margin or 5 }}px);"{% endif %}>
+  {% if warn %}<div class="nt-warn">{{ warnband(warn) }}</div>{% endif %}
   <section class="nt-day">
     <div class="nt-wd">{{ night.weekday }}</div>
     <div class="nt-date">{{ night.date }} · KW {{ night.kw }}</div>
@@ -116,6 +164,7 @@
 {% elif week %}
 <!-- ===================== Wochenvorschau ===================== -->
 <div lang="de" class="wk {{ orientation }}">
+  {% if warn %}{{ warnband(warn) }}{% endif %}
   <header class="wk-head">
     <span class="wk-title">Woche {{ week.kw }} · <span class="wk-span" data-long="{{ week.span }}" data-short="{{ week.span_short }}">{{ week.span }}</span>{% if advent %}<span class="h-adv">{{ advent | safe }}</span>{% endif %}</span>
     {# Regen und freie Abende (seit 1.29 statt der Terminzahl); fitWeekHead macht den Kopf passend #}
@@ -139,6 +188,9 @@
     </div>
     {% endfor %}
   </div>
+  {# Wie voll ist die Woche und Laufen der Woche (seit 1.38, Variante C + Laufen A): Fußzeilen über der Pi-Zeile #}
+  {% if load %}<div class="wk-line wk-load-{{ load.level }}"><b>Woche:</b> {{ load.total_text }}{% if load.word %} · <span class="wl-word">{{ load.word }}</span>{% endif %}{% if load.avg_text %} ({{ load.avg_text }}){% endif %}{% if load.peak_text %} · {{ load.peak_text }}{% endif %}</div>{% endif %}
+  {% if runs %}<div class="wk-line"><b>Laufen:</b> {{ runs.km_text }} · {{ runs.count_text }}{% if runs.avg_text %} · {{ runs.avg_text }} in den vier Wochen davor{% endif %}</div>{% endif %}
   {% if pi_line %}<div class="wk-pi"><b>Pi:</b> {{ pi_line }}</div>{% endif %}
   {% if view_error %}<div class="wk-err">{{ view_error }}</div>{% endif %}
 </div>
@@ -168,7 +220,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitWeek);
 </script>
 {% else %}
-<div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}"
+<div lang="de" class="db {{ orientation }}{% if not use_colors %} mono{% endif %}{% if news %} has-news{% endif %}{% if warn %} has-band{% endif %}"
      style="--bg: {{ plugin_settings.backgroundColor or '#ffffff' }}; --ink: {{ plugin_settings.textColor or '#000000' }};">
 
   <header class="head{% if status %} has-status{% endif %}">
@@ -179,6 +231,7 @@
     <span class="h-meta"{% if place and advent %} data-noplace="KW {{ kw }} · Stand {{ updated }}"{% endif %}>{% if place %}{{ place }} · {% endif %}KW {{ kw }} · Stand {{ updated }}</span>
   </header>
 
+  {% if warn %}{{ warnband(warn) }}{% endif %}
   <!-- ===================== Wetter ===================== -->
   <section class="wx">
     {% if weather %}

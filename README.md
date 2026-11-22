@@ -1,12 +1,44 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.37
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.38
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.38: Warnungen aus NINA, volle Woche, Laufen der Woche, Monatsbild
+
+![Warnung aus NINA](docs/warnung_800x480.png)
+
+- **Warnungen des Bevölkerungsschutzes:** Meldet die Warn-App NINA (Bundesamt für Bevölkerungsschutz) etwas für deinen Wetter-Ort – Bombenentschärfung, Großbrand, verunreinigtes Trinkwasser, Hochwasser –, erscheint unter dem Kopf ein rotes Band über die ganze Breite: Titel, darunter der erste Satz der Handlungsempfehlung („Verlassen Sie das Sperrgebiet bis 9:00 Uhr.“) und seit wann die Meldung gilt; mehrere Warnungen: die wichtigste, rechts „+1 weitere“. Leichte Hinweise (z. B. Wasser abkochen) sind gelb. Das Band steht auch im Nachtbild, in der Wochenvorschau und im Monatsbild. Gezeigt werden nur Warnungen, deren Gebiet deinen Wetter-Ort enthält – eine Bombenentschärfung in einem anderen Stadtteil bleibt weg. Unwetter des DWD stehen wie bisher im Wetterbereich. Abgefragt wird höchstens alle 10 Minuten; eine neue Warnung erscheint beim nächsten Takt, auch mitten in der Nacht (das eingefrorene Nachtbild wird dann neu gezeichnet). Einstellung unter „Warnungen (NINA)“: Schalter und **Regionalschlüssel des Kreises** (Bonn 05314, Rhein-Sieg-Kreis 05382).
+- **Wie voll ist die Woche?** Sonntags unter der Wochenvorschau: „Woche: 21 h Termine · deutlich mehr als sonst (Ø 12 h) · vollster Tag Di (9 h)“. Gezählt werden Termine mit Uhrzeit zwischen 7 und 23 Uhr, Überschneidungen nur einmal, ganztägige nicht (ein Nachtzug ab 22:15 zählt 45 Minuten). „Sonst“ ist der Schnitt der letzten acht Wochen; Wochen mit weniger als zwei Stunden (Urlaub) zählen nicht mit, und solange es keine drei Vergleichswochen gibt, steht nur die Zahl da. „Deutlich mehr als sonst“ (ab 30 % über dem Schnitt) ist rot.
+- **Laufen der Woche:** Darunter „Laufen: 17,5 km · 3 Läufe · Ø 13,8 km in den vier Wochen davor“ aus einem Laufbuch in deiner Nextcloud (siehe unten). Ohne Datei fehlt die Zeile.
+
+![Wochenvorschau mit voller Woche und Laufen](docs/woche_800x480.png)
+
+- **Monatsbild:** Am Ersten eines Monats von 6 bis 10 Uhr der ganze Monat: links das Raster mit einem Punkt je Termin in der Kalenderfarbe (höchstens fünf, dann „+“), mehrtägige ganztägige Termine (Reisen) als Band, Wochenenden und Feiertage (NRW) rot, Geburtstage aus der Geburtstagsliste als Törtchen, heute schwarz. Rechts nach Datum: Feiertage, Reisen und Geburtstage (mit Alter). Im Kopf: Zahl der Termine, freie Abende und Feiertage. Das Nachtbild geht vor; ist der Erste ein Sonntag, kommt abends wie gewohnt die Wochenvorschau. Einstellung „Monatsbild“ mit eigenem Zeitfenster.
+
+![Monatsbild](docs/monat_800x480.png)
+
+**Laufbuch per iPhone-Kurzbefehl.** Das Dashboard liest eine Textdatei in deiner Nextcloud (Standard `InkyPi/laufen.txt`, mit demselben Zugang wie der Kalender). Eine Zeile je Lauf: Datum, Kilometer, Minuten (Minuten dürfen fehlen):
+
+```
+2026-11-22;5,2;31
+```
+
+Ein Kurzbefehl „Lauf eintragen“, der nach jedem Lauf die Zeile anhängt (auf dem iPhone nicht geprüft – bitte einmal ausprobieren und die Datei ansehen):
+
+1. **Nach Eingabe fragen** – Zahl, Frage „Wie viele Kilometer?“
+2. **Nach Eingabe fragen** – Zahl, Frage „Wie viele Minuten?“
+3. **Datum formatieren** – Aktuelles Datum, Datumsformat „Eigenes“, `yyyy-MM-dd`, Zeit „Keine“
+4. **Text** – `Formatiertes Datum;Gefragte Eingabe 1;Gefragte Eingabe 2` (die drei Variablen einsetzen, dazwischen Semikolon)
+5. **An Textdatei anhängen** – Datei `laufen.txt` im Ordner `InkyPi` der Nextcloud (über die Nextcloud-App in der Dateien-App), „Neue Zeile“ an
+
+Optional als Automation „Wenn ich ein Training beende (Laufen)“ starten. Steht die Datei woanders, den Pfad unter „Wochenvorschau → Laufbuch in der Nextcloud“ eintragen. Komma oder Punkt bei den Kilometern sind beide richtig; Zeilen mit `#` sind Kommentare.
+
+**Einstellungen:** cfgVersion 25. Die vier neuen Schalter sind von selbst an; einmal speichern genügt. Python, Template und CSS haben sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`. Im Log: `journalctl -u inkypi.service | grep -E "Warnungen|Wochenlast|Laufbuch"`.
 
 ## Neu in 1.37: Lauf-Fenster, Glätte-Hinweis, Polarlicht, Nachtbild aufgeräumt
 
@@ -382,6 +414,9 @@ Siehe `README.md` des Repos (Abschnitt „Schärfer auf dem Inky Impression“):
 
 Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 
+- `warnung_800x480.png`, `warnung_480x800.png` – Bombenentschärfung am Wetter-Ort: rotes Band aus NINA (erfundene Warnung, 1.38)
+- `woche_800x480.png`, `woche_480x800.png` – Wochenvorschau mit „Woche: 21 h Termine · deutlich mehr als sonst“ und Laufen der Woche (1.38)
+- `monat_800x480.png`, `monat_480x800.png` – Monatsbild am 1. Dezember: Punkte je Termin, Reisen als Band, Feiertage und Geburtstage (1.38)
 - `unterwegs_800x480.png`, `unterwegs_480x800.png` – Reif am Morgen: Glätte-Karte und Lauf-Fenster über den Terminen (1.37)
 - `polarlicht_800x480.png`, `polarlicht_480x800.png` – Nachtbild mit Polarlicht (Kp 7), eine Himmelszeile, Tageslicht links (1.37)
 - `entschlackt_800x480.png` – aufgeräumte Wetterseite: vier Kacheln, Kleidung ohne Rahmen (1.36)
@@ -418,4 +453,4 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `zielort_800x480.png` – Ausschuss im Landtag Düsseldorf: „Düsseldorf 10° · Regen ab 14 Uhr“, morgen Sprechstunde in Eschweiler (1.30)
 - `zielort_480x800.png` – hochkant, während des Termins: „Düsseldorf 9° · Regen 80 %“ (1.30)
 
-Die übrigen Bilder stammen aus früheren Versionen: vor 1.37 fehlen Lauf-Fenster und Glätte-Karte, und das Nachtbild hat noch mehrere kleine Textzeilen; vor 1.36 zeigen sie noch sechs Kacheln und die Kleidung im Rahmen, ganz alte auch die Katze noch nicht.
+Die übrigen Bilder stammen aus früheren Versionen: vor 1.38 fehlen in der Wochenvorschau die Zeile „Woche: … h Termine“ (`pi_*`, `abende_*`); vor 1.37 fehlen Lauf-Fenster und Glätte-Karte, und das Nachtbild hat noch mehrere kleine Textzeilen; vor 1.36 zeigen sie noch sechs Kacheln und die Kleidung im Rahmen, ganz alte auch die Katze noch nicht.

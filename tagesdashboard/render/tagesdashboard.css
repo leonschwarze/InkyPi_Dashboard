@@ -699,3 +699,100 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 /* ---- Glätte-Hinweis und Lauf-Fenster (seit 1.37): Karten über den Terminen ---- */
 .ice-card { border-color: #0082C9; border-style: dashed; }
 .run-card { border-color: #2E9E3F; }
+
+/* ---- Warnungen aus NINA (seit 1.38, Variante B „Band“) ----
+ * Rotes Band über die ganze Breite unter dem Kopf; das Symbol steht auf einem weißen Feld, weil seine
+ * rote Kuppel sonst im Band verschwände. Normale Ansicht: eigene Zeile „band“ im Raster (die Tageskurve
+ * wird dafür flacher, fitGraph). Nachtbild: einzeilig, Wochentag und Wetter kleiner. Gelb (#FFE500) nur
+ * für Hinweise der Stufe „Minor“ (z. B. Trinkwasser abkochen). */
+.nina-band { grid-area: band; display: flex; align-items: center; gap: calc(var(--u) * 1.2);
+  background: #E3001B; color: #fff; border-radius: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 1.2) calc(var(--u) * 0.5) calc(var(--u) * 0.6);
+  margin-bottom: calc(var(--u) * 1); }
+.nina-band.nina-gelb { background: #FFE500; color: #000; }
+.nb-icon { flex: 0 0 auto; background: #fff; border-radius: calc(var(--u) * 0.6); padding: calc(var(--u) * 0.3); line-height: 0; }
+.nb-icon .lw-svg { width: calc(var(--u) * 4); height: calc(var(--u) * 4); }
+.nb-main { min-width: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 0.1); }
+.nb-top { font-size: calc(var(--u) * 2.5); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Handlungsempfehlung bis zu zwei Zeilen: Die Uhrzeit („bis 9:00 Uhr“) steht oft am Ende */
+.nb-sub { font-size: calc(var(--u) * 1.85); line-height: 1.15; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.portrait .nb-top { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.db.has-band { grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "head head" "band band" "wx cal"; }
+.db.portrait.has-band { grid-template-rows: auto auto auto minmax(0, 1fr); grid-template-areas: "head" "band" "wx" "cal"; }
+.nt-warn { grid-column: 1 / -1; }
+.nt.has-warn { grid-template-rows: auto minmax(0, 1fr); }
+.nt.has-warn.has-art { grid-template-rows: auto minmax(0, 1fr) auto; }
+.nt.portrait.has-warn { grid-template-rows: auto auto minmax(0, 1fr); }
+.nt.portrait.has-warn.has-art { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.nt-warn .nina-band { padding-top: calc(var(--u) * 0.3); padding-bottom: calc(var(--u) * 0.3); margin-bottom: calc(var(--u) * 1); }
+.nt-warn .nb-icon .lw-svg { width: calc(var(--u) * 2.8); height: calc(var(--u) * 2.8); }
+.nt-warn .nb-top { font-size: calc(var(--u) * 2.2); }
+.nt-warn .nb-sub { font-size: calc(var(--u) * 1.75); }
+.nt.landscape.has-warn .nt-wd { font-size: calc(var(--u) * 4.6); }
+.nt.landscape.has-warn .nt-icon { width: calc(var(--u) * 8); height: calc(var(--u) * 8); }
+.nt.landscape.has-warn .nt-temp { font-size: calc(var(--u) * 4.8); }
+.wk .nina-band, .mo .nina-band { margin: 0 0 calc(var(--u) * 0.8); }
+
+/* ---- Wie voll ist die Woche, Laufen der Woche (seit 1.38, Fußzeilen der Wochenvorschau) ---- */
+.wk-line { flex: 0 0 auto; font-size: calc(var(--u) * 1.85); line-height: 1.25; padding-top: calc(var(--u) * 0.2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk-line:first-of-type { padding-top: calc(var(--u) * 0.6); border-top: calc(var(--u) * 0.3) solid currentColor; }
+.wk-line ~ .wk-pi { border-top: none; padding-top: calc(var(--u) * 0.2); }
+.wk-load-hoch .wl-word { color: #E3001B; }
+.portrait .wk-line { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+/* ---- Monatsbild (seit 1.38, Variante C „Raster + Liste“) ---- */
+.mo { --u: min(1vw, 1.667vh); --line: calc(var(--u) * 0.35); width: 100%; height: 100%; box-sizing: border-box;
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 2.6) calc(var(--u) * 1.2); color: #000; background: #fff;
+  font-family: "Jost", sans-serif; font-weight: 600; display: flex; flex-direction: column; }
+.mo.portrait { --u: min(1.45vw, 0.98vh); }
+.mo-body { flex: 1 1 auto; min-height: 0; display: flex; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 0.6); }
+.mo-grid { flex: 0 0 58%; min-width: 0; display: flex; flex-direction: column; }
+.mo-wd { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-size: calc(var(--u) * 1.8);
+  border-bottom: calc(var(--u) * 0.25) solid currentColor; padding-bottom: calc(var(--u) * 0.2); text-align: center; }
+.mo-wd .we { color: #E3001B; }
+.mo-week { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: calc(var(--u) * 0.2) dotted currentColor; overflow: hidden; }
+.mo-week:last-child { border-bottom: none; }
+.mo-day { min-width: 0; min-height: 0; overflow: hidden; padding-top: calc(var(--u) * 0.3);
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.25);
+  border-left: calc(var(--u) * 0.2) dotted currentColor; }
+.mo-day:first-child { border-left: none; }
+.mo-num { line-height: 1; }
+.mo-num b { font-weight: 600; font-size: calc(var(--u) * 2.3); }
+.mo-day.we .mo-num b, .mo-day.hol .mo-num b { color: #E3001B; }
+.mo-day.today .mo-num b { background: #000; color: #fff; border-radius: calc(var(--u) * 0.4); padding: 0 calc(var(--u) * 0.4); }
+.mo-day.out { visibility: hidden; }
+.mo-band { align-self: stretch; height: calc(var(--u) * 0.7); flex: 0 0 auto; }
+.mo-band.s { margin-left: calc(var(--u) * 0.6); border-top-left-radius: calc(var(--u) * 0.35); border-bottom-left-radius: calc(var(--u) * 0.35); }
+.mo-band.e { margin-right: calc(var(--u) * 0.6); border-top-right-radius: calc(var(--u) * 0.35); border-bottom-right-radius: calc(var(--u) * 0.35); }
+.mo-dots { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: calc(var(--u) * 0.35);
+  margin-top: auto; padding-bottom: calc(var(--u) * 0.5); }
+.mo-dots i { display: block; width: calc(var(--u) * 1.4); height: calc(var(--u) * 1.4); border-radius: 50%; }
+.mo-dots span { font-size: calc(var(--u) * 1.6); line-height: 1; }
+.mo-ic { width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); flex: 0 0 auto; }
+.mo-list { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+  gap: calc(var(--u) * 0.7); font-size: calc(var(--u) * 2); border-left: var(--line) solid currentColor; padding-left: calc(var(--u) * 2); }
+.mo-li { display: flex; gap: calc(var(--u) * 1); line-height: 1.15; }
+.mo-li b { flex: 0 0 calc(var(--u) * 10); font-weight: 600; white-space: nowrap; }
+.mo-li span { display: flex; align-items: center; gap: calc(var(--u) * 0.5); min-width: 0; }
+.mo-li i { display: inline-block; width: calc(var(--u) * 1.4); height: calc(var(--u) * 1.4); border-radius: calc(var(--u) * 0.3); flex: 0 0 auto; }
+.mo-li.mo-hol { color: #E3001B; }
+.mo-li .mo-ic { width: calc(var(--u) * 2.2); height: calc(var(--u) * 2.2); }
+.mo.portrait .mo-body { flex-direction: column; }
+.mo.portrait .mo-grid { flex: 0 0 68%; }
+.mo.portrait .mo-list { border-left: none; padding-left: 0; border-top: var(--line) solid currentColor; padding-top: calc(var(--u) * 1); }
+.nina-band .nb-main { flex: 1 1 auto; }
+.nb-more { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; line-height: 1;
+  font-size: calc(var(--u) * 2.4); padding-left: calc(var(--u) * 1); border-left: calc(var(--u) * 0.3) solid currentColor; }
+.nb-more small { font-size: calc(var(--u) * 1.4); }
+.nt-warn .nb-more { font-size: calc(var(--u) * 2); }
+/* Mit Warnung reicht quer der Platz links nicht für alles: Tageslicht entfällt, Abstände kleiner */
+.nt.landscape.has-warn .nt-dl { display: none; }
+.nt.landscape.has-warn .nt-wx { margin-top: calc(var(--u) * 0.8); }
+.nt.landscape.has-warn .nt-facts { margin-top: calc(var(--u) * 0.8); }
+/* Törtchen größer als ein Punkt, sonst auf dem Display nicht zu erkennen (4× geprüft) */
+.mo-cake { line-height: 0; }
+.mo-cake .mo-ic { width: calc(var(--u) * 2.8); height: calc(var(--u) * 2.8); }
+.mo-li .mo-ic { width: calc(var(--u) * 2.6); height: calc(var(--u) * 2.6); }

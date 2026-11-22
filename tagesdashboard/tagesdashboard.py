@@ -48,12 +48,13 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
-                   pegel, pizustand, advent, zielort, laufen, glaette, polarlicht)
+                   pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
-                                        zielort, laufen, glaette, polarlicht)
+                                        zielort, laufen, glaette, polarlicht, nina, wochenlast,
+                                        laufbilanz, monat)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -73,6 +74,16 @@ ICE_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true"><g fill="
             'stroke-linecap="round" stroke-linejoin="round"><path d="M24 4 V44 M6.7 14 L41.3 34 M6.7 34 L41.3 14"/>'
             '<path d="M18.5 7.5 L24 13 L29.5 7.5 M18.5 40.5 L24 35 L29.5 40.5 M5.5 21.5 L13 20 L10.5 12.5 '
             'M42.5 26.5 L35 28 L37.5 35.5 M5.5 26.5 L13 28 L10.5 35.5 M42.5 21.5 L35 20 L37.5 12.5"/></g></svg>')
+
+# Sirene mit Blinklicht (Warnungen aus NINA, seit 1.38), 48er-ViewBox wie die Karten-Icons
+NINA_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true">'
+             '<path d="M12 36 V26 A12 12 0 0 1 36 26 V36 Z" fill="#E3001B" stroke="#000" stroke-width="3" stroke-linejoin="round"/>'
+             '<path d="M18.5 26 A5.5 5.5 0 0 1 24 20.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>'
+             '<rect x="7" y="36" width="34" height="7" rx="1.5" fill="#000"/>'
+             '<path d="M24 3.5 V9 M8.5 9.5 L12.5 13.5 M39.5 9.5 L35.5 13.5 M2.5 24 H7.5 M40.5 24 H45.5" stroke="#000" '
+             'stroke-width="3.4" stroke-linecap="round"/></svg>')
+
+_HISTORY = {}  # Wochenlast: Termine der vergangenen Wochen, einmal am Tag abgefragt (seit 1.38)
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -190,6 +201,11 @@ DEFAULTS = {
     "runEnabled": "true", "runMinutes": str(laufen.DAUER),
     "iceEnabled": "true",
     "polarEnabled": "true",
+    # Warnungen aus NINA, Wochenlast, Laufbuch, Monatsbild (seit cfgVersion 25)
+    "ninaEnabled": "true", "ninaArs": nina.DEFAULT_ARS,
+    "loadEnabled": "true",
+    "runLogEnabled": "true", "runFile": laufbilanz.DEFAULT_PATH,
+    "monthEnabled": "true", "monthFrom": "06:00", "monthTo": "10:00",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -216,7 +232,8 @@ SINCE_VERSION.update({"pegelEnabled": 21, "piEnabled": 21})
 SINCE_VERSION.update({"freeEnabled": 22, "adventEnabled": 22})
 SINCE_VERSION["zielEnabled"] = 23
 SINCE_VERSION.update({"runEnabled": 24, "iceEnabled": 24, "polarEnabled": 24})
-CFG_VERSION = 24  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"ninaEnabled": 25, "loadEnabled": 25, "runLogEnabled": 25, "monthEnabled": 25})
+CFG_VERSION = 25  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -352,7 +369,7 @@ class Tagesdashboard(BasePlugin):
                 return None
             a, b = bahn.parse_hhmm(opt(f"{prefix}From")), bahn.parse_hhmm(opt(f"{prefix}To"))
             return (a, b) if a and b and a != b else None
-        night_win, week_win = window("night"), window("week")
+        night_win, week_win, month_win = window("night"), window("week"), window("month")
         fest_cfg = festtage.read_config(opt, flag)
         fest_now = festtage.view(now, fest_cfg)
         mode = "normal"
@@ -360,6 +377,8 @@ class Tagesdashboard(BasePlugin):
             mode = "fest"
         elif night_win and ansichten.in_window(now, *night_win):
             mode = "night"
+        elif month_win and now.day == 1 and ansichten.in_window(now, *month_win):
+            mode = "monat"  # Monatsbild (seit 1.38): am Monatsersten, geht der Wochenvorschau vor
         elif week_win and ansichten.in_window(now, *week_win, weekday=WEEK_DAY):
             mode = "week"
         if mode != "normal":
@@ -370,15 +389,29 @@ class Tagesdashboard(BasePlugin):
         # (Fehler bis 1.31). Verlängern kann der Cache einen langsameren Takt nicht (cache_fresh).
         use_cache = not train_now
         cache_key = json.dumps([settings, list(dimensions)], sort_keys=True, default=str)
+        # Warnungen aus NINA (seit 1.38) schon vor den Bild-Caches: Eine neue Warnung soll beim nächsten
+        # Takt erscheinen, auch mitten in der Nacht (Nachtbild sonst bis 6 Uhr eingefroren)
+        warnings, warn_sig = [], ""
+        nina_ars = nina.read_ars(opt("ninaArs")) if flag("ninaEnabled") else None
+        if nina_ars:
+            try:
+                warnings = nina.load(nina_ars, *self.home_position(settings))
+                warn_sig = nina.signature(warnings)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Warnungen konnten nicht geladen werden")
         if mode == "night" and flag("nightFreeze") and not self._manual_refresh():
             hit = _NIGHT_CACHE.get(cache_key)
-            if hit and now < hit["until"]:
+            if hit and hit.get("warn") != warn_sig:
+                logger.info("Warnungen haben sich geändert – Nachtbild wird neu gezeichnet")
+            elif hit and now < hit["until"]:
                 logger.info("Nachtbild von %s wiederverwendet (bis %s)", hit["made"], hit["until"].strftime("%H:%M"))
                 return hit["image"].copy()
         if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
             takt = cycle_seconds(device_config)
-            if hit and cache_fresh(now, hit["quiet"], hit["edge"], takt):
+            if hit and hit.get("warn") != warn_sig:
+                logger.info("Warnungen haben sich geändert – Bild wird neu gezeichnet")
+            elif hit and cache_fresh(now, hit["quiet"], hit["edge"], takt):
                 logger.info("Zugfenster nicht aktiv – Bild von %s wiederverwendet (Takt %s, neu um %s)",
                             hit["made"], f"{takt // 60} min" if takt else "unbekannt",
                             min(t for t in (hit["quiet"], hit["edge"]) if t).strftime("%H:%M"))
@@ -392,7 +425,9 @@ class Tagesdashboard(BasePlugin):
         events, calendars, cal_error = [], [], None
         try:
             events, calendars = self.load_calendar(settings, device_config, tz, today, flag,
-                                                   min_days=8 if mode == "week" else 0)
+                                                   min_days=8 if mode == "week" else monat.days_needed(today)
+                                                   if mode == "monat" else 0,
+                                                   history=mode == "week" and flag("loadEnabled"))
             status.ok("Kalender")  # ein einzelner unlesbarer Kalender hat schon fail gemeldet
         except RuntimeError as exc:
             cal_error = str(exc)
@@ -560,6 +595,17 @@ class Tagesdashboard(BasePlugin):
                 polar_values = polarlicht.load_values()
             except Exception:  # Zusatz: nie das ganze Bild verlieren
                 logger.exception("Polarlicht konnte nicht geladen werden")
+        # ---- Warnungen aus NINA (seit 1.38, Leons Wahl „B Band“): Band unter dem Kopf in der normalen
+        # Ansicht, im Nachtbild, in der Wochenvorschau und im Monatsbild; geladen schon vor den Bild-Caches ----
+        warn = None
+        if nina_ars:
+            nina.report_status(nina_ars)
+            if warnings and mode in ("normal", "night", "week", "monat"):
+                w0 = warnings[0]
+                warn = {"first": dict(w0, since_text=nina.since_text(w0, tz)), "more": len(warnings) - 1,
+                        "icon": NINA_ICON.format(cls="lw-svg")}
+                logger.info("Warnungen: %s%s (%s, %s)", w0["title"], f" und {len(warnings) - 1} weitere"
+                            if len(warnings) > 1 else "", w0["provider"], w0["severity"])
         # ---- Statusanzeige: alle Abrufe dieser Runde sind gelaufen ----
         status.commit(now)
         self.pi_record(now, device_config, flag("piEnabled"))
@@ -568,6 +614,7 @@ class Tagesdashboard(BasePlugin):
             logger.info("Status im Kopf: %s", ", ".join(
                 f"{s['name']} seit {s['since']}" + (" (lang)" if s["long"] else "") for s in params["status"]))
         params["orientation"] = "portrait" if dimensions[1] > dimensions[0] else "landscape"
+        params["warn"] = warn
         # ---- Adventskranz (seit 1.29): 1. Advent bis Heiligabend, Kopf der normalen Ansicht und der
         # Wochenvorschau; jede Adventswoche brennt eine Kerze mehr. Keine Einstellung ----
         candles = advent.candles(today) if mode in ("normal", "week") and flag("adventEnabled") else 0
@@ -628,6 +675,15 @@ class Tagesdashboard(BasePlugin):
                             f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
             except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
                 logger.exception("Katze konnte nicht gewählt werden")
+        if mode == "monat":  # Monatsbild (seit 1.38, Leons Wahl „C Raster + Liste“)
+            year, month = today.year, today.month
+            free_win = self.free_window(opt, flag)
+            params["month"] = monat.grid(
+                year, month, events, tz, birthdays=fest_cfg["birthdays"] if fest_cfg else (),
+                free_evening=(lambda items, d: ansichten.free_evening(items, d, tz, free_win)) if free_win and not cal_error else None,
+                today=today)
+            params["month"]["bday_icon"] = festtage.icon("geburtstag", "mo-ic")
+            params["view_error"] = cal_error or params.get("wx_error")
         if mode == "urlaub":
             self.urlaub_view(params, vacation, today, weather, dimensions, tz, now)
         if mode == "fest":
@@ -639,7 +695,8 @@ class Tagesdashboard(BasePlugin):
                               eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
                               iss_pos=self.home_position(settings) if flag("issEnabled") else None,
                               river=river_info, polar=polar_values, pi=flag("piEnabled"), free_win=self.free_window(opt, flag),
-                              dims=dimensions)
+                              dims=dimensions, load=flag("loadEnabled"),
+                              run_file=laufbilanz.clean_path(opt("runFile")) if flag("runLogEnabled") else None)
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
@@ -651,7 +708,7 @@ class Tagesdashboard(BasePlugin):
             # Einmal pro Nacht zeichnen: bis zum Ende des Nachtfensters bleibt das Bild stehen
             _NIGHT_CACHE.clear()
             _NIGHT_CACHE[cache_key] = {"image": image.copy(), "made": now.strftime("%H:%M"),
-                                       "until": ansichten.window_end(now, *night_win)}
+                                       "until": ansichten.window_end(now, *night_win), "warn": warn_sig}
         if use_cache:
             # Bild höchstens quietMinutes lang wiederverwenden und nie über eine Fenstergrenze
             # hinweg (Zugfenster beginnt, Nachrichten erscheinen oder verschwinden).
@@ -662,6 +719,7 @@ class Tagesdashboard(BasePlugin):
             edges += waesche.boundaries(now, *laundry_win) if laundry_win else []
             edges += ansichten.boundaries(now, *night_win) if night_win else []
             edges += ansichten.boundaries(now, *week_win) if week_win else []
+            edges += monat.boundaries(now, *month_win) if month_win else []  # Monatsbild am Ersten (seit 1.38)
             edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
             # Glätte-Karte endet, Lauf-Fenster beginnt („jetzt bis …“) bzw. ist zu kurz geworden (seit 1.37)
             edges += [params["ice"]["until"]] if params.get("ice") else []
@@ -675,7 +733,7 @@ class Tagesdashboard(BasePlugin):
             edge = min((e for e in edges if e and e > now), default=None)
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "quiet": quiet_until, "edge": edge,
-                                       "made": now.strftime("%H:%M")}
+                                       "made": now.strftime("%H:%M"), "warn": warn_sig}
         return image
 
     # ==================================================================
@@ -771,7 +829,7 @@ class Tagesdashboard(BasePlugin):
 
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
-                     polar=None, pi=False, free_win=None, dims=(800, 480)):
+                     polar=None, pi=False, free_win=None, dims=(800, 480), load=False, run_file=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -850,6 +908,24 @@ class Tagesdashboard(BasePlugin):
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,
                                             per_row=4 if portrait else 3, has_calendar=not cal_error,
                                             evening=free_win)
+            if load and not cal_error:  # Wie voll ist die Woche? (seit 1.38, Fußzeile)
+                try:
+                    nxt = params["week"]["start"]
+                    days = wochenlast.week_hours(events, nxt, tz)
+                    avg = wochenlast.average(getattr(self, "_history", []), nxt, tz)
+                    params["load"] = wochenlast.summary(days, avg)
+                    logger.info("Wochenlast: %s, %s (%s)", params["load"]["total_text"],
+                                params["load"]["word"] or "kein Vergleich", params["load"]["avg_text"] or "zu wenige Wochen")
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    logger.exception("Wochenlast konnte nicht berechnet werden")
+            if run_file and getattr(self, "_nc_client", None) and not cal_error:  # Laufen der Woche (seit 1.38)
+                try:
+                    runs = laufbilanz.load(self._nc_client, self._nc_user, run_file)
+                    params["runs"] = laufbilanz.summary(runs, now.date())
+                    if params["runs"]:
+                        logger.info("Laufbuch: %s in %s", params["runs"]["km_text"], params["runs"]["count_text"])
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    logger.exception("Laufbuch konnte nicht gelesen werden")
             if pi:  # Zustand des Pi in der Fußzeile (seit 1.28)
                 try:
                     params["pi_line"] = pizustand.line(now, getattr(self, "_pi_path", None))
@@ -861,7 +937,7 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     # Kalender
     # ==================================================================
-    def load_calendar(self, settings, device_config, tz, today, flag, min_days=0):
+    def load_calendar(self, settings, device_config, tz, today, flag, min_days=0, history=False):
         user = (settings.get("username") or "").strip()
         url = (settings.get("nextcloudUrl") or "").strip()
         if not user or not url:
@@ -884,6 +960,28 @@ class Tagesdashboard(BasePlugin):
             except RuntimeError as exc:
                 logger.warning("Kalender %s nicht lesbar: %s", cal["name"], exc)
                 status.fail("Kalender", f"{cal['name']}: {exc}")
+        self._nc_client, self._nc_user = client, user
+        self._history = []
+        if history:  # Wochenlast (seit 1.38): acht vergangene Wochen, einmal am Tag abgefragt
+            key = (url, user, settings.get("calendars", ""), today.isoformat())
+            if _HISTORY.get("key") == key:
+                self._history = _HISTORY["events"]
+            else:
+                monday = today + timedelta(days=(7 - today.weekday()) % 7 or 7)
+                h_start = datetime.combine(monday - timedelta(days=7 * wochenlast.HISTORY_WEEKS), time.min, tz)
+                complete = True
+                for cal in calendars:
+                    try:
+                        for ics in client.events(cal["url"], h_start, start):
+                            self._history.extend(helper.parse_events(ics, cal, tz, h_start, start, client.own_addresses))
+                    except RuntimeError as exc:
+                        complete = False
+                        logger.warning("Kalender %s (vergangene Wochen) nicht lesbar: %s", cal["name"], exc)
+                if complete:  # unvollständig: nächste Runde noch einmal versuchen
+                    _HISTORY.clear()
+                    _HISTORY.update(key=key, events=self._history)
+                logger.info("Wochenlast: %d Termine aus %d vergangenen Wochen geladen",
+                            len(self._history), wochenlast.HISTORY_WEEKS)
         if getattr(helper, "declined_hidden", 0):
             logger.info("Kalender: %d abgelehnte Termine ausgeblendet", helper.declined_hidden)
         return events, calendars

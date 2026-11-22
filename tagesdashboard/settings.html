@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="24" />
+<input type="hidden" name="cfgVersion" value="25" />
 
 <div class="st">
 
@@ -149,6 +149,20 @@
 </section>
 
 <section class="st-sec">
+    <h3 class="st-h">Warnungen (NINA)</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="ninaEnabled" value="true" data-default="true" data-since="25"><span>Warnungen des Bevölkerungsschutzes <span class="st-note">rotes Band unter dem Kopf, z. B. bei Bombenentschärfung, Großbrand oder verunreinigtem Trinkwasser – in jeder Ansicht, auch nachts</span></span></label>
+    <div class="st-sub" data-parent="ninaEnabled">
+        <div class="st-field">
+            <label for="ninaArs">Regionalschlüssel des Kreises</label>
+            <input type="text" id="ninaArs" name="ninaArs" class="form-input" placeholder="05314" inputmode="numeric" />
+        </div>
+        <details class="st-why"><summary>Was wird gezeigt?</summary>
+            <div class="st-hint">Quelle ist die Warn-App NINA des Bundesamts für Bevölkerungsschutz (warnung.bund.de), abgefragt höchstens alle 10 Minuten. Gezeigt werden nur Warnungen, deren Gebiet den Wetter-Ort enthält; eine Bombenentschärfung in einem anderen Stadtteil bleibt weg. Unwetter des DWD stehen schon im Wetterbereich und erscheinen hier nicht. Bonn = 05314, Rhein-Sieg-Kreis = 05382, Köln = 05315 (die ersten fünf Stellen des Amtlichen Regionalschlüssels).</div>
+        </details>
+    </div>
+</section>
+
+<section class="st-sec">
     <h3 class="st-h">Termine</h3>
     <div class="st-line">
         <span>Bis zu</span>
@@ -278,7 +292,26 @@
         <div class="st-sub" data-parent="freeEnabled">
             <div class="st-line"><span>Abend von</span><input type="time" id="freeFrom" name="freeFrom" class="form-input st-time" /><span>bis</span><input type="time" id="freeTo" name="freeTo" class="form-input st-time" /></div>
         </div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="loadEnabled" value="true" data-default="true" data-since="25"><span>Wie voll ist die Woche? <span class="st-note">eine Zeile unten: Stunden mit Terminen (7–23 Uhr, ohne ganztägige) im Vergleich zum Schnitt der letzten acht Wochen, dazu der vollste Tag</span></span></label>
+        <label class="st-check"><input type="checkbox" class="db-check" name="runLogEnabled" value="true" data-default="true" data-since="25"><span>Laufen der Woche <span class="st-note">eine Zeile unten: Kilometer und Läufe dieser Woche aus einem Laufbuch in der Nextcloud</span></span></label>
+        <div class="st-sub" data-parent="runLogEnabled">
+            <div class="st-field">
+                <label for="runFile">Laufbuch in der Nextcloud</label>
+                <input type="text" id="runFile" name="runFile" class="form-input" placeholder="InkyPi/laufen.txt" />
+            </div>
+            <details class="st-why"><summary>Wie kommen die Läufe in die Datei?</summary>
+                <div class="st-hint">Eine Zeile je Lauf: <code>2026-11-22;5,2;31</code> (Datum, Kilometer, Minuten – die Minuten dürfen fehlen). Am einfachsten mit einem iPhone-Kurzbefehl, der nach dem Lauf die Kilometer abfragt und die Zeile an die Datei anhängt (Anleitung in der README). Gelesen wird mit demselben Zugang wie der Kalender. Fehlt die Datei, fehlt nur die Zeile.</div>
+            </details>
+        </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="piEnabled" value="true" data-default="true" data-since="21"><span>Zustand des Pi <span class="st-note">eine Zeile unten: Ausfälle der Woche, Neustarts, Unterspannung, wie lange online, höchste Temperatur, freier Speicher</span></span></label>
+    </div>
+</section>
+
+<section class="st-sec">
+    <h3 class="st-h">Monatsbild</h3>
+    <label class="st-check"><input type="checkbox" class="db-check" name="monthEnabled" value="true" data-default="true" data-since="25"><span>Am Monatsersten den ganzen Monat zeigen <span class="st-note">Raster mit einem Punkt je Termin, daneben Feiertage, Reisen und Geburtstage</span></span></label>
+    <div class="st-sub" data-parent="monthEnabled">
+        <div class="st-line"><span>von</span><input type="time" id="monthFrom" name="monthFrom" class="form-input st-time" /><span>bis</span><input type="time" id="monthTo" name="monthTo" class="form-input st-time" /></div>
     </div>
 </section>
 
@@ -494,6 +527,7 @@
         newsFrUrl: 'https://www.francetvinfo.fr/titres.rss',
         airLevel: '3', airRadius: '3', airStation: 'DENW062',
         pollenLevel: '1', runMinutes: '60',
+        ninaArs: '05314', runFile: 'InkyPi/laufen.txt', monthFrom: '06:00', monthTo: '10:00',
         urlaubWords: 'Urlaub, Ferien, Reise', urlaubMinDays: '2',
         wahlArt: 'landtag', wahlWords: 'Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion',
         liveWords: 'Ratssitzung', liveUrl: 'https://www.bonn.de/livestream' };

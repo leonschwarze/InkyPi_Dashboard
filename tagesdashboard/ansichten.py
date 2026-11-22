@@ -261,5 +261,5 @@ def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3, has_calen
         summary.append("kaum Regen")
     if show_free:
         summary.append(free_text(free))
-    return {"kw": start.isocalendar()[1], "span": span, "span_short": span_short, "summary": summary,
+    return {"start": start, "kw": start.isocalendar()[1], "span": span, "span_short": span_short, "summary": summary,
             "rows": rows, "free": free if show_free else None}
