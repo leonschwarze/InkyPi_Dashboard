@@ -48,13 +48,14 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
-                   pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat)
+                   pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
+                   xkcd)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat)
+                                        laufbilanz, monat, xkcd)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -206,6 +207,8 @@ DEFAULTS = {
     "loadEnabled": "true",
     "runLogEnabled": "true", "runFile": laufbilanz.DEFAULT_PATH,
     "monthEnabled": "true", "monthFrom": "06:00", "monthTo": "10:00",
+    # Sonntagscomic: xkcd statt der leeren Terminliste (seit cfgVersion 26)
+    "comicEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -233,7 +236,8 @@ SINCE_VERSION.update({"freeEnabled": 22, "adventEnabled": 22})
 SINCE_VERSION["zielEnabled"] = 23
 SINCE_VERSION.update({"runEnabled": 24, "iceEnabled": 24, "polarEnabled": 24})
 SINCE_VERSION.update({"ninaEnabled": 25, "loadEnabled": 25, "runLogEnabled": 25, "monthEnabled": 25})
-CFG_VERSION = 25  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["comicEnabled"] = 26
+CFG_VERSION = 26  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -606,6 +610,17 @@ class Tagesdashboard(BasePlugin):
                         "icon": NINA_ICON.format(cls="lw-svg")}
                 logger.info("Warnungen: %s%s (%s, %s)", w0["title"], f" und {len(warnings) - 1} weitere"
                             if len(warnings) > 1 else "", w0["provider"], w0["severity"])
+        # ---- Sonntagscomic (seit 1.40, Leons Wahl „Variante C“): sonntags ohne weitere Termine steht der
+        # neueste passende xkcd in der Terminspalte, links bleibt das Wetter. Nicht im Nachrichtenfenster
+        # (dann gehört die Spalte den Schlagzeilen). Vor commit, damit ein Ausfall von xkcd gezählt wird ----
+        if (mode == "normal" and flag("comicEnabled") and today.weekday() == xkcd.WEEKDAY and not news_now
+                and not cal_error and xkcd.free_today((params.get("calendar") or [None])[0], now)):
+            try:
+                params["comics"] = xkcd.load(dimensions)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Sonntagscomic konnte nicht geladen werden")
+            if params.get("comics"):
+                params["comic_next"] = xkcd.next_event(params["calendar"])
         # ---- Statusanzeige: alle Abrufe dieser Runde sind gelaufen ----
         status.commit(now)
         self.pi_record(now, device_config, flag("piEnabled"))
@@ -728,6 +743,8 @@ class Tagesdashboard(BasePlugin):
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
             edges += advent.boundaries(now) if flag("adventEnabled") else []  # Kranz kommt, bekommt eine Kerze mehr, geht nach Heiligabend
+            if flag("comicEnabled"):  # Sonntagscomic: erscheint, sobald der letzte Termin des Tages vorbei ist
+                edges += xkcd.boundaries(now, today_events)
             if flag("liveEnabled"):  # Livestream-Karte kommt zu Beginn der Sitzung und geht an ihrem Ende
                 edges += livestream.boundaries(today_events, live_words, now)
             edge = min((e for e in edges if e and e > now), default=None)

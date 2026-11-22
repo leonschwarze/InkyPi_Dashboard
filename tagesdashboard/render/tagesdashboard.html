@@ -514,7 +514,17 @@
     {% if cal_error %}
     <div class="error-box">Kalender nicht verfügbar<br><span>{{ cal_error }}</span></div>
     {% else %}
-    <div class="cal-list fit-box">
+    {% if comics %}{# Sonntagscomic (seit 1.40, Variante C): bis zu drei Kandidaten, fitComics nimmt den ersten, der passt #}
+    <div class="day is-today co-day"><div class="day-head"><span class="dl">Heute</span><span class="dd co-free">frei{% if comic_next %} · {{ comic_next }}{% endif %}</span></div></div>
+    {% for c in comics %}
+    <div class="comic" data-min-w="{{ c.min_w }}"{% if not loop.first %} style="display: none;"{% endif %}>
+      <div class="co-title"><span class="co-name">{{ c.title }}</span><span class="co-src">xkcd {{ c.num }} · {{ c.credit }}</span></div>
+      <div class="co-fig"><img class="co-img" src="{{ c.src }}" width="{{ c.w }}" height="{{ c.h }}" alt=""></div>
+      <div class="co-alt" lang="en">{{ c.alt }}</div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    <div class="cal-list fit-box{% if comics %} co-off{% endif %}">
       {% for day in (calendar[:1] if news else calendar) %}
       <div class="day{% if day.is_today %} is-today{% endif %}">
         <div class="day-head fit-item"><span class="dl">{{ day.label }}</span>{% if day.date %}<span class="dd">{{ day.date }}</span>{% endif %}</div>
@@ -592,7 +602,7 @@
     const lines = [];
     const head = db.querySelector(':scope > .head');
     if (visible(head)) lines.push({kind: 'kopf', el: head, y: borderTop(head)});
-    db.querySelectorAll('.cal-list .day-head').forEach(el => {
+    db.querySelectorAll('.cal-list .day-head, .co-day .day-head').forEach(el => {
       if (visible(el)) lines.push({kind: 'tag', el, y: borderTop(el)});
     });
     const more = db.querySelector('.more:not([hidden])');
@@ -805,7 +815,44 @@
     g.classList.add('g-tight');
     if (bad()) g.classList.add('g-tighter');
   }
+  /* Sonntagscomic (seit 1.40): Die Bilder kommen in passender Größe aus Python und werden 1:1 gezeigt.
+     Je Kandidat (neuester zuerst): 1. Bild + Mouseover-Text passen → fertig. 2. Text weglassen.
+     3. Bild verkleinern, aber nicht unter data-min-w (sonst unlesbar) → nächster Kandidat.
+     Passt keiner, steht doch die normale Terminliste da (ohne die Zeile „Heute frei“). */
+  function fitComic(box) {
+    const img = box.querySelector('.co-img'), fig = box.querySelector('.co-fig'), alt = box.querySelector('.co-alt');
+    const W = Number(img.getAttribute('width')), H = Number(img.getAttribute('height'));
+    box.style.display = '';
+    img.style.width = W + 'px'; img.style.height = H + 'px';
+    alt.style.display = alt.textContent.trim() ? '' : 'none';
+    const fits = () => {
+      const f = fig.getBoundingClientRect(), r = img.getBoundingClientRect();
+      return r.bottom <= f.bottom + 0.5 && r.right <= f.right + 0.5;
+    };
+    if (fits()) return true;
+    alt.style.display = 'none';
+    if (fits()) return true;
+    const f = fig.getBoundingClientRect();
+    const k = Math.min(f.width / W, f.height / H);
+    const w = Math.floor(W * k);
+    if (w > 0 && w >= Number(box.dataset.minW || 0)) {
+      img.style.width = w + 'px'; img.style.height = Math.floor(H * k) + 'px';
+      return true;
+    }
+    box.style.display = 'none';
+    return false;
+  }
+  function fitComics(col) {
+    const boxes = Array.from(col.querySelectorAll(':scope > .comic'));
+    if (!boxes.length) return;
+    const head = col.querySelector(':scope > .co-day'), list = col.querySelector(':scope > .cal-list');
+    boxes.forEach(b => { b.style.display = 'none'; });
+    head.style.display = ''; list.classList.add('co-off');
+    if (boxes.some(fitComic)) return;      // some() hört beim ersten passenden auf, die übrigen bleiben aus
+    head.style.display = 'none'; list.classList.remove('co-off');   // zu klein: lieber die nächsten Tage
+  }
   function fitAll() {
+    document.querySelectorAll('.cal').forEach(fitComics);
     document.querySelectorAll('.graph').forEach(fitGraph);
     fitQr(false);
     document.querySelectorAll('.db > .head').forEach(fitHead);

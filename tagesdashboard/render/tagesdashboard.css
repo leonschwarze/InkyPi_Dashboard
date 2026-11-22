@@ -198,6 +198,17 @@
 .now-tag { display: inline-block; padding: 0 0.25em; border: var(--line) solid currentColor; border-radius: 0.3em; font-size: 0.8em; }
 .more { flex: 0 0 auto; font-size: calc(var(--u) * 1.85); text-align: center; padding-top: calc(var(--u) * 0.35); border-top: var(--line) dashed currentColor; }
 .more[hidden] { display: none; }
+/* Sonntagscomic (seit 1.40): Bild 1:1 aus Python, Titel und Mouseover-Text in Jost */
+.comic { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.co-off { display: none !important; }
+.co-free { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-title { display: flex; align-items: baseline; gap: calc(var(--u) * 1); margin-top: calc(var(--u) * 0.7); line-height: 1.15; }
+.co-name { flex: 1 1 auto; min-width: 0; font-size: calc(var(--u) * 2.2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-src { flex: 0 0 auto; font-size: calc(var(--u) * 1.7); }
+.co-fig { flex: 0 1 auto; min-height: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start;
+  margin-top: calc(var(--u) * 0.7); }
+.co-img { display: block; flex: 0 0 auto; image-rendering: pixelated; }
+.co-alt { font-size: calc(var(--u) * 1.75); line-height: 1.2; margin-top: calc(var(--u) * 0.7); }
 
 .error-box { border: var(--line) dashed currentColor; border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 1.5); font-size: calc(var(--u) * 2.2); }
 .error-box span { font-size: calc(var(--u) * 1.7); }

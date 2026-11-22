@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="25" />
+<input type="hidden" name="cfgVersion" value="26" />
 
 <div class="st">
 
@@ -179,6 +179,7 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="showLocation" value="true" data-default="true"><span>Ort anzeigen</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="useColors" value="true" data-default="true"><span>Kalenderfarben</span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="showPast" value="true" data-default="false"><span>Beendete Termine von heute zeigen</span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="comicEnabled" value="true" data-default="true" data-since="26"><span>Sonntagscomic <span class="st-note">sonntags ohne weitere Termine steht statt der Liste der neueste xkcd (passt er nicht in die Spalte, der vorherige)</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="liveEnabled" value="true" data-default="true" data-since="20"><span>Livestream während Sitzungen <span class="st-note">oben in der Terminliste ein QR-Code zum Stream, solange der Termin läuft</span></span></label>
     <div class="st-sub" data-parent="liveEnabled">
         <div class="st-field">
