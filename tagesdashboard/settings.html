@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="23" />
+<input type="hidden" name="cfgVersion" value="24" />
 
 <div class="st">
 
@@ -132,6 +132,20 @@
         <input type="text" id="uvCity" name="uvCity" class="form-input" placeholder="leer = Ortsname vom DWD, z. B. Bonn" />
     </div>
     <div class="st-hint">Der DWD berechnet den UV-Index nur für ausgewählte Orte. Liegt dein Ort nicht dabei, trag den nächstgelegenen ein (z. B. Köln). Ohne Treffer zeigt die Kachel die Bewölkung.</div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="iceEnabled" value="true" data-default="true" data-since="24"><span>Glätte-Hinweis fürs Rad <span class="st-note">morgens (5–10 Uhr) eine Karte über den Terminen, wenn Reif, überfrierende Nässe oder Schnee drohen; entfällt, wenn der DWD selbst vor Glätte warnt</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="runEnabled" value="true" data-default="true" data-since="24"><span>Lauf-Fenster <span class="st-note">eine Karte mit der besten Zeit für eine Runde draußen: hell, trocken, −3 bis 26 °C, nicht zu windig, nicht glatt und ohne Termin (30 min Puffer)</span></span></label>
+    <div class="st-sub" data-parent="runEnabled">
+        <div class="st-line">
+            <span>Mindestens</span>
+            <select id="runMinutes" name="runMinutes" class="form-input st-select">
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">60 min</option>
+                <option value="90">90 min</option>
+            </select>
+            <span class="st-note">am Stück</span>
+        </div>
+    </div>
 </section>
 
 <section class="st-sec">
@@ -273,12 +287,13 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="nightEnabled" value="true" data-default="true" data-since="5"><span>Nachts ein ruhiges Bild für den kommenden Tag zeigen</span></label>
     <div class="st-sub" data-parent="nightEnabled">
         <div class="st-line"><span>von</span><input type="time" id="nightFrom" name="nightFrom" class="form-input st-time" /><span>bis</span><input type="time" id="nightTo" name="nightTo" class="form-input st-time" /></div>
-        <label class="st-check"><input type="checkbox" class="db-check" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht und Tageslicht</span></label>
+        <label class="st-check"><input type="checkbox" class="db-check" name="nightArt" value="true" data-default="true" data-since="6"><span>Bonner Silhouette mit dem Himmel der Nacht <span class="st-note">darüber eine Zeile mit dem Wichtigsten am Himmel</span></span></label>
         <div class="st-sub" data-parent="nightArt">
             <label class="st-check"><input type="checkbox" class="db-check" name="meteorEnabled" value="true" data-default="true" data-since="16"><span>Sternschnuppenströme <span class="st-note">als Text, wenn ein Strom aktiv ist; bei Quadrantiden, Perseiden und Geminiden zusätzlich als Strichlein am Himmel, nur im Maximum bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="eclipseEnabled" value="true" data-default="true" data-since="17"><span>Mondfinsternisse <span class="st-note">als Text, wenn eine Finsternis höchstens 45 Tage entfernt ist; bei einer totalen Mondfinsternis färbt sich der Mond in der Nacht selbst rötlich (Blutmond)</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="planetEnabled" value="true" data-default="true" data-since="18"><span>Helle Planeten <span class="st-note">als Text, wenn Venus, Jupiter, Mars oder Saturn ihren Höhepunkt erreichen (Opposition bzw. größte Helligkeit); zusätzlich als heller Punkt am Himmel, nur am Höhepunkt bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="pegelEnabled" value="true" data-default="true" data-since="21"><span>Rhein auf echtem Pegel <span class="st-note">das Wasser steht so hoch wie am Pegel Bonn, mit Pegellatte und Wert (PEGELONLINE); ohne Daten bleibt der Rhein wie bisher</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="polarEnabled" value="true" data-default="true" data-since="24"><span>Polarlicht <span class="st-note">bei einem starken Sturm (Kp ab 7, Vorhersage der NOAA) ein grüner Vorhang hinter der Stadt, ab Kp 8 mit roten Spitzen; bei Wolken nur als Text</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="issEnabled" value="true" data-default="true" data-since="19"><span>ISS-Überflüge <span class="st-note">als Textzeile, wenn die Raumstation hell und hoch über Bonn fliegt (Dämmerung, mindestens 25° hoch); bei klarem Himmel zusätzlich ihre Bahn als gestrichelte Linie. Bahndaten von Celestrak, höchstens alle 2 Stunden</span></span></label>
         </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
@@ -478,7 +493,7 @@
         newsBundUrl: 'https://www.tagesschau.de/index~rss2.xml',
         newsFrUrl: 'https://www.francetvinfo.fr/titres.rss',
         airLevel: '3', airRadius: '3', airStation: 'DENW062',
-        pollenLevel: '1',
+        pollenLevel: '1', runMinutes: '60',
         urlaubWords: 'Urlaub, Ferien, Reise', urlaubMinDays: '2',
         wahlArt: 'landtag', wahlWords: 'Haustür, Infostand, Wahlkampf, Plakat, Verteilaktion',
         liveWords: 'Ratssitzung', liveUrl: 'https://www.bonn.de/livestream' };

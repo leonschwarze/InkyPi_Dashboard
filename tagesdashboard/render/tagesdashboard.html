@@ -48,6 +48,7 @@
     <div class="nt-facts">
       {% if night.art %}
       <div>{% if night.night_low %}<span class="{% if night.frost %}nt-frost{% endif %}">Nacht tiefst {{ night.night_low }}°{% if night.frost %}, Frost{% endif %}</span>{% endif %}{% if night.night_low and night.sunrise %} · {% endif %}{% if night.sunrise %}Sonnenaufgang {{ night.sunrise }}{% endif %}</div>
+      {% if night.art.daylight %}<div class="nt-dl">{{ night.art.daylight }}</div>{% endif %}
       {% else %}
       {% if night.night_low %}<div class="{% if night.frost %}nt-frost{% endif %}">Nacht: tiefst {{ night.night_low }}°{% if night.frost %} · Frost{% endif %}</div>{% endif %}
       {% if night.sunrise %}<div>Sonnenaufgang {{ night.sunrise }}</div>{% endif %}
@@ -63,24 +64,55 @@
     <div class="nt-ev"><span class="nt-bar" style="background: {{ it.color }};"></span><span class="nt-time">{{ it.short }}</span><span class="nt-title">{{ it.title }}{% if it.location %}<small>{{ it.location }}</small>{% endif %}</span></div>
     {% endfor %}
     {% if not night.events and not night.all_day and not night.train %}<div class="nt-none">Keine Termine</div>{% endif %}
-    {% if night.more %}<div class="nt-more">+ {{ night.more }} weitere</div>{% endif %}
+    {% if night.more %}<div class="nt-more" data-n="{{ night.more }}">+ {{ night.more }} weitere</div>{% endif %}
     {% if view_error %}<div class="nt-err">{{ view_error }}</div>{% endif %}
   </section>
   {% if night.art %}
   <!-- Bonner Silhouette mit dem Himmel der Nacht, darüber Wetter und Tageslicht -->
   <section class="nt-art">
-    <div class="nt-art-cap">
-      <span>Nacht: {% if night.art.weather %}{{ night.art.weather }} · {% endif %}{{ night.moon.name }}</span>
-      {% if night.art.daylight %}<span>{{ night.art.daylight }}</span>{% endif %}
-    </div>
-    {% if night.art.meteors %}<div class="nt-art-line">{{ night.art.meteors }}</div>{% endif %}
-    {% if night.art.eclipse %}<div class="nt-art-line">{{ night.art.eclipse }}</div>{% endif %}
-    {% if night.art.planet %}<div class="nt-art-line">{{ night.art.planet }}</div>{% endif %}
-    {% if night.art.iss %}<div class="nt-art-line">{{ night.art.iss }}</div>{% endif %}
+    {# Seit 1.37 eine Zeile (Leons Wahl „A“): Himmelsereignisse kurz, sonst Nachtwetter und Mond. fitSky kürzt von hinten. #}
+    <div class="nt-art-cap nt-one">{% if night.art.sky %}{% for t in night.art.sky %}<span>{% if not loop.first %} · {% endif %}{{ t }}</span>{% endfor %}{% else %}<span>Nacht: {% if night.art.weather %}{{ night.art.weather }} · {% endif %}{{ night.moon.name }}</span>{% endif %}</div>
     {{ night.art.svg | safe }}
   </section>
   {% endif %}
 </div>
+<script>
+  /* Nachtbild (seit 1.37): Termine, die nicht mehr in die Spalte passen, wandern in „+ N weitere“ statt
+     abgeschnitten zu werden (vorher schnitt overflow: hidden quer den letzten Termin mitten durch); die einzeilige
+     Himmelszeile verliert hintere Teile, bis sie passt. */
+  (function () {
+    function fitAgenda() {
+      const ag = document.querySelector('.nt-agenda');
+      if (!ag) return;
+      const evs = [...ag.querySelectorAll('.nt-ev, .nt-allday')];
+      let more = ag.querySelector('.nt-more');
+      const base = more ? parseInt(more.dataset.n || '0', 10) : 0;
+      let hidden = 0;
+      const over = () => ag.scrollHeight > ag.clientHeight + 0.5;
+      for (let i = evs.length - 1; i >= 0 && over(); i--) {
+        if (evs[i].classList.contains('nt-allday') && i > 0) continue;
+        evs[i].style.display = 'none'; hidden++;
+        if (!more) { more = document.createElement('div'); more.className = 'nt-more'; more.dataset.n = '0';
+                     const err = ag.querySelector('.nt-err'); ag.insertBefore(more, err); }
+        more.textContent = '+ ' + (base + hidden) + ' weitere';
+      }
+    }
+    function fitSky() {
+      document.querySelectorAll('.nt-one').forEach(el => {
+        const parts = [...el.children];
+        // Die Zeile reicht (randloses Band) über den Bildschirm hinaus: am rechten Innenrand bzw. Bildschirmrand messen
+        const limit = () => Math.min(el.getBoundingClientRect().right, window.innerWidth)
+                            - parseFloat(getComputedStyle(el).paddingRight) + 0.5;
+        for (let i = parts.length - 1; i > 0 && parts[parts.length - 1].getBoundingClientRect().right > limit(); i--) {
+          parts[i].remove(); parts.pop();
+        }
+      });
+    }
+    function fit() { fitSky(); fitAgenda(); }
+    window.addEventListener('load', fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  })();
+</script>
 {% elif week %}
 <!-- ===================== Wochenvorschau ===================== -->
 <div lang="de" class="wk {{ orientation }}">
@@ -341,6 +373,25 @@
         <div class="aq-head"><span class="tr-top">{{ air.top }}</span><span class="tr-badge">{{ air.badge }}</span></div>
         <div class="tr-sub">{{ air.reading }} · {{ air.where }}</div>
         <div class="tr-sub aq-advice">{{ air.advice }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {# Glätte-Hinweis und Lauf-Fenster (seit 1.37): Karten wie die Wäsche; Glätte gestrichelt = eigene Schätzung #}
+    {% if ice %}
+    <div class="laundry ice-card">
+      <div class="lw-icon">{{ ice_icon | safe }}</div>
+      <div class="tr-main">
+        <div class="tr-top">{{ ice.text }}</div>
+        <div class="tr-sub">{{ ice.sub }} · {{ ice.advice }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if run %}
+    <div class="laundry run-card">
+      <div class="lw-icon">{{ run_icon | safe }}</div>
+      <div class="tr-main">
+        <div class="tr-top">{{ run.text }}</div>
+        <div class="tr-sub">{{ run.why }}</div>
       </div>
     </div>
     {% endif %}

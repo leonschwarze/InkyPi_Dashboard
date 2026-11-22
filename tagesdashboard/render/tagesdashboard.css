@@ -512,10 +512,6 @@ body:has(> .container > .nt.has-art) > .container { width: 100vw; height: 100vh;
   font-size: calc(var(--u) * 1.75); line-height: 1.2;
   white-space: nowrap;
 }
-.portrait .nt-art-cap { flex-direction: column; gap: calc(var(--u) * 0.2); }
-/* Zusätzliche Zeile(n) unter nt-art-cap: Sternschnuppenströme (seit 1.17), Mondfinsternisse
-   (seit 1.18) und helle Planeten (seit 1.19) – je eine eigene Zeile, nur wenn etwas davon anzuzeigen ist */
-.nt-art-line { padding: 0 calc(var(--u) * 2.6 + var(--er, 0px)) 0 calc(var(--u) * 2.6 + var(--el, 0px)); font-size: calc(var(--u) * 1.75); line-height: 1.2; }
 .nt-art .art-svg { display: block; width: 100%; height: auto; }
 /* Mit Silhouette: Mond steht in der Bildunterschrift, oben etwas kompakter */
 .has-art .nt-moon { display: none; }
@@ -694,3 +690,12 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .graph.g-tight .now-line { top: 0; }
 .graph.g-tight .t-label { display: none; }
 .graph.g-tighter .g-rainrow { flex-basis: calc(var(--u) * 2.6); }
+
+/* ---- Nachtbild (seit 1.37): Tageslicht links, eine Himmelszeile über dem Band ---- */
+.nt-one { display: block; white-space: nowrap; overflow: hidden; font-size: calc(var(--u) * 2); }
+.nt-dl { font-size: calc(var(--u) * 2); }
+.has-art .nt-facts { gap: calc(var(--u) * 0.35); }
+
+/* ---- Glätte-Hinweis und Lauf-Fenster (seit 1.37): Karten über den Terminen ---- */
+.ice-card { border-color: #0082C9; border-style: dashed; }
+.run-card { border-color: #2E9E3F; }

@@ -48,12 +48,12 @@ except Exception as exc:  # Plugin soll InkyPi beim Start nicht blockieren
 try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
-                   pegel, pizustand, advent, zielort)
+                   pegel, pizustand, advent, zielort, laufen, glaette, polarlicht)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
-                                        zielort)
+                                        zielort, laufen, glaette, polarlicht)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -61,6 +61,18 @@ WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
              '<path d="M13 6.5 l6 6 M19 6.5 l-6 6" stroke="#E3001B" stroke-width="2.4" stroke-linecap="round"/>'
              '<rect x="3.5" y="15" width="25" height="14" rx="2" fill="#E3001B" stroke="#000" stroke-width="2.2"/>'
              '<rect x="8" y="17.6" width="16" height="2.6" fill="#000"/></svg>')
+
+# Läufer (Lauf-Fenster, seit 1.37) und Eiskristall (Glätte-Hinweis, seit 1.37), 48er-ViewBox wie die Karten-Icons
+RUN_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true">'
+            '<circle cx="31" cy="7.5" r="4.6" fill="#000"/>'
+            '<path d="M27.5 15 L21 28.5 M26 17.5 L33.5 22.5 L39 18.5 M26 17.5 L17.5 20 L13 26 '
+            'M21 28.5 L29.5 33.5 L27 43 M21 28.5 L15 36.5 L7 36" fill="none" stroke="#000" stroke-width="3.8" '
+            'stroke-linecap="round" stroke-linejoin="round"/><path d="M4 46 H44" stroke="#2E9E3F" stroke-width="3.2" '
+            'stroke-linecap="round"/></svg>')
+ICE_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke="#0082C9" stroke-width="3.6" '
+            'stroke-linecap="round" stroke-linejoin="round"><path d="M24 4 V44 M6.7 14 L41.3 34 M6.7 34 L41.3 14"/>'
+            '<path d="M18.5 7.5 L24 13 L29.5 7.5 M18.5 40.5 L24 35 L29.5 40.5 M5.5 21.5 L13 20 L10.5 12.5 '
+            'M42.5 26.5 L35 28 L37.5 35.5 M5.5 26.5 L13 28 L10.5 35.5 M42.5 21.5 L35 20 L37.5 12.5"/></g></svg>')
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -174,6 +186,10 @@ DEFAULTS = {
     "adventEnabled": "true",
     # Wetter am Zielort: Zeile an auswärtigen Terminen (seit cfgVersion 23)
     "zielEnabled": "true",
+    # Lauf-Fenster, Glätte-Hinweis, Polarlicht im Nachtbild (seit cfgVersion 24)
+    "runEnabled": "true", "runMinutes": str(laufen.DAUER),
+    "iceEnabled": "true",
+    "polarEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -199,7 +215,8 @@ SINCE_VERSION["liveEnabled"] = 20
 SINCE_VERSION.update({"pegelEnabled": 21, "piEnabled": 21})
 SINCE_VERSION.update({"freeEnabled": 22, "adventEnabled": 22})
 SINCE_VERSION["zielEnabled"] = 23
-CFG_VERSION = 23  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"runEnabled": 24, "iceEnabled": 24, "polarEnabled": 24})
+CFG_VERSION = 24  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -490,6 +507,35 @@ class Tagesdashboard(BasePlugin):
                 logger.exception("Zielort konnte nicht bestimmt werden")
             for it in away:
                 zielort.annotate(it)
+        # ---- Glätte-Hinweis und Lauf-Fenster (seit 1.37, nur normale Ansicht) ----
+        if mode == "normal" and records and weather:
+            ice = None
+            if flag("iceEnabled"):
+                try:
+                    ice = glaette.check(records, now, focus, alert=weather.get("alert"))
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    logger.exception("Glätte konnte nicht geschätzt werden")
+                if ice:
+                    if focus != today:
+                        ice["text"] = "Morgen g" + ice["text"][1:]
+                    params["ice"] = ice
+                    params["ice_icon"] = ICE_ICON.format(cls="lw-svg")
+                    logger.info("Glätte: %s (%s)", ice["text"], ice["reason"])
+            if flag("runEnabled"):
+                mins = opt("runMinutes")
+                try:
+                    run = laufen.find(records, events, now, focus, weather["sun_cache"](focus),
+                                      minutes=int(mins) if mins.isdigit() else laufen.DAUER,
+                                      icy_until=ice["until"] if ice else None)
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    run = None
+                    logger.exception("Lauf-Fenster konnte nicht bestimmt werden")
+                if run:
+                    if focus != today:
+                        run["text"] = "Morgen l" + run["text"][1:]
+                    params["run"] = run
+                    params["run_icon"] = RUN_ICON.format(cls="lw-svg")
+                    logger.info("Laufen: %s", run["full"])
         if laundry_win and records and waesche.in_window(now, *laundry_win):
             params["laundry"] = waesche.check(records, now, covered=flag("laundryCovered"))
         if news_now:
@@ -507,6 +553,13 @@ class Tagesdashboard(BasePlugin):
                 river_info = pegel.load(now)
             except Exception:  # Zusatz: nie das ganze Bild verlieren
                 logger.exception("Pegel konnte nicht geladen werden")
+        # ---- Polarlicht (seit 1.37, nur Nachtbild mit Silhouette): Kp-Vorhersage der NOAA, vor commit ----
+        polar_values = None
+        if mode == "night" and flag("nightArt") and flag("polarEnabled"):
+            try:
+                polar_values = polarlicht.load_values()
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Polarlicht konnte nicht geladen werden")
         # ---- Statusanzeige: alle Abrufe dieser Runde sind gelaufen ----
         status.commit(now)
         self.pi_record(now, device_config, flag("piEnabled"))
@@ -585,7 +638,7 @@ class Tagesdashboard(BasePlugin):
                               moon_cat=flag("catEnabled") and flag("catNight"), meteors=flag("meteorEnabled"),
                               eclipses=flag("eclipseEnabled"), planets=flag("planetEnabled"),
                               iss_pos=self.home_position(settings) if flag("issEnabled") else None,
-                              river=river_info, pi=flag("piEnabled"), free_win=self.free_window(opt, flag),
+                              river=river_info, polar=polar_values, pi=flag("piEnabled"), free_win=self.free_window(opt, flag),
                               dims=dimensions)
 
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
@@ -610,6 +663,9 @@ class Tagesdashboard(BasePlugin):
             edges += ansichten.boundaries(now, *night_win) if night_win else []
             edges += ansichten.boundaries(now, *week_win) if week_win else []
             edges += trips["edges"]  # Aufbruch-Karte erscheint bzw. verschwindet
+            # Glätte-Karte endet, Lauf-Fenster beginnt („jetzt bis …“) bzw. ist zu kurz geworden (seit 1.37)
+            edges += [params["ice"]["until"]] if params.get("ice") else []
+            edges += [params["run"]["start"] - laufen.STEP, params["run"]["last_start"]] if params.get("run") else []
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
@@ -715,7 +771,7 @@ class Tagesdashboard(BasePlugin):
 
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
-                     pi=False, free_win=None, dims=(800, 480)):
+                     polar=None, pi=False, free_win=None, dims=(800, 480)):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -753,31 +809,42 @@ class Tagesdashboard(BasePlugin):
                     p, txt = nxt[0], iss.describe(nxt[0])
                     same = p["start"].date() == now.date()
                     when = ("heute" if same else "morgen") + (" früh" if p["start"].hour < 12 else "")
-                    iss_line = (f"ISS {when} {txt['time']}: {txt['route']} · {txt['peak']} · {txt['mins']} · "
-                                f"{txt['bright']}")
+                    iss_line = f"ISS {when} {txt['time']} ({txt['route_short']})"
+                    logger.info("ISS: %s %s: %s · %s · %s · %s", when, txt["time"], txt["route"], txt["peak"],
+                                txt["mins"], txt["bright"])
                     clear = (wx or {}).get("cloud", 100) < 60 and not (wx or {}).get("wet")
                     iss_svg = iss.night_arc(art_w) if clear else None
+                aurora = polarlicht.night_info(polar, now, wx, end) if polar else None
+
+                def first(text, prefix=""):
+                    t = text.split(" · ")[0]
+                    return t[len(prefix):] if prefix and t.startswith(prefix) else t
+                # Himmelszeile (seit 1.37, Leons Wahl „A eine Zeile“): Kurzfassungen, wichtigste zuerst. Was nicht in
+                # eine Zeile passt, lässt fitSky im Template von hinten weg. Ohne Ereignis: Nachtwetter und Mond.
+                sky = []
+                if aurora:
+                    sky.append(f"Polarlicht möglich ab {aurora['when'].hour} Uhr" if aurora["draw"]
+                               else "Polarlicht möglich, aber bewölkt")
+                if eclipse_info:
+                    sky.append(first(eclipse_info["text"]))      # „Mondfinsternis heute Nacht: total“
+                if iss_line:                                    # „ISS heute 18:12 (W → O)“
+                    sky.append(iss_line)
+                if meteor_info:
+                    sky.append(first(meteor_info["text"], "Sternschnuppen: "))
+                if planet_info:
+                    sky.append(first(planet_info["text"], "Planeten: "))
+                daylight = nachtgrafik.daylight(weather["sun_cache"], d) if weather else ""
                 params["night"]["art"] = {
                     "svg": nachtgrafik.svg(now, wx, width=art_w,
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
                                            blood_moon=blood, planet=planet_dot, extra=iss_svg,
-                                           felis=ostereier.felis_svg if felis else None, pegel=river),
-                    "iss": iss_line,
+                                           felis=ostereier.felis_svg if felis else None, pegel=river,
+                                           aurora=aurora if aurora and aurora["draw"] else None),
                     "weather": nachtgrafik.describe(wx),
-                    "daylight": nachtgrafik.daylight(weather["sun_cache"], d) if weather else "",
-                    "meteors": meteor_info["text"] if meteor_info else "",
-                    "eclipse": eclipse_info["text"] if eclipse_info else "",
-                    "planet": planet_info["text"] if planet_info else "",
+                    # links unter „Sonnenaufgang“: „8 h 36 min Tageslicht (−3 min)“ (ohne Sonnenwende-Countdown)
+                    "daylight": daylight.split(" · ")[0] if daylight else "",
+                    "sky": sky,
                 }
-                # Höchstens zwei Zusatzzeilen (mit drei überlappt der Text oben, quer geprüft).
-                # Rangfolge: Finsternis > ISS > Sternschnuppen > Planeten
-                art_ = params["night"]["art"]
-                kept = 0
-                for key in ("eclipse", "iss", "meteors", "planet"):
-                    if art_.get(key):
-                        kept += 1
-                        if kept > 2:
-                            art_[key] = ""
         else:
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,

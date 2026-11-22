@@ -14,6 +14,7 @@ Dazu eine Zeile zum Tageslicht (Länge, Änderung zum Vortag, Countdown zur Sonn
 ein Meteorstrom aktiv, eine Mondfinsternis nah oder ein Planet am Höhepunkt ist, je eine weitere
 Zeile dazu (immer sichtbar, unabhängig vom Wetter).
 Seit 1.28 steht der Rhein so hoch wie am Pegel Bonn (blaues Wasser, schwarze Ufermauer, Pegellatte mit Wert).
+Seit 1.37 hängt bei starkem geomagnetischem Sturm (Kp ≥ 7) ein grüner Polarlicht-Vorhang hinter der Stadt (polarlicht.py).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -242,7 +243,7 @@ def _pegel(W, pegel, reflections, bx0, bx1):
 
 
 def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None,
-        pegel=None):
+        pegel=None, aurora=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -253,7 +254,9 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     am Höhepunkt eines hellen Planeten bei klarem Himmel gesetzt, sonst bleibt das Nachtbild unverändert.
     felis: Funktion (x, y, Maßstab) → SVG des Sternbilds Katze (seit 1.24, ostereier.felis_svg) oder None.
     pegel: Ergebnis von pegel.load ({"cm", "label", "trend"}) oder None (seit 1.28); dann steht das Wasser so
-    hoch wie am Pegel Bonn, mit Pegellatte. None → Rhein wie bisher (pixelgleich)."""
+    hoch wie am Pegel Bonn, mit Pegellatte. None → Rhein wie bisher (pixelgleich).
+    aurora: Ergebnis von polarlicht.night_info mit draw=True oder None (seit 1.37); dann steht ein grüner
+    Vorhang hinter Sternen, Mond und Stadt. None → Nachtbild wie bisher (pixelgleich)."""
     W = width
     # Stadt im Hochformat etwas kleiner. Seit 1.31 kommen auch Breiten zwischen 480 und 800 vor (band_width,
     # z. B. 516 bei 448×600); dort wüchse die Stadt schneller als die Szene und die Kennedybrücke verschwände.
@@ -264,6 +267,20 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     wet, snowy, fog = (wx or {}).get("wet"), (wx or {}).get("snowy"), (wx or {}).get("fog")
     out = [f'<svg viewBox="0 0 {W} {H}" class="art-svg" preserveAspectRatio="xMidYMid meet">',
            f'<rect width="{W}" height="{WATER}" fill="{SKY}"/>']
+
+    # Polarlicht (seit 1.37) zuerst, also hinter allem. Eigener Zufall: Sterne, Mond und Fenster liegen in einer
+    # Polarlicht-Nacht genauso wie ohne (rnd wird dafür nicht angetastet)
+    if aurora:
+        try:
+            from . import polarlicht
+        except ImportError:  # Tests importieren die Module ohne Paket
+            import polarlicht
+        prnd = random.Random((seed if seed is not None else now.date().toordinal()) * 31 + 7)
+        gap = None
+        if pegel:  # Lücke zwischen den Vorhängen an der Pegellatte, sonst stehen Wert und Pfeil auf grünen Strahlen
+            bx0, bx1 = 400 * s + 4, W - 300 * s + 30 * s
+            gap = bx0 + (bx1 - bx0) * 3 / 8
+        out.append(polarlicht.svg(W, WATER, prnd, strong=aurora.get("strong"), x0=W * 0.04, x1=W * 0.96, gap_at=gap))
 
     # Sterne
     n = 0 if wet or fog else 80 if cloud < 30 else 45 if cloud < 60 else 14 if cloud < 85 else 0
