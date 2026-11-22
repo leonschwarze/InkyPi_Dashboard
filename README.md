@@ -1,12 +1,45 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.33
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.35
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Neu: Der Zugang zur Nextcloud ist besser abgesichert.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.35: 15 weitere Katzenposen
+
+- **Zwei neue Wetterlagen:** Bei **Gewitter** lugt die Katze über die Linie, darüber eine dunkle Wolke mit gelbem Blitz (im Wechsel mit „schaut aus dem Fenster“). Bisher galt Gewitter als Regen. Bei **Nebel** sitzt sie hinter Nebelschwaden. Rangfolge: Sturm > Gewitter > Schnee > Regen > Nebel > Frost > Sonne.
+- **Posen zu den Karten**, eingestreut wie Zeitung und Socke (jedes zweite Mal, Wetter geht vor):
+  - Regenradar-Karte: späht mit dem **Fernglas**
+  - Anfahrt mit dem Rad: **Fahrradhelm**; mit Bus und Bahn: wartet an der **Haltestelle**
+  - Pollen-Kachel: **niest** neben einer Blume
+  - Wahlkampf-Karte: hält ein rotes **Schild** hoch
+  - heute ein Termin mit Wetter am Zielort: studiert die **Landkarte**
+- **Ort und Zeit:** ab 22 Uhr **Zipfelmütze** (bis das Nachtbild kommt); am **Wochenende** liegt sie ab und zu in der **Hängematte** (nur jedes vierte Mal, sonst wäre sie das ganze Wochenende dort).
+- **Fünf neue Alltagsposen:** Laptop, Kopfhörer, Ball auf der Nase, Papierflieger, Seifenblasen (jetzt 24).
+- Keine neue Einstellung. Ohne Katze sowie im Nacht- und Wochenbild ist das Bild unverändert.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion bleibt 23). Python und CSS haben sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
+
+## Neu in 1.34: 14 neue Katzenposen
+
+![Alle Katzenposen](docs/katze_posen.png)
+
+- **Wetterkatze mit Abwechslung:** Jede Wetterlage hat jetzt drei Posen, die sich bei jeder Aktualisierung abwechseln (die Reihenfolge wird jeden Tag neu gemischt, nie zweimal dieselbe hintereinander):
+  - Regen: Schirm, **gelber Südwester**, **schaut aus dem Fenster**
+  - Schnee: Schal, **fängt eine Flocke**, **mit Schneemann**
+  - Frost: Schal, **Bommelmütze**, **unter der Decke**
+  - Sonne: Sonnenbad, **Sonnenbrille**, **schleckt ein Eis**
+  - Sturm: geduckt, **lässt einen Drachen steigen**, **Blätter wirbeln vorbei**
+- Findet eine hohe Wetterpose keinen Platz, nimmt die Katze eine flache Pose **derselben** Wetterlage (unter der Decke, Sonnenbad, geduckt), damit man das Wetter auch auf engen Linien sieht. Bei Regen und Schnee gibt es keine flache Wetterpose, dann wie bisher eine flache Alltagspose.
+- **Drei neue Alltagsposen:** Winkekatze, knabbert an der Topfpflanze, Fisch im Maul (jetzt 19).
+- **Advent:** Vom 1. Advent bis Heiligabend trägt die Katze ab und zu eine **Lichterkette** (eingestreut wie Zeitung und Socke, nicht immer; Wetter geht vor). Das gilt auch, wenn der Adventskranz ausgeschaltet ist.
+- Neue Farbe Grün für Blätter (Displayfarbe; im Schwarz-Weiß-Modus nur Kontur).
+- Keine neue Einstellung. Weil die Alltagsreihe länger ist, zeigt die Katze zu einer bestimmten Uhrzeit eine andere Pose als in 1.33. Ohne Katze sowie im Nacht- und Wochenbild ist das Bild unverändert.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion bleibt 23). Python und CSS haben sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.33: Kalenderzugriff abgesichert
 
@@ -338,7 +371,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn, Band bis zum Rand (1.31)
 - `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
 - `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
-- `katze_posen.png` – alle 26 Posen (groß und in Displaygröße)
+- `katze_posen.png` – alle 55 Posen (groß und in Displaygröße, Stand 1.35)
 - `status_800x480.png` – Statusanzeige: der GA-Feed ist seit 5:05 nicht erreichbar, Bonn wird mit WDR-Meldungen ergänzt (1.21)
 - `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
 - `gestern_800x480.png` – Schnee, gefühlt bis −8° · 4° kälter als gestern (1.22)

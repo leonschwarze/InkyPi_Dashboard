@@ -6,8 +6,8 @@ B – Versteckspiel: Die Katze sitzt jedes Mal auf einer anderen Linie (Kopfzeil
     fertige Layout und nimmt den ersten Platz der Reihenfolge, an dem die Katze nichts
     verdeckt. Passt sie nirgends hin, fehlt sie eben.
 C – Wetterkatze: Bei Sturm hält sie sich fest, bei Regen sitzt sie unter dem Schirm, bei
-    Schnee oder Frost trägt sie Schal, bei Sonne liegt sie auf dem Rücken. Sonst kommt eine
-    zufällige Pose.
+    Schnee oder Frost trägt sie Schal, bei Sonne liegt sie auf dem Rücken. Seit 1.34 hat jede
+    Wetterlage drei Posen, die sich abwechseln (WEATHER_POSES). Sonst kommt eine zufällige Pose.
 
 Zufall: Er hängt am Datum und am 15-Minuten-Abschnitt der Uhrzeit. Dasselbe Datum und
 dieselbe Uhrzeit ergeben dieselbe Katze (Tests sind wiederholbar), und zwei aufeinander-
@@ -23,6 +23,8 @@ from datetime import timedelta
 
 # Farben als CSS-Variablen: Im Schwarz-Weiß-Modus (.mono) werden sie zur Textfarbe
 RED, YELLOW, BLUE = "var(--cat-red)", "var(--cat-yellow)", "var(--cat-blue)"
+GREEN = "var(--cat-green)"  # seit 1.34 (Blätter; Schwarz-Weiß: Hintergrund → nur Kontur)
+GREEN_INK = "var(--cat-green-ink)"  # seit 1.35 für grüne Linien (Schwarz-Weiß: Textfarbe, sonst unsichtbar)
 
 L = 'fill="none" stroke="currentColor"'      # Linie
 F = 'fill="var(--bg)" stroke="currentColor"'  # Fläche: deckt Linien dahinter ab
@@ -418,6 +420,317 @@ def akten():
     return 54, 44, f'<g transform="translate(0 1)">{cat}</g>' + stack
 
 
+# ---------------------------------------------------------------- seit 1.34: Wetter-Varianten, Alltag, Advent
+# Je Wetterlage zwei Varianten zur bisherigen Pose (WEATHER_POSES); sie wechseln sich reihum ab.
+
+# ------------------------------------------------------------ Regen
+def suedwester():
+    """Regen: gelber Südwester, Tropfen ringsum."""
+    # eine Form statt Kuppel + Krempe, ohne schwarzes Hutband: schmale gelbe Streifen und schwarze Linien auf Gelb
+    # gaben rote Streupixel (dev/katze_pruefstand.py)
+    hat = (f'<path fill="{YELLOW}" stroke="currentColor" d="M3 8 Q4 5.6 9 5.3 Q9.5 -4.5 20 -4.5 Q30.5 -4.5 31 5.3'
+           f' Q36 5.6 37 8 Q38.5 11.2 35 10.6 Q20 7.6 5 10.6 Q1.5 11.2 3 8 Z"/>')
+    drops = f'<path stroke="{BLUE}" fill="none" d="M2 21 l-1 3 M4 32 l-1 3 M42 18 l-1 3 M43 30 l-1 3"/>'
+    return 44, 50, f'<g transform="translate(2 6)">{_sitting_body()}{_head(20, 13)}{hat}</g>' + drops
+
+
+def fenster():
+    """Regen: schaut hinter der Scheibe hinaus, dicke Tropfen laufen außen herunter."""
+    frame = f'<path {L} d="M2 2 H46 V43.5 H2 Z M2 34 H46"/>'
+    paws = (f'<path {F} d="M12 34 Q12 29.5 15.5 29.5 Q19 29.5 19 34 Z"/>'
+            f'<path {F} d="M29 34 Q29 29.5 32.5 29.5 Q36 29.5 36 34 Z"/>')
+    def drop(x, y):
+        return f'<path d="M{x} {y} Q{x + 3} {y + 4.5} {x + 3} {y + 6.5} A3 3 0 0 1 {x - 3} {y + 6.5} Q{x - 3} {y + 4.5} {x} {y} Z"/>'
+    drops = f'<g fill="{BLUE}" stroke="none">{drop(7.5, 6)}{drop(40.5, 10)}{drop(7.5, 21)}{drop(40.5, 24)}</g>'
+    return 48, 44, _head(24, 22) + paws + frame + drops
+
+# ------------------------------------------------------------ Schnee
+
+def schneeflocke():
+    """Schnee: schaut hoch zu einer großen Flocke, Pfote reckt sich."""
+    def flake(cx, cy, r):
+        p = ""
+        for dx, dy in ((0, 1), (.87, .5), (.87, -.5)):
+            p += f"M{cx - dx * r:.1f} {cy - dy * r:.1f} L{cx + dx * r:.1f} {cy + dy * r:.1f} "
+        return f'<path stroke="{BLUE}" fill="none" d="{p}"/>'
+    eyes = f'<circle {D} cx="22" cy="9.6" r="1.7"/><circle {D} cx="29" cy="11.2" r="1.7"/>'
+    head = f'<g transform="rotate(18 20 13)">{_head(20, 13, eyes="none")}</g>' + eyes
+    paw = f'<path {F} d="M26 33 Q32 26 34 18 Q35 15.3 37.4 16.2 Q39.5 17.3 38.5 20 Q36 29 30 36"/>'
+    # 1,5 tiefer: das schräge Ohr ragte sonst 1 Einheit über die viewBox (test_katze misst das)
+    inner = _sitting_body(paws=1) + head + paw + flake(46, 7, 6) + flake(52, 21, 3.5)
+    return 56, 45.5, f'<g transform="translate(0 1.5)">{inner}</g>'
+
+
+def schneemann():
+    """Schnee: sitzt neben ihrem kleinen Schneemann mit Hut und gelber Nase."""
+    man = (f'<circle {F} cx="54" cy="35.5" r="8"/>'
+           f'<circle {F} cx="54" cy="21.5" r="6.2"/>'
+           f'<path fill="currentColor" stroke="currentColor" d="M48 15 H60 M50.5 15 V9 H57.5 V15"/>'
+           f'<circle {D} cx="51.7" cy="20.3" r="1.2"/><circle {D} cx="56.3" cy="20.3" r="1.2"/>'
+           f'<path fill="{YELLOW}" stroke="currentColor" d="M53.6 22.4 L60 24 L53.6 25.2 Z"/>'
+           f'<circle {D} cx="54" cy="33" r="1.2"/><circle {D} cx="54" cy="38" r="1.2"/>')
+    return 64, 44, _sitting_body() + _head(20, 13) + man
+
+
+# ------------------------------------------------------------ Frost
+def muetze():
+    """Frost: rote Bommelmütze, darunter schauen die Ohrspitzen raus."""
+    hat = (f'<path fill="{RED}" stroke="currentColor" d="M10 5 Q10.5 -5.5 20 -5.5 Q29.5 -5.5 30 5 Z"/>'
+           f'<path fill="var(--bg)" stroke="currentColor" d="M9 4 H31 V8 H9 Z"/>'
+           f'<circle fill="{YELLOW}" stroke="currentColor" cx="20" cy="-8" r="3.2"/>')
+    return 40, 56, f'<g transform="translate(0 12)">{_sitting_body()}{_head(20, 13)}{hat}</g>'
+
+
+def decke():
+    """Frost: als Kastenbrot unter einer blauen Decke, nur der Kopf schaut raus."""
+    _, _, bread = kastenbrot()
+    blanket = (f'<path fill="{BLUE}" stroke="currentColor" d="M21 29.5 L22.5 18 Q33 15 42.5 17.5 Q46.5 23 44.5 29.5 Z"/>'
+               f'<path {L} d="M22.5 18 Q24 23 21 29.5"/>')
+    return 47, 30, bread + blanket
+
+# ------------------------------------------------------------ Sonne
+
+def sonnenbrille():
+    """Sonne: sitzt lässig mit dunkler Sonnenbrille, kleine Sonne daneben."""
+    glasses = (f'<path fill="currentColor" stroke="currentColor" d="M12.5 11.5 H18.5 Q18.5 15.5 15.5 15.5 Q12.5 15.5 12.5 11.5 Z'
+               f' M21.5 11.5 H27.5 Q27.5 15.5 24.5 15.5 Q21.5 15.5 21.5 11.5 Z"/>'
+               f'<path {L} d="M18.5 12 H21.5"/>')
+    smile = f'<path {L} d="M18.3 18.6 Q20 20 21.7 18.6"/>'
+    sun = (f'<g stroke="currentColor"><circle cx="46" cy="9" r="4.2" fill="{YELLOW}"/>'
+           f'<path fill="none" d="M46 1.5 V2.5 M53.5 9 H52.5 M51.3 3.7 L50.6 4.4 M51.3 14.3 L50.6 13.6'
+           f' M40.7 3.7 L41.4 4.4 M38.5 9 H39.5"/></g>')
+    return 56, 44, _sitting_body() + _head(20, 13, eyes="none") + glasses + smile + sun
+
+
+def eis():
+    """Sonne: schleckt ein großes Eis (gelbe Waffel, rote Kugel), Pfote hält die Waffel."""
+    tongue = f'<ellipse fill="{RED}" stroke="currentColor" cx="24" cy="18" rx="1.6" ry="1.9"/>'
+    cone = (f'<path fill="{YELLOW}" stroke="currentColor" d="M28.5 20 L39.5 20 L34 36 Z"/>'
+            f'<circle fill="{RED}" stroke="currentColor" cx="34" cy="16" r="5.5"/>')
+    head = f'<g transform="rotate(8 20 13)">{_head(20, 13, eyes="closed")}</g>'
+    return 44, 44, _sitting_body() + head + tongue + cone
+
+# ------------------------------------------------------------ Sturm
+
+def drachen():
+    """Sturm: hält die Schnur eines Drachens, der hoch im Wind steht."""
+    kite = (f'<path fill="{RED}" stroke="currentColor" d="M52 1 L60 9 L52 19 L44 9 Z"/>'
+            f'<path fill="{YELLOW}" stroke="none" d="M52 1.6 L59.2 9 H44.8 Z"/>'
+            f'<path {L} d="M52 1 L60 9 L52 19 L44 9 Z"/>'
+            f'<path {L} d="M52 19 Q55 23 52 26 Q49 29 52 32"/>'
+            f'<path {L} d="M35 21 Q44 17 52 19"/>')
+    paw = f'<path {F} d="M26 33 Q31 28 32.5 22 Q33.3 19 35.8 19.8 Q38 20.8 37 23.6 Q35 30 29.5 36"/>'
+    head = f'<g transform="rotate(10 20 13)">{_head(20, 13)}</g>'
+    return 62, 44, _sitting_body(paws=1) + head + paw + kite
+
+
+def blaetter():
+    """Sturm: sitzt mit zugekniffenen Augen, Blätter wirbeln vorbei, Schwanz weht."""
+    wind = f'<path {L} d="M30 6 H44 M34 12 H50 M40 26 H50"/>'
+    def leaf(x, y, c, rot):
+        return (f'<g transform="rotate({rot} {x} {y})"><path fill="{c}" stroke="currentColor"'
+                f' d="M{x - 4} {y} Q{x} {y - 4} {x + 4} {y} Q{x} {y + 4} {x - 4} {y} Z"/></g>')
+    tail = f'<path {L} d="M30 43.5 Q37 43 40 39 Q42 36 46 37"/>'
+    body = f'<path {F} d="M13.5 18 C8 25 8 35 10 43.5 L30 43.5 C32 35 32 25 26.5 18"/>'
+    feet = f'<path {L} d="M14.5 43.5 Q14.5 39.5 17.5 39.5 Q20 39.5 20 43.5 Q20 39.5 22.5 39.5 Q25.5 39.5 25.5 43.5"/>'
+    head = f'<g transform="rotate(-8 20 13)">{_head(20, 13, eyes="squint")}</g>'
+    return 56, 44, (tail + body + feet + head + wind + leaf(50, 4, GREEN, 30) + leaf(52, 19, YELLOW, -20)
+                    + leaf(36, 33, GREEN, 60))
+
+# ------------------------------------------------------------ Alltag
+
+def winkt():
+    """Alltag: Winkekatze – eine Pfote hoch, zwei Bewegungsbögen."""
+    paw = f'<path {F} d="M26 31 Q31 25 31.5 16 Q31.8 12.5 34.4 12.8 Q37 13.3 36.6 16.4 Q35.8 26.5 29.5 34.5"/>'
+    lines = f'<path {L} d="M38.5 8 Q41.5 10.5 41 15 M42.5 6 Q46.5 10 45.5 16.5"/>'
+    return 48, 44, _sitting_body(paws=1) + _head(20, 13) + paw + lines
+
+
+def pflanze():
+    """Alltag: knabbert an einer Topfpflanze (roter Topf, grüne Blätter)."""
+    plant = (f'<path fill="{RED}" stroke="currentColor" d="M41 32 H57 L55 43.5 H43 Z"/>'
+             f'<path fill="{GREEN}" stroke="currentColor" d="M49 32 Q41 25 35 22 Q42 20 49 30 Z"/>'
+             f'<path fill="{GREEN}" stroke="currentColor" d="M49 32 Q47 20 50 12 Q55 20 49 32 Z"/>'
+             f'<path fill="{GREEN}" stroke="currentColor" d="M49 32 Q55 24 61 23 Q57 31 49 32 Z"/>')
+    head = f'<g transform="rotate(14 20 13)">{_head(20, 13, eyes="closed")}</g>'
+    return 62, 44, _sitting_body() + head + plant
+
+
+def fisch():
+    """Alltag: stolz mit einem großen blauen Fisch im Maul."""
+    fish = (f'<path fill="{BLUE}" stroke="currentColor" d="M8 23 Q16 17 25 21.5 L32 17.5 L31 23.5 L32.5 29.5 L25 25'
+            f' Q16 29.5 8 23 Z"/>'
+            f'<circle fill="var(--bg)" stroke="none" cx="12.5" cy="22.5" r="1.4"/>')
+    return 40, 44, _sitting_body() + _head(20, 11.5, eyes="closed") + fish
+
+
+def lichterkette():
+    """Advent: hat sich eine Lichterkette umgelegt, die bis auf die Linie hängt (rot, gelb, blau)."""
+    def bulb(x, y, c):
+        return (f'<path fill="{c}" stroke="currentColor"'
+                f' d="M{x - 2.4} {y} Q{x - 2.9} {y + 5} {x} {y + 6.3} Q{x + 2.9} {y + 5} {x + 2.4} {y} Z"/>')
+    wire = f'<path {L} d="M1 43.5 Q3 30 11 22 Q20 27 29 22 Q37 26 39 31 Q41 38 47 43.5"/>'
+    bulbs = bulb(4, 32, RED) + bulb(14, 24, YELLOW) + bulb(25, 24, BLUE) + bulb(37, 28, RED) + bulb(43, 37, YELLOW)
+    return 50, 44, _sitting_body() + _head(20, 13) + wire + bulbs
+
+
+# ---------------------------------------------------------------- seit 1.35: Nebel, Gewitter, Anlässe zu Karten,
+# Ort und Zeit, fünf Alltags-Posen
+
+def _raised_paw(tip_x=34.4, tip_y=12.8):
+    """Pfote hoch neben dem Kopf (wie winkt)."""
+    return (f'<path {F} d="M26 31 Q31 25 31.5 16 Q31.8 {tip_y - .3} {tip_x} {tip_y} Q37 13.3 36.6 16.4'
+            f' Q35.8 26.5 29.5 34.5"/>')
+
+
+# ------------------------------------------------------------ neue Wetterlagen
+def nebel():
+    """Nebel: sitzt hinter drei weißen Nebelschwaden, nur der Kopf schaut klar heraus."""
+    def band(x0, x1, y):
+        return f'<path {F} d="M{x0} {y} H{x1} Q{x1 + 3} {y} {x1 + 3} {y + 3} Q{x1 + 3} {y + 6} {x1} {y + 6} H{x0} Q{x0 - 3} {y + 6} {x0 - 3} {y + 3} Q{x0 - 3} {y} {x0} {y} Z"/>'
+    return 50, 44, _sitting_body() + _head(20, 13) + band(6, 30, 23) + band(18, 44, 34.5)
+
+
+def gewitter():
+    """Gewitter: lugt mit großen Augen über die Linie, darüber dunkle Wolke mit gelbem Blitz."""
+    cloud = (f'<path fill="currentColor" stroke="currentColor" d="M33 14 Q30 7 37 6 Q39 0 46 1.5 Q52 0 54 6'
+             f' Q60 6.5 59.5 11 Q59 14 55 14 Z"/>'
+             f'<path fill="{YELLOW}" stroke="currentColor" d="M45 12 L39.5 21 L44 21 L40.5 30 L51 18 L46 18 L49.5 12 Z"/>')
+    eyes = f'<circle {D} cx="12.8" cy="16.6" r="2.4"/><circle {D} cx="21.2" cy="16.6" r="2.4"/>'
+    paws = (f'<path {F} d="M5 30 Q5 24.5 9.5 24.5 Q14 24.5 14 30 Z"/>'
+            f'<path {F} d="M20 30 Q20 24.5 24.5 24.5 Q29 24.5 29 30 Z"/>')
+    return 61, 30, _head(17, 19, eyes="none") + f'<g transform="translate(0 2.4)">{eyes}</g>' + paws + cloud
+
+
+# ------------------------------------------------------------ Anlässe zu vorhandenen Karten
+def fernglas():
+    """Regenradar-Karte: späht mit dem Fernglas (von vorn: zwei blaue Linsen) nach dem nächsten Schauer."""
+    glass = (f'<path {L} d="M18.5 13.5 H21.5"/>'
+             f'<circle fill="{BLUE}" stroke="currentColor" cx="14.5" cy="13.5" r="4.4"/>'
+             f'<circle fill="{BLUE}" stroke="currentColor" cx="25.5" cy="13.5" r="4.4"/>')
+    paws = (f'<path {F} d="M6.5 19 Q6.5 15.5 9.5 15.5 Q12.5 15.5 12.5 19 Q12.5 22 9.5 22 Q6.5 22 6.5 19 Z"/>'
+            f'<path {F} d="M27.5 19 Q27.5 15.5 30.5 15.5 Q33.5 15.5 33.5 19 Q33.5 22 30.5 22 Q27.5 22 27.5 19 Z"/>')
+    drops = f'<path stroke="{BLUE}" fill="none" d="M42 5 l-1 3 M47 11 l-1 3 M42 17 l-1 3"/>'
+    return 50, 44, _sitting_body() + _head(20, 13, eyes="none") + glass + paws + drops
+
+
+def helm():
+    """Anfahrt mit dem Rad: blauer Fahrradhelm mit Lüftungsschlitzen."""
+    helmet = (f'<path fill="{BLUE}" stroke="currentColor" d="M8.5 6.5 Q9 -4.5 20 -4.5 Q31 -4.5 31.5 6.5 Z"/>'
+              f'<path fill="var(--bg)" stroke="none" d="M14 -1 L16 4.5 L18 4.5 L16.5 -2 Z M22 -2 L20.5 4.5 L22.5 4.5'
+              f' L24.5 -1.2 Z"/>'
+              f'<path {L} d="M10 7 Q11 14 15.5 17.5 M30 7 Q29 14 24.5 17.5"/>')
+    return 40, 50, f'<g transform="translate(0 6)">{_sitting_body()}{_head(20, 13)}{helmet}</g>'
+
+
+def haltestelle():
+    """Anfahrt mit Bus und Bahn: wartet an der Haltestelle (gelbes Schild mit grünem H)."""
+    sign = (f'<path {L} d="M48 18 V43.5"/>'
+            f'<circle fill="{YELLOW}" stroke="{GREEN_INK}" cx="48" cy="11" r="8"/>'  # grüner Rand wie echt; schwarz gab rote Streupixel
+            f'<path stroke="{GREEN_INK}" fill="none" d="M44.8 7 V15 M51.2 7 V15 M44.8 11 H51.2"/>')
+    return 58, 44, _sitting_body() + _head(20, 13) + sign
+
+
+def niest():
+    """Pollenflug: niest kräftig, daneben eine gelbe Blume."""
+    head = f'<g transform="rotate(-14 20 13)">{_head(20, 13, eyes="squint")}</g>'
+    spray = f'<path {L} d="M6 16 L1 15 M6.5 19.5 L1.5 21 M8.5 22.5 L5 26"/>'
+    petals = "".join(f'<circle cx="{47 + 6 * dx:.1f}" cy="{21 + 6 * dy:.1f}" r="3.2"/>'
+                     for dx, dy in ((0, -1), (.95, -.31), (.59, .81), (-.59, .81), (-.95, -.31)))
+    flower = (f'<path stroke="{GREEN_INK}" fill="none" d="M47 43.5 V28 M47 37 Q42 35 41 31"/>'
+              f'<g fill="{YELLOW}" stroke="currentColor">{petals}</g>'
+              f'<circle fill="{RED}" stroke="currentColor" cx="47" cy="21" r="2.8"/>')
+    return 58, 44, _sitting_body() + head + spray + flower
+
+
+def plakat():
+    """Wahlkampftag: hält ein rotes Schild hoch."""
+    sign = (f'<path {L} d="M34 40 V14"/>'
+            f'<path fill="{RED}" stroke="currentColor" d="M25 1.5 H48 V16 H25 Z"/>'
+            f'<path stroke="var(--bg)" fill="none" d="M29 6.5 H44 M29 11 H39"/>')
+    paw = f'<path {F} d="M26 33 Q31 29 32 23 Q32.5 20 35 20.4 Q37.5 21 37 24 Q36 30 29.5 36"/>'
+    return 50, 44, _sitting_body(paws=1) + _head(18, 13) + sign + paw
+
+
+def karte():
+    """Termin am Zielort: studiert eine Landkarte mit Fluss und rotem Ziel-Pin."""
+    paper = (f'<path {F} d="M3 21 L13.5 19 L24 21 L37 19 L37 41 L24 43 L13.5 41 L3 43 Z"/>'
+             f'<path {L} d="M13.5 19 V41 M24 21 V43"/>'
+             f'<path stroke="{BLUE}" fill="none" d="M6 39 Q12 33 17 34 Q22 35 26 29 Q29 25 34 25"/>'
+             f'<circle fill="{RED}" stroke="currentColor" cx="30" cy="31.5" r="2.6"/>')
+    eyes = f'<circle {D} cx="16" cy="14" r="1.8"/><circle {D} cx="24" cy="14" r="1.8"/>'
+    return 40, 44, _sitting_body() + _head(20, 12, eyes="none") + eyes + paper
+
+
+def nachtmuetze():
+    """Später Abend: blaue Zipfelmütze mit gelbem Bommel, Augen fallen zu."""
+    cap = (f'<path fill="{BLUE}" stroke="currentColor" d="M9.5 5.5 Q11 -4 22 -4.5 Q31 -4.5 37 4 Q38.5 7 36.5 10'
+           f' Q34 4 30.5 5.5 Z"/>'
+           f'<path fill="var(--bg)" stroke="currentColor" d="M8.5 4.5 H31.5 V8.5 H8.5 Z"/>'
+           f'<circle fill="{YELLOW}" stroke="currentColor" cx="37" cy="12.5" r="3"/>')
+    return 42, 52, f'<g transform="translate(0 8)">{_sitting_body()}{_head(20, 13, eyes="closed")}{cap}</g>'
+
+
+def haengematte():
+    """Wochenende: liegt in einer roten Hängematte, Schwanz hängt raus."""
+    posts = f'<path {L} d="M2 4 V34 M62 4 V34"/>'
+    cat = f'<g transform="translate(10 -4)">{kastenbrot()[2]}</g>'
+    hammock = (f'<path fill="{RED}" stroke="currentColor" d="M2 8 Q32 42 62 8 Q32 30 2 8 Z"/>'
+               f'<path {L} d="M50 22 Q53 27 50 31"/>')
+    return 64, 34, posts + cat + hammock
+
+
+# ------------------------------------------------------------ Alltag
+def laptop():
+    """Sitzt am Laptop (blauer Deckel von hinten), Pfoten auf der Tastatur."""
+    lid = (f'<path fill="{BLUE}" stroke="currentColor" d="M5 20 H35 L33 40 H7 Z"/>'
+           f'<circle fill="var(--bg)" stroke="none" cx="20" cy="30" r="2.6"/>'
+           f'<path fill="currentColor" stroke="currentColor" d="M2 40 H38 V43.5 H2 Z"/>')
+    paws = (f'<path {F} d="M9 20.5 Q9 17 12.5 17 Q16 17 16 20.5"/>'
+            f'<path {F} d="M24 20.5 Q24 17 27.5 17 Q31 17 31 20.5"/>')
+    return 40, 44, _head(20, 11) + lid + paws
+
+
+def kopfhoerer():
+    """Hört Musik: Bügel über dem Kopf, rote Muscheln, zwei blaue Noten."""
+    phones = (f'<path {L} d="M9 9 Q9 -2.5 20 -2.5 Q31 -2.5 31 9"/>'
+              f'<path fill="{RED}" stroke="currentColor" d="M6 7 H11.5 V16 H6 Q4.5 16 4.5 14.5 V8.5 Q4.5 7 6 7 Z'
+              f' M28.5 7 H34 Q35.5 7 35.5 8.5 V14.5 Q35.5 16 34 16 H28.5 Z"/>')
+
+    def note(x, y):
+        return (f'<ellipse fill="{BLUE}" stroke="currentColor" cx="{x}" cy="{y}" rx="2.5" ry="1.9"'
+                f' transform="rotate(-20 {x} {y})"/><path {L} d="M{x + 2.2} {y - .6} V{y - 8.5}"/>')
+    return 52, 48, (f'<g transform="translate(0 4)">{_sitting_body()}{_head(20, 13, eyes="closed")}{phones}'
+                    f'{note(43, 14)}{note(47, 28)}</g>')
+
+
+def ball():
+    """Kunststück: balanciert einen rot-gelben Ball auf der Nase."""
+    head = f'<g transform="rotate(-12 20 13)">{_head(20, 13)}</g>'
+    ball_ = (f'<circle fill="{YELLOW}" stroke="currentColor" cx="17" cy="-5" r="6"/>'
+             f'<path fill="{RED}" stroke="currentColor" d="M11.2 -6.5 Q17 -3 22.8 -6.5 Q23.4 -3 22 -1 Q17 2 12 -1'
+             f' Q10.6 -3 11.2 -6.5 Z"/>')
+    return 40, 56, f'<g transform="translate(0 12)">{_sitting_body()}{head}{ball_}</g>'
+
+
+def flieger():
+    """Schaut einem großen Papierflieger nach."""
+    plane = (f'<g transform="rotate(-10 47 10)"><path {F} d="M34 9 L60 3 L45 17 Z"/>'
+             f'<path {L} d="M60 3 L43 11.5 L45 17"/></g>')
+    eyes = f'<circle {D} cx="22" cy="9.6" r="1.7"/><circle {D} cx="29" cy="11.2" r="1.7"/>'
+    head = f'<g transform="rotate(18 20 13)">{_head(20, 13, eyes="none")}</g>' + eyes
+    inner = _sitting_body() + head + plane
+    return 62, 45.5, f'<g transform="translate(0 1.5)">{inner}</g>'
+
+
+def seifenblasen():
+    """Tatzt nach blauen Seifenblasen."""
+    bubbles = (f'<g stroke="{BLUE}" fill="none"><circle cx="43" cy="8" r="5"/><circle cx="49" cy="20" r="3.4"/>'
+               f'<circle cx="40" cy="25" r="2.6"/></g>'
+               f'<path stroke="{BLUE}" fill="none" d="M40.5 5 Q41.5 4 43 4"/>')
+    return 54, 44, _sitting_body(paws=1) + _head(18, 13) + _raised_paw() + bubbles
+
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
@@ -430,16 +743,44 @@ POSES = {
     "kürbis": kuerbis, "grundgesetz": grundgesetz,
     # Ratssitzung (seit 1.27): nur über choose(occasions=["rat"]), nie zufällig
     "rednerpult": rednerpult, "akten": akten,
+    # seit 1.34
+    "südwester": suedwester, "fenster": fenster, "schneeflocke": schneeflocke, "schneemann": schneemann,
+    "mütze": muetze, "decke": decke, "sonnenbrille": sonnenbrille, "eis": eis, "drachen": drachen,
+    "blätter": blaetter, "winkt": winkt, "pflanze": pflanze, "fisch": fisch, "lichterkette": lichterkette,
+    # seit 1.35
+    "nebel": nebel, "gewitter": gewitter, "fernglas": fernglas, "helm": helm, "haltestelle": haltestelle,
+    "niest": niest, "plakat": plakat, "karte": karte, "zipfelmütze": nachtmuetze, "hängematte": haengematte,
+    "laptop": laptop, "kopfhörer": kopfhoerer, "ball": ball, "flieger": flieger, "seifenblasen": seifenblasen,
 }
 # Ostereier (seit 1.24): nur über choose(egg=…); geheim, darum auch nicht auf dem Posen-Bogen für die README
 EGG_POSES = ("narr", "dirigent", "schwarz", "himbeerkuchen", "kürbis", "grundgesetz")
 # Zufällige Posen (ohne die Wetter-Posen)
 EVERYDAY = ["sitzt", "putzt", "schmetterling", "gähnt", "schläft", "kastenbrot", "lugt", "spielt", "streckt",
-            "schwanzjagd", "rücken", "maus", "laser", "karton", "tasse", "spaziert"]
-# Wetter (C): Anlass → Pose. Reihenfolge = Vorrang.
-WEATHER_POSE = {"sturm": "sturm", "regen": "schirm", "schnee": "schal", "frost": "schal", "sonne": "sonnt"}
+            "schwanzjagd", "rücken", "maus", "laser", "karton", "tasse", "spaziert",
+            "winkt", "pflanze", "fisch",                               # seit 1.34
+            "laptop", "kopfhörer", "ball", "flieger", "seifenblasen"]   # seit 1.35: 24
+# Wetter (C): Anlass → Posen (seit 1.34 je drei, täglich gemischt und reihum wie die Alltags-Posen).
+# Die erste ist die bisherige Pose. Reihenfolge der Schlüssel = Vorrang (siehe weather_reason).
+WEATHER_POSES = {
+    "sturm": ["sturm", "drachen", "blätter"],
+    "gewitter": ["gewitter", "fenster"],           # seit 1.35 (vorher zählte Gewitter als Regen)
+    "regen": ["schirm", "südwester", "fenster"],
+    "nebel": ["nebel"],                             # seit 1.35
+    "schnee": ["schal", "schneeflocke", "schneemann"],
+    "frost": ["schal", "mütze", "decke"],
+    "sonne": ["sonnt", "sonnenbrille", "eis"],
+}
 # Anlässe (seit 1.20): Anlass → Pose. Geburtstag geht dem Wetter vor, die übrigen kommen nach dem Wetter.
-OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "koffer", "waesche": "socke"}
+OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "koffer", "waesche": "socke",
+                 "advent": "lichterkette",  # seit 1.34: 1. Advent bis Heiligabend
+                 # seit 1.35: zu vorhandenen Karten (Regenradar, Anfahrt Rad bzw. Bus/Bahn, Pollen-Kachel,
+                 # Wahlkampf-Karte, Wetter am Zielort heute), spätabends und am Wochenende
+                 "radar": "fernglas", "rad": "helm", "oepnv": "haltestelle", "pollen": "niest",
+                 "wahlkampf": "plakat", "zielort": "karte", "abend": "zipfelmütze", "wochenende": "hängematte"}
+# Seltene Anlässe (seit 1.35): nur auf jedem zweiten Anlass-Takt, also jedes vierte Mal – das Wochenende hat
+# keine Karte, die es begrenzt, sonst läge die Katze das ganze Wochenende jedes zweite Mal in der Hängematte.
+RARE_OCCASIONS = {"wochenende"}
+LATE_HOUR = 22  # seit 1.35: ab hier Anlass „abend“ (Zipfelmütze), bis das Nachtbild um 23 Uhr übernimmt
 # Ratssitzung (seit 1.27, Anlass „rat“ = die Livestream-Karte steht): Rednerpult, ab 21 Uhr schläft sie auf den Akten.
 # Kommt wie die übrigen Anlässe nur auf jedem zweiten Takt, aber vor Osterei und Wetter (Leons Wahl).
 RAT_POSE, RAT_LATE_POSE, RAT_LATE_HOUR = "rednerpult", "akten", 21
@@ -487,7 +828,7 @@ def _current_hour(records, now):
 
 
 def weather_reason(records, now, nowcast=None, feels_like=None):
-    """Warum die Katze sich anpasst: sturm, regen, schnee, frost, sonne – oder None."""
+    """Warum die Katze sich anpasst: sturm, gewitter, schnee, regen, nebel, frost, sonne (Vorrang) – oder None."""
     r = _current_hour(records or [], now)
     if r is None:
         return None
@@ -495,13 +836,17 @@ def weather_reason(records, now, nowcast=None, feels_like=None):
     if gust >= STORM_GUST:
         return "sturm"
     kind = {r.get("icon"), r.get("condition")}
+    if "thunderstorm" in kind:  # seit 1.35 eigene Lage, vorher Regen
+        return "gewitter"
     snowy = bool(kind & {"snow", "sleet"})
-    wet = ((r.get("precipitation") or 0) >= RAIN_MM or bool(kind & {"rain", "hail", "thunderstorm"})
+    wet = ((r.get("precipitation") or 0) >= RAIN_MM or bool(kind & {"rain", "hail"})
            or (nowcast or {}).get("state") == "jetzt")
     if snowy:
         return "schnee"
     if wet:
         return "regen"
+    if "fog" in kind:  # seit 1.35
+        return "nebel"
     temp = r.get("temperature")
     felt = feels_like(temp, r.get("wind_speed"), r.get("relative_humidity")) if feels_like else temp
     if felt is not None and felt <= FROST_FEELS:
@@ -524,6 +869,13 @@ def _day_order(items, day, salt):
     return order
 
 
+def weather_pose(reason, day, slot):
+    """Pose zur Wetterlage: die Varianten des Tages gemischt und der Reihe nach – zwei aufeinanderfolgende
+    Takte zeigen nie dieselbe (seit 1.34)."""
+    order = _day_order(WEATHER_POSES[reason], day, f"wetter/{reason}")
+    return order[slot % len(order)]
+
+
 def occasion_slot(now):
     """Darf in diesem Takt ein Anlass die Pose bestimmen? Jeder zweite Takt – so sind die Anlass-Posen
     „eingestreut“ statt ständig da. Welcher Takt beginnt, wechselt täglich (Seed = Datum)."""
@@ -534,7 +886,8 @@ def occasion_slot(now):
 def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
-    occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche) und „rat“
+    occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche, advent; seit 1.35 radar, rad,
+                oepnv, pollen, wahlkampf, zielort, abend, wochenende) und „rat“
                 (seit 1.27: Ratssitzung läuft, die Livestream-Karte steht)
     egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
 
@@ -553,7 +906,8 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     day = now.date()
     everyday = _day_order(EVERYDAY, day, "pose")
     on_slot = occasion_slot(now)
-    active = [o for o in OCCASION_POSE if o in set(occasions)] if on_slot else []
+    rare_ok = (slot // 2) % 2 == 0  # seit 1.35: seltene Anlässe nur auf jedem zweiten Anlass-Takt
+    active = [o for o in OCCASION_POSE if o in set(occasions) and (rare_ok or o not in RARE_OCCASIONS)] if on_slot else []
     others = [o for o in active if o != "geburtstag"]
     council = on_slot and "rat" in set(occasions)
     weather_why = weather_reason(records, now, nowcast, feels_like) if weather else None
@@ -563,14 +917,20 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         reason, main = "rat", RAT_LATE_POSE if now.hour >= RAT_LATE_HOUR else RAT_POSE
     elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
         reason, main = "osterei", egg
-    elif weather_why:
-        reason, main = weather_why, WEATHER_POSE[weather_why]
+    elif weather_why:  # seit 1.34: Varianten reihum, Reihenfolge je Tag und Wetterlage gemischt
+        reason, main = weather_why, weather_pose(weather_why, day, slot)
     elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln
-        reason = others[(slot // 2) % len(others)]
+        # Abwechseln auf den Anlass-Takten (slot // 2). Ist ein seltener Anlass dabei, ist slot // 2 hier immer
+        # gerade – dann über slot // 4, sonst käme bei zwei Anlässen nur der erste dran (seit 1.35, Test).
+        step = 4 if RARE_OCCASIONS & set(others) else 2
+        reason = others[(slot // step) % len(others)]
         main = OCCASION_POSE[reason]
     else:
         reason, main = None, everyday[slot % len(everyday)]
-    flat = main if is_flat(main) else next(
+    # Flache Ersatzpose: seit 1.34 zuerst eine flache Variante derselben Wetterlage (Decke, sonnt, Sturm),
+    # damit das Wetter auch auf engen Linien sichtbar bleibt; sonst die nächste flache Alltags-Pose.
+    same = [p for p in WEATHER_POSES.get(reason, []) if is_flat(p)]
+    flat = main if is_flat(main) else same[0] if same else next(
         p for i in range(1, len(everyday) + 1) if is_flat(p := everyday[(slot + i) % len(everyday)]))
     spots = _day_order(SPOTS, day, "spot")
     k = slot % len(spots)

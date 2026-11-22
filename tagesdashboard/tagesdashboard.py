@@ -541,6 +541,12 @@ class Tagesdashboard(BasePlugin):
             if card:
                 params["live"] = card
                 logger.info("Livestream: %s %s → %s", card["title"], card["until"], card["href"])
+        # ---- Wahlkampf-Modus (seit 1.35 vor der Katzenwahl, Anlass „wahlkampf“): Karte an Tagen mit Wahlkampftermin (und am Wahltag selbst) ----
+        wahl_cfg = wahlkampf.read_config(opt, flag, today) if mode == "normal" else None
+        if wahl_cfg:
+            card = self.wahl_card(params, wahl_cfg, today, weather, records)
+            if card:
+                params["wahl_card"], params["wahl_icon"] = card, WAHL_ICON.format(cls="lw-svg")
         if flag("catEnabled") and mode == "normal":
             try:
                 occasions = [name for name, on in (
@@ -548,7 +554,19 @@ class Tagesdashboard(BasePlugin):
                     ("nachrichten", bool(params.get("news"))),
                     ("zug", bool(params.get("train"))),
                     ("waesche", bool(params.get("laundry"))),
-                    ("rat", bool(params.get("live")))) if on]  # seit 1.27: Rednerpult/Akten zur Ratssitzung
+                    ("rat", bool(params.get("live"))),  # seit 1.27: Rednerpult/Akten zur Ratssitzung
+                    # seit 1.34: Lichterkette vom 1. Advent bis Heiligabend – unabhängig vom Schalter für den Kranz
+                    ("advent", advent.candles(today) > 0),
+                    # seit 1.35: Posen zu vorhandenen Karten, spätabends und am Wochenende
+                    ("radar", bool(params.get("nowcast"))),
+                    ("rad", (params.get("trip") or {}).get("icon") == "bike"),
+                    ("oepnv", (params.get("trip") or {}).get("icon") == "bus"),
+                    ("pollen", any(t.get("label") == "Pollen" for t in (weather or {}).get("tiles") or [])),
+                    ("wahlkampf", bool(params.get("wahl_card"))),
+                    ("zielort", any(ev.get("away_line") for d in params.get("calendar") or [] if d.get("is_today")
+                                    for ev in d.get("events") or [])),
+                    ("abend", now.hour >= katze.LATE_HOUR),
+                    ("wochenende", today.weekday() >= 5)) if on]
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
                                              feels_like=dwd.feels_like, occasions=occasions,
                                              egg=egg["pose"] if egg else None)
@@ -556,12 +574,6 @@ class Tagesdashboard(BasePlugin):
                             f" ({params['cat']['reason']})" if params["cat"]["reason"] else "")
             except Exception:  # Katze ist Zusatz: nie das ganze Bild verlieren
                 logger.exception("Katze konnte nicht gewählt werden")
-        # ---- Wahlkampf-Modus: Karte an Tagen mit Wahlkampftermin (und am Wahltag selbst) ----
-        wahl_cfg = wahlkampf.read_config(opt, flag, today) if mode == "normal" else None
-        if wahl_cfg:
-            card = self.wahl_card(params, wahl_cfg, today, weather, records)
-            if card:
-                params["wahl_card"], params["wahl_icon"] = card, WAHL_ICON.format(cls="lw-svg")
         if mode == "urlaub":
             self.urlaub_view(params, vacation, today, weather, dimensions, tz, now)
         if mode == "fest":
