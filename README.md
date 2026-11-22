@@ -1,12 +1,25 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.35
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.36
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Sternschnuppenströme, Mondfinsternisse und helle Planeten im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.36: aufgeräumte Wetterseite
+
+![Aufgeräumte Wetterseite](docs/entschlackt_800x480.png)
+
+- **Wind und Böen in einer Kachel:** „Wind · Böen 17 / 39 km/h ↗ SW“.
+- **UV-Index erst ab Stufe 3** („mittel“, ab da wird Sonnenschutz empfohlen). Im Winter fällt die Kachel weg; im Sommer steht sie als fünfte Kachel in einer eigenen Zeile (siehe `docs/entschlackt_480x800.png`). Die Ersatzkachel „Bewölkung“ für Orte ohne UV-Wert entfällt ebenfalls.
+- Meist bleiben so **vier Kacheln** (Wind · Böen, Regen, Luftfeuchte, Tageslicht) in zwei Spalten mit etwas größeren Zahlen.
+- **Kleidungsempfehlung ohne Rahmen**, nur mit einer Linie darüber.
+- **Tageskurve** ohne die gepunkteten Nachtflächen und mit kräftigerer Linie; sie bekommt den frei gewordenen Platz.
+- Keine neue Einstellung. Nachtbild, Wochenvorschau und Festbilder sind unverändert.
+
+**Deine Einstellungen bleiben erhalten** (cfgVersion bleibt 23). Python und CSS haben sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.35: 15 weitere Katzenposen
 
@@ -355,6 +368,8 @@ Siehe `README.md` des Repos (Abschnitt „Schärfer auf dem Inky Impression“):
 
 Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 
+- `entschlackt_800x480.png` – aufgeräumte Wetterseite: vier Kacheln, Kleidung ohne Rahmen (1.36)
+- `entschlackt_480x800.png` – hochkant im Sommer: UV 7 als fünfte Kachel in eigener Zeile (1.36)
 - `anfahrt-bus_800x480.png` – Regen ab 17 Uhr: Bus schon zum ersten Termin der Kette
 - `anfahrt-rad_800x480.png` – trockener Abend: Rad
 - `anfahrt-verspaetung_800x480.png` – Bus mit 4 Minuten Verspätung
@@ -387,4 +402,4 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `zielort_800x480.png` – Ausschuss im Landtag Düsseldorf: „Düsseldorf 10° · Regen ab 14 Uhr“, morgen Sprechstunde in Eschweiler (1.30)
 - `zielort_480x800.png` – hochkant, während des Termins: „Düsseldorf 9° · Regen 80 %“ (1.30)
 
-Die übrigen Bilder stammen aus früheren Versionen und zeigen die Katze noch nicht.
+Die übrigen Bilder stammen aus früheren Versionen; vor 1.36 zeigen sie noch sechs Kacheln und die Kleidung im Rahmen, ganz alte auch die Katze noch nicht.

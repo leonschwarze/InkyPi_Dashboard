@@ -235,6 +235,7 @@ def cache_fresh(now, quiet_until, edge, takt):
     return now < quiet_until - slack
 SENSITIVITY_LABEL = {"normal": "normal", "empfindlich": "kälteempfindlich", "sehr": "sehr kälteempfindlich"}
 GRAPH_START, GRAPH_END = 6, 24  # Tageskurve von 6 bis 24 Uhr
+UV_MIN_SHOWN = 3  # UV-Kachel erst ab „mittel“ (Sonnenschutz empfohlen), seit 1.36
 # Regenstärke in mm pro Stunde. Bewusst alltagsnah gewählt; die offizielle DWD-Einteilung
 # (leicht < 2,5, mäßig bis 10, stark > 10 mm/Std.) würde fast jeden Regen "leicht" nennen.
 RAIN_LEVELS = [(1.0, "leicht"), (4.0, "maessig"), (float("inf"), "stark")]
@@ -938,6 +939,7 @@ class Tagesdashboard(BasePlugin):
         if uv_value is not None:
             result["tiles"] = [self.uv_tile(uv_value, offset) if t.get("key") == "cloudcover" else t
                                for t in result["tiles"]]
+        result["tiles"] = self.slim_tiles(result["tiles"])
         return result
 
     # ------------------------------------------------------------------
@@ -986,6 +988,28 @@ class Tagesdashboard(BasePlugin):
                  f'font-size="13" fill="{fg}">UV</text></svg>')
         return {"icon": badge, "label": "UV " + ("heute" if offset == 0 else "morgen"),
                 "value": str(int(round(value))), "unit": name, "key": "uv"}
+
+    @staticmethod
+    def slim_tiles(tiles):
+        """Kacheln entschlacken (seit 1.36): Wind und Böen in einer Kachel, UV erst ab Stufe 3.
+
+        „UV 1 niedrig“ sagt den größten Teil des Jahres nichts; ohne UV-Daten fällt auch die
+        Ersatzkachel Bewölkung weg (die Bewölkung steckt schon im Wettersymbol). So bleiben
+        meist vier Kacheln im Raster 2 × 2, und die Tageskurve bekommt den Platz."""
+        gust = next((t for t in tiles if t["label"].startswith("Böen")), None)
+        out = []
+        for t in tiles:
+            key = t.get("key")
+            if t is gust or key == "cloudcover":
+                continue
+            if key == "uv" and UV_MIN_SHOWN and int(t["value"]) < UV_MIN_SHOWN:
+                continue
+            if t["label"].startswith("Wind") and gust is not None:
+                t = dict(t, label="Wind · Böen", raw=True,
+                         value=f'{t["value"]}<span class="sep">/</span>{gust["value"]}')
+            out.append(t)
+        # UV ans Ende: die vier gewohnten Plätze bleiben gleich, UV steht in einer dritten Zeile
+        return [t for t in out if t.get("key") != "uv"] + [t for t in out if t.get("key") == "uv"]
 
     @staticmethod
     def pollen_tile(data):
@@ -1087,7 +1111,7 @@ class Tagesdashboard(BasePlugin):
             line += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
 
         # Regen bekommt eine eigene Zeile unter der Kurve: Höhe = Menge, Füllung = Stärke.
-        rain, nights = [], []
+        rain = []
         for i, r in enumerate(pts):
             amount = r.get("precipitation") or 0
             if amount >= 0.05:
@@ -1095,9 +1119,6 @@ class Tagesdashboard(BasePlugin):
                 h = 100 * max(min(amount / RAIN_SCALE, 1.0), 0.28)  # auch Niesel bleibt sichtbar
                 rain.append({"x": f"{i * slot + slot * 0.08:.1f}", "w": f"{slot * 0.84:.1f}",
                              "y": f"{100 - h:.1f}", "h": f"{h:.1f}", "cls": level})
-            sr, ss = sun_cache(r["dt"].date())
-            if sr and ss and not (sr <= r["dt"] < ss):
-                nights.append({"x": f"{i * slot:.1f}", "w": f"{slot + 0.6:.1f}"})
         used_levels = {c["cls"] for c in rain}
 
         icon_hours = {9, 12, 15, 18, 21}
@@ -1122,7 +1143,7 @@ class Tagesdashboard(BasePlugin):
         now_left = None
         if start <= now <= end:
             now_left = f"{((now - start).total_seconds() / 3600 + 0.5) / n * 100:.2f}"
-        return {"line": line, "nights": nights, "icons": gicons, "xlabels": xlabels,
+        return {"line": line, "icons": gicons, "xlabels": xlabels,
                 "tlabels": tlabels, "now_left": now_left, "rain": rain,
                 "rain_levels": [lv for _, lv in RAIN_LEVELS if lv in used_levels],
                 "rain_summary": self.rain_summary(pts, now, d)}
