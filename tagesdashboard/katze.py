@@ -808,6 +808,114 @@ def laterne():
     return 56, 44, _sitting_body(paws=1) + _head(18, 13) + _raised_paw() + stick + lantern
 
 
+
+# ------------------------------------------------------------ Saisonale Gäste (seit 1.46)
+# Leons Wahl aus der Ideen-Runde vom 23.11. (Nr. 19): Variante B „Begegnung“ – je Gast eine eigene Pose, in der die
+# Katze dem Tier begegnet; Rotkehlchen (Winter), Kröte (Krötenwanderung), Eichhörnchen (September), Igel (Herbst).
+# Die Tiere schauen nach links zur Katze. g_* zeichnet das Tier allein (viewBox ab 0, Füße auf der Unterkante),
+# die Pose (Name = Tier) setzt Katze und Tier zusammen.
+
+def _spines(cx, base, rx, ry, tip=3.6, n=7):
+    """Stachelrücken des Igels: schwarze Halbellipse, darauf n Zacken, die nach außen zeigen."""
+    out = f'<path fill="currentColor" stroke="currentColor" d="M{cx - rx:.1f} {base} A{rx} {ry} 0 0 1 {cx + rx:.1f} {base} Z"/>'
+    for i in range(n):
+        a = math.radians(160 - i * 140 / (n - 1))
+        da = math.radians(11)
+        pts = []
+        for ang, r in ((a + da, 1.0), (a, 1.0 + tip / ry), (a - da, 1.0)):
+            pts.append(f"{cx + rx * r * math.cos(ang):.1f} {base - ry * r * math.sin(ang):.1f}")
+        out += f'<path fill="currentColor" stroke="currentColor" d="M{" L".join(pts)} Z"/>'
+    return out
+
+
+def g_igel():
+    """Herbst: Igel mit rotem Apfel auf den Stacheln, schaut nach links."""
+    spines = _spines(18.5, 16.5, 9.5, 11)
+    face = (f'<path {F} d="M11.5 16.5 Q5 16.5 1.6 13.2 Q0.8 12 2.4 11.6 Q7 10.6 10.5 6.5 Q13.5 10 13 16.5 Z"/>'
+            f'<circle {D} cx="1.9" cy="12.2" r="1.3"/><circle {D} cx="6.8" cy="11" r="1.1"/>')
+    legs = f'<path {L} d="M12 16.5 V18 M23 16.5 V18"/>'
+    apple = (f'<circle fill="{RED}" stroke="currentColor" cx="21" cy="7" r="3.3"/>'
+             f'<path {L} d="M21 3.8 Q22.5 1.8 24.5 2.2"/>')  # Stiel schwarz: grün auf den Stacheln gab blaue Streupixel
+    return 31, 20, f'<g transform="translate(0 2)">{spines}{face}{apple}{legs}</g>'
+
+
+def g_rotkehlchen():
+    """Winter: Rotkehlchen mit roter Brust, schaut nach links."""
+    body = 'M3 8.5 Q2.6 2.2 7 2.2 Q10 2.2 10.8 5 Q15.5 5 17.5 8.3 L20 6.5 L19 11 Q16.5 15.5 10.5 15.5 Q3.4 15.5 3 8.5 Z'
+    # Brust als roter Fleck mit Abstand zur Kontur: wo Rot an die schwarze Linie stößt, liegen in der Ecke Rot,
+    # Schwarz und Weiß in einem Pixel – eink.py erklärt nur Mischungen aus zwei Farben (blaues Streupixel)
+    breast = f'<ellipse fill="{RED}" stroke="none" cx="6.6" cy="11.4" rx="2.9" ry="2.6"/>'
+    return 20, 18, (f'<path {F} d="{body}"/>{breast}<path {L} d="{body}"/>'
+                    f'<path fill="currentColor" stroke="currentColor" d="M3 6.6 L0.6 7.5 L3 8.3 Z"/>'
+                    f'<circle {D} cx="6" cy="5.6" r="1.1"/>'
+                    f'<path {L} d="M12.6 9.6 Q14.6 12.6 17.2 10.8 M9 15.5 V18 M12 15.5 V18"/>')
+
+
+def g_kroete():
+    """Frühling (Krötenwanderung): grüne Kröte mit großen Glubschaugen oben auf dem Kopf, schaut nach links."""
+    return 24, 17, (f'<path fill="{GREEN}" stroke="currentColor" d="M1.5 17 Q0.5 9.5 8 8.5 Q16.5 7.5 20.5 12 Q22.5 15 21.5 17 Z"/>'
+                    f'<circle {F} cx="5" cy="5.8" r="3.6"/><circle {F} cx="12" cy="5.4" r="3.6"/>'
+                    f'<circle {D} cx="4.4" cy="6" r="1.6"/><circle {D} cx="11.4" cy="5.6" r="1.6"/>'
+                    f'<path {L} d="M15.5 17 Q20.5 16 18.5 12"/>')
+
+
+def g_eichhoernchen():
+    """September: Eichhörnchen mit großem rotem Schwanz, hält eine Nuss, schaut nach links."""
+    # Schwanz voll und buschig (eine dünne Sichel war in Displaygröße nicht als Eichhörnchen zu erkennen)
+    tail = (f'<path fill="{RED}" stroke="currentColor" d="M12.5 25.5 Q26.5 26.5 25 13 Q24 2.5 16.5 3 Q11 3.5 12 8.5'
+            f' Q12.8 11.5 16.5 11 Q19 11 18.8 14.5 Q18.5 19.5 12.5 21.5 Z"/>')
+    body = (f'<path {F} d="M4.5 25.5 Q2.6 18 6.6 13.5 Q4.6 11.5 4.8 9 Q5.2 6 7.6 5.6'
+            f' L8.2 2 L10 5.6 Q12.8 6.4 12.8 10 Q12.6 12.2 11.6 13.6 Q15.2 18.5 13.5 25.5 Z"/>')
+    face = f'<circle {D} cx="7.4" cy="9" r="1.4"/><circle {D} cx="4.9" cy="10.6" r="0.9"/>'
+    nut = (f'<ellipse fill="{YELLOW}" stroke="currentColor" cx="5" cy="16.2" rx="2.6" ry="2.3"/>'
+           f'<path {L} d="M7 16.4 Q9.2 17.6 9.6 15"/>')
+    return 27, 26, tail + body + face + nut
+
+
+def _place(inner, x, y, k=1.0):
+    return f'<g transform="translate({x:.1f} {y:.1f}) scale({k})">{inner}</g>'
+
+
+def _tilted_head(cx, cy, deg, dx=0.0, dy=0.0):
+    """Kopf schräg gelegt, Pupillen in Blickrichtung verschoben."""
+    eyes = (f'<circle {D} cx="{cx - 4 + dx:.1f}" cy="{cy - .5 + dy:.1f}" r="1.7"/>'
+            f'<circle {D} cx="{cx + 4 + dx:.1f}" cy="{cy - .5 + dy:.1f}" r="1.7"/>')
+    return f'<g transform="rotate({deg} {cx} {cy})">{_head(cx, cy, eyes="none")}{eyes}</g>'
+
+
+def b_igel():
+    """B: geduckt Nase an Nase mit dem Igel, kleines Herz dazwischen."""
+    _, _, igel = g_igel()
+    heart = f'<path fill="{RED}" stroke="currentColor" d="M35.5 7 Q33 3.5 35.5 2.6 Q36.8 2.3 37.5 3.6 Q38.2 2.3 39.5 2.6 Q42 3.5 39.5 7 L37.5 9 Z"/>'
+    _, _, cat = lugt()
+    return 64, 25, _place(cat, 0, 1) + _place(igel, 33, 5) + heart
+
+
+def b_rotkehlchen():
+    """B: das Rotkehlchen sitzt der Katze auf dem Kopf, sie schielt nach oben."""
+    bird = _place(g_rotkehlchen()[2], 12.5, 0, 0.82)
+    return 40, 57, _place(_sitting_body() + _tilted_head(20, 13, 0, 0, -1.4), 0, 13) + bird
+
+
+def b_kroete():
+    """B: geduckt Auge in Auge mit der Kröte."""
+    _, _, frog = g_kroete()
+    _, _, cat = lugt()
+    return 58, 24, cat + _place(frog, 33, 7)
+
+
+def b_eichhoernchen():
+    """B: das Eichhörnchen reicht ihr eine Nuss, sie neigt den Kopf."""
+    sq = _place(g_eichhoernchen()[2], 37, 10.2, 1.3)  # 1,3-fach: in Originalgröße war es neben der Katze zu klein
+    return 73, 44, _sitting_body() + _tilted_head(20, 13, 10, 1.2, 0) + sq
+
+
+GUEST_POSES = {"rotkehlchen": b_rotkehlchen, "kröte": b_kroete, "eichhörnchen": b_eichhoernchen, "igel": b_igel}
+
+# Monat → Gast; Mai bis August kommt niemand (Marienkäfer und Libelle hat Leon nicht gewählt)
+GUEST_SEASON = {12: "rotkehlchen", 1: "rotkehlchen", 2: "rotkehlchen", 3: "kröte", 4: "kröte",
+                9: "eichhörnchen", 10: "igel", 11: "igel"}
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
@@ -831,6 +939,8 @@ POSES = {
     # seit 1.43
     "schlitten": schlitten, "glatteis": glatteis, "stirnband": stirnband, "comic": comic,
     "thermometer": thermometer, "plätzchen": plaetzchen, "laterne": laterne,
+    # Saisonale Gäste (seit 1.46): nie zufällig, nur in ihrer Saison auf Gast-Takten (guest_slot)
+    **GUEST_POSES,
 }
 # Ostereier (seit 1.24): nur über choose(egg=…); geheim, darum auch nicht auf dem Posen-Bogen für die README
 EGG_POSES = ("narr", "dirigent", "schwarz", "himbeerkuchen", "kürbis", "grundgesetz")
@@ -1004,7 +1114,23 @@ def occasion_slot(now):
     return (slot_of(now) + start) % 2 == 0
 
 
-def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None):
+def guest_of(day):
+    """Gast der Saison (seit 1.46) oder None."""
+    return GUEST_SEASON.get(day.month)
+
+
+def guest_slot(now):
+    """Gast-Takt (seit 1.46): selten – jedes vierte Bild, also etwa einmal pro Stunde.
+
+    Nur auf den Takten *ohne* Anlass (occasion_slot ist jeden zweiten Takt wahr), davon jeder zweite; welcher, hängt
+    am Datum. So nimmt der Gast weder Geburtstag noch Ratssitzung oder Zeitung einen Platz weg."""
+    if occasion_slot(now):
+        return False
+    shift = random.Random(f"{now.date().isoformat()}/gast").randrange(2)
+    return (slot_of(now) // 2 + shift) % 2 == 0
+
+
+def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None, guests=True):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
     occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche, advent; seit 1.35 radar, rad,
@@ -1012,8 +1138,9 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
                 comic, laterne) und „rat“
                 (seit 1.27: Ratssitzung läuft, die Livestream-Karte steht)
     egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
+    guests    – saisonale Gäste zulassen (seit 1.46, GUEST_SEASON, nur auf Gast-Takten)
 
-    Rangfolge: Geburtstag > Ratssitzung > Osterei > Wetter > übrige Anlässe > Alltag; seit 1.43 schlagen Glätte und
+    Rangfolge: Geburtstag > Ratssitzung > Osterei > Gast (seit 1.46) > Wetter > übrige Anlässe > Alltag; seit 1.43 schlagen Glätte und
     Schnee am Berg (WINTER_OCCASIONS) auf ihren Takten die Wetterlagen Frost und Schnee. Anlässe (auch Geburtstag
     und Ratssitzung) zählen nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie
     zutreffen – an einem Ostereier-Tag mit Ratssitzung wechseln sich also Osterei und Rednerpult ab.
@@ -1041,6 +1168,8 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         reason, main = "rat", RAT_LATE_POSE if now.hour >= RAT_LATE_HOUR else RAT_POSE
     elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
         reason, main = "osterei", egg
+    elif guests and guest_of(day) and guest_slot(now):  # seit 1.46: Gast der Saison, auch bei Wetter (Leons Wahl)
+        reason, main = "gast", guest_of(day)
     elif winter and weather_why in ("frost", "schnee"):  # seit 1.43: Glätte/Schnee am Berg passen zum Winterwetter
         reason = winter[(slot // 2) % len(winter)]
         main = OCCASION_POSE[reason]
