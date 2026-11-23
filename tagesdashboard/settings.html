@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="28" />
+<input type="hidden" name="cfgVersion" value="29" />
 
 <div class="st">
 
@@ -341,11 +341,12 @@
             <label class="st-check"><input type="checkbox" class="db-check" name="eclipseEnabled" value="true" data-default="true" data-since="17"><span>Mondfinsternisse <span class="st-note">als Text, wenn eine Finsternis höchstens 45 Tage entfernt ist; bei einer totalen Mondfinsternis färbt sich der Mond in der Nacht selbst rötlich (Blutmond)</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="planetEnabled" value="true" data-default="true" data-since="18"><span>Helle Planeten <span class="st-note">als Text, wenn Venus, Jupiter, Mars oder Saturn ihren Höhepunkt erreichen (Opposition bzw. größte Helligkeit); zusätzlich als heller Punkt am Himmel, nur am Höhepunkt bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="pegelEnabled" value="true" data-default="true" data-since="21"><span>Rhein auf echtem Pegel <span class="st-note">das Wasser steht so hoch wie am Pegel Bonn, mit Pegellatte und Wert (PEGELONLINE); ohne Daten bleibt der Rhein wie bisher</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="liveCity" value="true" data-default="true" data-since="29"><span>Lebende Stadt <span class="st-note">Fenster gehen im Lauf der Nacht aus und ab 5 Uhr wieder an, eine Stadtbahn fährt über die Kennedybrücke, im Sommer dämmert es vor Sonnenaufgang; ist der Mond verdeckt, sitzt die Katze auf einem Dach. Ändert sich höchstens einmal pro Stunde</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="polarEnabled" value="true" data-default="true" data-since="24"><span>Polarlicht <span class="st-note">bei einem starken Sturm (Kp ab 7, Vorhersage der NOAA) ein grüner Vorhang hinter der Stadt, ab Kp 8 mit roten Spitzen; bei Wolken nur als Text</span></span></label>
-            <label class="st-check"><input type="checkbox" class="db-check" name="snowNight" value="true" data-default="true" data-since="28"><span>Schnee auf den Dächern <span class="st-note">liegt in Bonn Schnee (Modellwert, mindestens 1 cm), bekommen Dächer und Siebengebirge weiße Kappen</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="snowNight" value="true" data-default="true" data-since="28"><span>Schnee auf Dächern und Gipfeln <span class="st-note">liegt in Bonn Schnee (Modellwert, mindestens 1 cm), bekommen Dächer und Siebengebirge weiße Kappen; liegt er nur oben auf dem Ölberg, werden die Gipfel von Drachenfels und Ölberg weiß</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="issEnabled" value="true" data-default="true" data-since="19"><span>ISS-Überflüge <span class="st-note">als Textzeile, wenn die Raumstation hell und hoch über Bonn fliegt (Dämmerung, mindestens 25° hoch); bei klarem Himmel zusätzlich ihre Bahn als gestrichelte Linie. Bahndaten von Celestrak, höchstens alle 2 Stunden</span></span></label>
         </div>
-        <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
+        <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nachts ruhig halten <span class="st-note">Wetter und Termine werden einmal pro Nacht geladen. Ohne „Lebende Stadt“ bleibt das Bild bis zum Morgen stehen, mit ihr zeichnet das Display höchstens einmal pro Stunde neu – und nur, wenn sich in der Stadt etwas verändert hat</span></span></label>
     </div>
 </section>
 

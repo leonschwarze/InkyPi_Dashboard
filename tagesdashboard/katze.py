@@ -18,6 +18,7 @@ Zeichnung: eigene Linien-SVGs, 1 Einheit = 1 px bei 800×480 (--u = 8 px). Die S
 hängt nicht an der Skalierung (vector-effect: non-scaling-stroke), sondern an --u, damit
 die Katze so kräftig ist wie die übrigen Linien. Farbtupfer nur in Displayfarben.
 """
+import math
 import random
 from datetime import timedelta
 
@@ -731,6 +732,82 @@ def seifenblasen():
     return 54, 44, _sitting_body(paws=1) + _head(18, 13) + _raised_paw() + bubbles
 
 
+# ---------------------------------------------------------------- seit 1.43: Posen zu neueren Karten und Anlässen
+
+def _star(cx, cy, r=4.2, ri=1.9):
+    """Fünfzackiger gelber Stern (Plätzchen)."""
+    pts = []
+    for i in range(10):
+        a = math.radians(-90 + 36 * i)
+        rr = r if i % 2 == 0 else ri
+        pts.append(f"{cx + rr * math.cos(a):.1f},{cy + rr * math.sin(a):.1f}")
+    return f'<polygon fill="{YELLOW}" stroke="currentColor" points="{" ".join(pts)}"/>'
+
+
+def schlitten():
+    """Schnee: sitzt auf einem roten Schlitten mit geschwungenen Kufen."""
+    board = f'<path fill="{RED}" stroke="currentColor" d="M3 44 H47 V49.5 H3 Z"/>'
+    runner = f'<path {L} d="M10 49.5 V54 M38 49.5 V54 M2 54 H45 Q51.5 54 51.5 48.5 Q51.5 45 48.5 44.5"/>'
+    return 54, 55, f'<g transform="translate(5 0.5)">{_sitting_body()}{_head(20, 13)}</g>' + board + runner
+
+
+def glatteis():
+    """Glätte-Karte: rutscht schief auf einer blauen Eisfläche, Pfoten zum Ausbalancieren in der Luft."""
+    ice = (f'<path fill="{BLUE}" stroke="currentColor" d="M2 43 H50 Q53 43 53 45.5 Q53 48 50 48 H2 Q-1 48 -1 45.5 Q-1 43 2 43 Z"/>')
+    cat = _sitting_body(paws=1) + _head(18, 13) + _raised_paw()
+    lines = f'<path {L} d="M-1 30 H5 M-2 36 H3"/>'
+    return 57, 48, f'<g transform="translate(3 0)"><g transform="translate(8 0.5) rotate(-9 20 43)">{cat}</g>{lines}{ice}</g>'
+
+
+def stirnband():
+    """Lauf-Fenster-Karte: rotes Stirnband mit flatternden Enden, daneben ein blauer Laufschuh."""
+    band = (f'<path fill="{RED}" stroke="currentColor" d="M10.3 6.8 Q20 4.6 29.7 6.8 L29.9 10.2 Q20 8.2 10.1 10.2 Z"/>'
+            f'<path fill="{RED}" stroke="currentColor" d="M29.5 7.5 L37 3.5 L36.5 7.5 L30 9.5 Z"/>')
+    shoe = (f'<path fill="{BLUE}" stroke="currentColor" d="M39.5 43.5 V37 Q39.5 34 42.5 34.5 L46 35.5'
+            f' Q48 38.5 52.5 39 Q57 39.5 57 43.5 Z"/>'
+            f'<path stroke="var(--bg)" fill="none" d="M43.5 37.5 L46 37 M44 40 L47.5 39.5"/>')
+    return 58, 44, _sitting_body() + _head(20, 13) + band + shoe
+
+
+def comic():
+    """Sonntagscomic: liest ein großes aufgeschlagenes Heft mit gelbem Umschlag, darüber eine Sprechblase."""
+    cover = f'<path fill="{YELLOW}" stroke="currentColor" d="M0.5 24 L20 27 L39.5 24 L39.5 44 L20 46 L0.5 44 Z"/>'
+    pages = (f'<path {F} d="M4 20 L20 22.5 L36 20 L36 36.5 L20 39 L4 36.5 Z"/>'
+             f'<path {L} d="M20 22.5 V39"/>')
+    eyes = f'<circle {D} cx="16" cy="13" r="1.8"/><circle {D} cx="24" cy="13" r="1.8"/>'
+    bubble = (f'<path {F} d="M42 12.5 Q37 12.5 37 7.5 Q37 2 46 2 Q55 2 55 7.5 Q55 12.5 48 12.5 L44 16 L44.5 12.5 Z"/>'
+              f'<circle {D} cx="42" cy="7.5" r="1.3"/><circle {D} cx="46" cy="7.5" r="1.3"/><circle {D} cx="50" cy="7.5" r="1.3"/>')
+    return 56, 46, _sitting_body() + _head(20, 11, eyes="none") + eyes + cover + pages + bubble
+
+
+def thermometer():
+    """Klima-Karte: schaut auf ein großes Thermometer mit roter Säule."""
+    tube = (f'<path {F} d="M42 37 V6 Q42 2.5 45.5 2.5 Q49 2.5 49 6 V37"/>'
+            f'<path {L} d="M38.5 10 H41 M38.5 16 H41 M38.5 22 H41 M38.5 28 H41"/>'
+            f'<path fill="{RED}" stroke="none" d="M44.2 15 H46.8 V38 H44.2 Z"/>'
+            f'<circle fill="{RED}" stroke="currentColor" cx="45.5" cy="38.5" r="5"/>')
+    eyes = f'<circle {D} cx="18" cy="11.8" r="1.7"/><circle {D} cx="26" cy="11.8" r="1.7"/>'
+    return 52, 44, _sitting_body() + _head(20, 13, eyes="none") + eyes + tube
+
+
+def plaetzchen():
+    """Advent: trägt ein Backblech mit zwei großen Stern-Plätzchen."""
+    tray = f'<path {F} d="M1 35 H39 V38.5 H1 Z"/>'
+    paws = (f'<path {F} d="M-1 37 Q-1 33.5 2 33.5 Q5 33.5 5 37 Q5 40.5 2 40.5 Q-1 40.5 -1 37 Z"/>'
+            f'<path {F} d="M35 37 Q35 33.5 38 33.5 Q41 33.5 41 37 Q41 40.5 38 40.5 Q35 40.5 35 37 Z"/>')
+    stars = _star(11.5, 28.6, 6.2, 2.9) + _star(28.5, 28.6, 6.2, 2.9)
+    return 42, 44, f'<g transform="translate(1 0)">{_sitting_body()}{_head(20, 13)}{tray}{stars}{paws}</g>'
+
+
+def laterne():
+    """Laternenumzug (Termin mit „Laterne“ oder „St. Martin“): hält einen Stab mit roter Laterne."""
+    stick = f'<path {L} d="M33.5 15 L45 3.5 M45 3.5 V9"/>'
+    lantern = (f'<ellipse fill="{RED}" stroke="currentColor" cx="45" cy="18" rx="7.5" ry="8.5"/>'
+               f'<path fill="{YELLOW}" stroke="currentColor" d="M40.5 9 H49.5 V12 H40.5 Z M40.5 24.5 H49.5 V27.5 H40.5 Z"/>'
+               f'<path stroke="{YELLOW}" fill="none" d="M45 13.5 V22.5"/>')
+    return 56, 44, _sitting_body(paws=1) + _head(18, 13) + _raised_paw() + stick + lantern
+
+
 POSES = {
     "sitzt": sitzt, "putzt": putzt, "schmetterling": schmetterling, "schläft": schlaeft,
     "kastenbrot": kastenbrot, "lugt": lugt, "spielt": spielt, "streckt": streckt,
@@ -751,6 +828,9 @@ POSES = {
     "nebel": nebel, "gewitter": gewitter, "fernglas": fernglas, "helm": helm, "haltestelle": haltestelle,
     "niest": niest, "plakat": plakat, "karte": karte, "zipfelmütze": nachtmuetze, "hängematte": haengematte,
     "laptop": laptop, "kopfhörer": kopfhoerer, "ball": ball, "flieger": flieger, "seifenblasen": seifenblasen,
+    # seit 1.43
+    "schlitten": schlitten, "glatteis": glatteis, "stirnband": stirnband, "comic": comic,
+    "thermometer": thermometer, "plätzchen": plaetzchen, "laterne": laterne,
 }
 # Ostereier (seit 1.24): nur über choose(egg=…); geheim, darum auch nicht auf dem Posen-Bogen für die README
 EGG_POSES = ("narr", "dirigent", "schwarz", "himbeerkuchen", "kürbis", "grundgesetz")
@@ -766,7 +846,7 @@ WEATHER_POSES = {
     "gewitter": ["gewitter", "fenster"],           # seit 1.35 (vorher zählte Gewitter als Regen)
     "regen": ["schirm", "südwester", "fenster"],
     "nebel": ["nebel"],                             # seit 1.35
-    "schnee": ["schal", "schneeflocke", "schneemann"],
+    "schnee": ["schal", "schneeflocke", "schneemann", "schlitten"],  # Schlitten seit 1.43
     "frost": ["schal", "mütze", "decke"],
     "sonne": ["sonnt", "sonnenbrille", "eis"],
 }
@@ -776,7 +856,26 @@ OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "kof
                  # seit 1.35: zu vorhandenen Karten (Regenradar, Anfahrt Rad bzw. Bus/Bahn, Pollen-Kachel,
                  # Wahlkampf-Karte, Wetter am Zielort heute), spätabends und am Wochenende
                  "radar": "fernglas", "rad": "helm", "oepnv": "haltestelle", "pollen": "niest",
-                 "wahlkampf": "plakat", "zielort": "karte", "abend": "zipfelmütze", "wochenende": "hängematte"}
+                 "wahlkampf": "plakat", "zielort": "karte", "abend": "zipfelmütze", "wochenende": "hängematte",
+                 # seit 1.43: Schnee-Karte oder Schnee am Ölberg, Glätte-, Lauf-, Klima-Karte, Sonntagscomic, Laternenumzug
+                 "schneekarte": "schlitten", "glaette": "glatteis", "laufen": "stirnband", "klima": "thermometer",
+                 "comic": "comic", "laterne": "laterne"}
+# Laternenumzug (seit 1.43): Termin heute, dessen Titel eines dieser Wörter enthält (Groß-/Kleinschreibung egal)
+LANTERN_WORDS = ("laterne", "st. martin", "st.martin", "sankt martin", "martinszug", "martinsumzug")
+
+
+def is_lantern(title):
+    t = (title or "").lower()
+    return any(w in t for w in LANTERN_WORDS)
+
+
+# Winter-Anlässe (seit 1.43): Glätte-Karte und Schnee-Karte/Schnee am Ölberg kommen fast nur bei Frost oder Schnee –
+# dann ginge die Wetterkatze immer vor und Glatteis bzw. Schlitten kämen nie. Darum schlagen sie auf ihren
+# Anlass-Takten die Wetterlagen Frost und Schnee (nicht Regen, Sturm, Gewitter, Nebel).
+WINTER_OCCASIONS = ("glaette", "schneekarte")
+
+# Anlässe mit mehreren Posen (seit 1.43): im Wechsel je Anlass-Takt. Advent: Lichterkette und Plätzchen
+OCCASION_POSES = {"advent": ["lichterkette", "plätzchen"]}
 # Seltene Anlässe (seit 1.35): nur auf jedem zweiten Anlass-Takt, also jedes vierte Mal – das Wochenende hat
 # keine Karte, die es begrenzt, sonst läge die Katze das ganze Wochenende jedes zweite Mal in der Hängematte.
 RARE_OCCASIONS = {"wochenende"}
@@ -802,6 +901,18 @@ def on_moon(cx, top, k=0.95, stroke=2.1, ring=1.6):
     y = bottom - 29 * k                           # Unterkante der Pose liegt bei y = 29
     return (f'<g transform="translate({x:.1f} {y:.1f}) scale({k})" stroke-width="{stroke / k:.2f}"'
             f' stroke-linecap="round" stroke-linejoin="round" style="color:#000000; --bg:#FFFFFF">{inner}{z}</g>')
+
+
+def on_roof(x, y, k=1.7):
+    """Nachtbild (seit 1.43, „Dachkatze“): Ist der Mond hinter Regenwolken verschwunden, sitzt die Katze als
+    schwarze Silhouette mit gelben Augen auf einem Dach. x, y = Mitte der Pfoten auf dem Dach, in Koordinaten der
+    Stadt (nachtgrafik.CITY). Nur Schwarz und Gelb auf Blau: Kanten aus zwei Farben rasten sauber ein."""
+    ink, star = "#000000", "#FFE500"
+    return (f'<g transform="translate({x:.1f},{y:.1f}) scale({k})">'
+            f'<path d="M-4,0 Q-5,-6 -2.5,-8 L-3.6,-13 L-0.8,-10.4 L1.4,-10.4 L3.8,-13 L3,-8 Q5,-6 4,0 Z" fill="{ink}"/>'
+            f'<path d="M4,-0.5 Q9,-1 8.5,-6" fill="none" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>'
+            f'<rect x="-2.2" y="-8.6" width="1.6" height="1.6" fill="{star}"/>'
+            f'<rect x="0.8" y="-8.6" width="1.6" height="1.6" fill="{star}"/></g>')
 
 
 def pose(name):
@@ -876,6 +987,16 @@ def weather_pose(reason, day, slot):
     return order[slot % len(order)]
 
 
+def occasion_pose(reason, day, slot):
+    """Pose zu einem Anlass; hat er mehrere (OCCASION_POSES), wechseln sie sich auf den Anlass-Takten ab –
+    Reihenfolge je Tag gemischt (seit 1.43)."""
+    poses = OCCASION_POSES.get(reason)
+    if not poses:
+        return OCCASION_POSE[reason]
+    order = _day_order(poses, day, f"anlass/{reason}")
+    return order[(slot // 2) % len(order)]
+
+
 def occasion_slot(now):
     """Darf in diesem Takt ein Anlass die Pose bestimmen? Jeder zweite Takt – so sind die Anlass-Posen
     „eingestreut“ statt ständig da. Welcher Takt beginnt, wechselt täglich (Seed = Datum)."""
@@ -887,11 +1008,13 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
     occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche, advent; seit 1.35 radar, rad,
-                oepnv, pollen, wahlkampf, zielort, abend, wochenende) und „rat“
+                oepnv, pollen, wahlkampf, zielort, abend, wochenende; seit 1.43 schneekarte, glaette, laufen, klima,
+                comic, laterne) und „rat“
                 (seit 1.27: Ratssitzung läuft, die Livestream-Karte steht)
     egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
 
-    Rangfolge: Geburtstag > Ratssitzung > Osterei > Wetter > übrige Anlässe > Alltag. Anlässe (auch Geburtstag
+    Rangfolge: Geburtstag > Ratssitzung > Osterei > Wetter > übrige Anlässe > Alltag; seit 1.43 schlagen Glätte und
+    Schnee am Berg (WINTER_OCCASIONS) auf ihren Takten die Wetterlagen Frost und Schnee. Anlässe (auch Geburtstag
     und Ratssitzung) zählen nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie
     zutreffen – an einem Ostereier-Tag mit Ratssitzung wechseln sich also Osterei und Rednerpult ab.
 
@@ -909,6 +1032,7 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
     rare_ok = (slot // 2) % 2 == 0  # seit 1.35: seltene Anlässe nur auf jedem zweiten Anlass-Takt
     active = [o for o in OCCASION_POSE if o in set(occasions) and (rare_ok or o not in RARE_OCCASIONS)] if on_slot else []
     others = [o for o in active if o != "geburtstag"]
+    winter = [o for o in others if o in WINTER_OCCASIONS]
     council = on_slot and "rat" in set(occasions)
     weather_why = weather_reason(records, now, nowcast, feels_like) if weather else None
     if "geburtstag" in active:  # nur auf Anlass-Takten, an Ostereier-Tagen also im Wechsel mit dem Osterei
@@ -917,6 +1041,9 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         reason, main = "rat", RAT_LATE_POSE if now.hour >= RAT_LATE_HOUR else RAT_POSE
     elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
         reason, main = "osterei", egg
+    elif winter and weather_why in ("frost", "schnee"):  # seit 1.43: Glätte/Schnee am Berg passen zum Winterwetter
+        reason = winter[(slot // 2) % len(winter)]
+        main = OCCASION_POSE[reason]
     elif weather_why:  # seit 1.34: Varianten reihum, Reihenfolge je Tag und Wetterlage gemischt
         reason, main = weather_why, weather_pose(weather_why, day, slot)
     elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln
@@ -924,7 +1051,7 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         # gerade – dann über slot // 4, sonst käme bei zwei Anlässen nur der erste dran (seit 1.35, Test).
         step = 4 if RARE_OCCASIONS & set(others) else 2
         reason = others[(slot // step) % len(others)]
-        main = OCCASION_POSE[reason]
+        main = occasion_pose(reason, day, slot)
     else:
         reason, main = None, everyday[slot % len(everyday)]
     # Flache Ersatzpose: seit 1.34 zuerst eine flache Variante derselben Wetterlage (Decke, sonnt, Sturm),

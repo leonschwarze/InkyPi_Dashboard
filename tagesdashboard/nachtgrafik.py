@@ -15,6 +15,11 @@ ein Meteorstrom aktiv, eine Mondfinsternis nah oder ein Planet am Höhepunkt ist
 Zeile dazu (immer sichtbar, unabhängig vom Wetter).
 Seit 1.28 steht der Rhein so hoch wie am Pegel Bonn (blaues Wasser, schwarze Ufermauer, Pegellatte mit Wert).
 Seit 1.37 hängt bei starkem geomagnetischem Sturm (Kp ≥ 7) ein grüner Polarlicht-Vorhang hinter der Stadt (polarlicht.py).
+Seit 1.43 lebt die Stadt (live): Fenster gehen im Lauf der Nacht aus und ab 5 Uhr wieder an, zu Betriebszeiten
+fährt eine Stadtbahn über die Kennedybrücke, im Sommer dämmert es vor Sonnenaufgang am Horizont, und bei verdecktem
+Mond sitzt die Katze auf einem Dach. Alles in stündlichen Stufen, damit das Display nachts höchstens einmal pro Stunde
+neu zeichnet. Liegt auf dem Ölberg Schnee, sind die Gipfel weiß (peaks, schnee.peaks) – auch wenn in Bonn keiner
+liegt (die Schneekappen auf Dächern und Kamm aus 1.42 kommen nur mit Schnee in Bonn).
 
 Gezeichnet wird nur mit den sechs Displayfarben (helle Wolken werden fein gerastert).
 Die Gebäude sind eigene, vereinfachte Umrisse.
@@ -242,8 +247,81 @@ def _pegel(W, pegel, reflections, bx0, bx1):
     return out
 
 
+# ----------------------------------------------------------------------
+# Lebende Stadt (seit 1.43, Leons Wahl: Fenster, Stadtbahn, Morgendämmerung, Dachkatze)
+# ----------------------------------------------------------------------
+# Alles hängt an der vollen Stunde (live_hour): Das Bild ändert sich nachts höchstens einmal pro Stunde (Leons
+# Vorgabe „nachts nur alle 60 min und nur, wenn sich etwas ändert“). Stunden mit gleichem Ergebnis ergeben
+# dasselbe Bild – InkyPi zeichnet dann nicht neu (gleicher Bild-Hash).
+# Anteil der Fenster, die noch vom Abend her brennen (je volle Stunde) …
+LIGHTS_NIGHT = {22: 1.0, 23: .8, 0: .55, 1: .3, 2: .12, 3: .12, 4: .12}
+# … und der Frühaufsteher, deren Licht ab 5 Uhr dazukommt (andere Fenster als die Nachteulen)
+LIGHTS_MORNING = {5: .25, 6: .45, 7: .6}
+# Stadtbahn über die Kennedybrücke (Linien 62/66): grob 4:45 bis 0:45 Uhr – in stündlichen Stufen heißt das
+# 23 und 0 Uhr noch, 1 bis 4 Uhr nicht, ab 5 Uhr wieder. Lage auf der Brücke (0 = Bonner, 1 = Beueler Ende) wechselt
+# je Stunde. Steht die Pegellatte (bei 3/8 der Brücke), fährt die Bahn nur rechts davon (TRAM_POS_PEGEL) –
+# dev/test_silhouette.py prüft beides für alle Breiten.
+TRAM_HOURS = {5, 6, 7, 22, 23, 0}
+TRAM_POS = (0.15, 0.85, 0.5, 0.0)
+TRAM_POS_PEGEL = (0.9, 1.0, 0.95)
+TRAM_LEN = 30
+DAWN_MIN = 75   # Morgendämmerung: in der vollen Stunde, die höchstens so viele Minuten vor Sonnenaufgang liegt
+SNOW_Y = 58     # weiße Gipfel (Koordinaten der Berge): Drachenfels und Ölberg, nicht der Petersberg (68)
+
+
+def live_hour(now):
+    """Volle Stunde, nach der sich die lebende Silhouette richtet."""
+    return now.replace(minute=0, second=0, microsecond=0)
+
+
+def lit(u, v, hour):
+    """Brennt ein Fenster (Zufallswerte u, v je Fenster und Nacht) um diese volle Stunde?"""
+    return u < LIGHTS_NIGHT.get(hour, 1.0 if 8 <= hour < 22 else .12) or v < LIGHTS_MORNING.get(hour, 0)
+
+
+def tram_at(hour, pegel=False):
+    """Lage der Stadtbahn auf der Brücke (0–1) oder None, wenn keine fährt. pegel: Latte steht im Weg."""
+    pos = TRAM_POS_PEGEL if pegel else TRAM_POS
+    return pos[hour % len(pos)] if hour in TRAM_HOURS else None
+
+
+def dawn(hour_start, sunrise):
+    """Dämmert es in dieser Stunde schon (Sonnenaufgang höchstens DAWN_MIN Minuten nach Stundenbeginn)?"""
+    if not sunrise:
+        return False
+    gap = (sunrise - hour_start).total_seconds() / 60
+    return 0 < gap <= DAWN_MIN
+
+
+def next_change(now, sunrise=None):
+    """Nächster Zeitpunkt, an dem sich die lebende Silhouette ändern kann: die nächste volle Stunde."""
+    return live_hour(now) + timedelta(hours=1)
+
+
+def _tram(x, y_deck, s):
+    """Stadtbahn auf der Fahrbahn: schwarzer Wagen mit gelben Fenstern und Stromabnehmer."""
+    length, h = TRAM_LEN * s, 9
+    top = y_deck - h
+    out = [f'<rect x="{x:.1f}" y="{top:.1f}" width="{length:.1f}" height="{h}" rx="2" fill="{INK}"/>',
+           f'<path d="M{x + length * .45:.1f},{top:.1f} l3,-4 l3,4" fill="none" stroke="{INK}" stroke-width="1.4"/>']
+    n = 5
+    for k in range(n):
+        wx = x + 3 + k * (length - 6) / n
+        out.append(f'<rect x="{wx:.1f}" y="{top + 2:.1f}" width="{(length - 6) / n - 2.2:.1f}" height="3" fill="{STAR}"/>')
+    return out
+
+
+def _snow_caps(uid):
+    """Weiße Kappen auf Drachenfels und Ölberg: der Berg-Umriss in Weiß, unten gezackt abgeschnitten (SNOW_Y)."""
+    pts = ["0,-10", "300,-10"]
+    for i, x in enumerate(range(300, -1, -10)):
+        pts.append(f"{x},{SNOW_Y + (2.4 if i % 2 else -2.4):.1f}")
+    return (f'<clipPath id="snow{uid}"><polygon points="{" ".join(pts)}"/></clipPath>'
+            f'<path d="{HILLS}" fill="{WHITE}" clip-path="url(#snow{uid})"/>')
+
+
 def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None,
-        pegel=None, aurora=None, snowcaps=False):
+        pegel=None, aurora=None, snowcaps=False, live=None, peaks=False, roof_cat=None):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -258,7 +336,12 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     aurora: Ergebnis von polarlicht.night_info mit draw=True oder None (seit 1.37); dann steht ein grüner
     Vorhang hinter Sternen, Mond und Stadt. None → Nachtbild wie bisher (pixelgleich).
     snowcaps: Liegt in Bonn Schnee (seit 1.42, schnee.caps), bekommen flache Dächer
-    und der Kamm des Siebengebirges weiße Kappen. False → Nachtbild wie bisher (pixelgleich)."""
+    und der Kamm des Siebengebirges weiße Kappen. False → Nachtbild wie bisher (pixelgleich).
+    live: {"now": Uhrzeit, "sunrise": Sonnenaufgang am Morgen oder None} oder None (seit 1.43): lebende Stadt –
+    Fenster, Stadtbahn und Morgendämmerung nach der vollen Stunde von live["now"]; Sterne, Mond und Wolken richten
+    sich weiter nach now. roof_cat: Funktion (x, y, k) → SVG (katze.on_roof); mit live sitzt die Katze dann auf
+    einem Dach, wenn der Mond verdeckt ist. peaks: weiße Gipfel, wenn auf dem Ölberg Schnee liegt (seit 1.43,
+    schnee.peaks) – auch ohne Schnee in Bonn. None/False → wie bisher."""
     W = width
     # Stadt im Hochformat etwas kleiner. Seit 1.31 kommen auch Breiten zwischen 480 und 800 vor (band_width,
     # z. B. 516 bei 448×600); dort wüchse die Stadt schneller als die Szene und die Kennedybrücke verschwände.
@@ -269,6 +352,10 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     wet, snowy, fog = (wx or {}).get("wet"), (wx or {}).get("snowy"), (wx or {}).get("fog")
     out = [f'<svg viewBox="0 0 {W} {H}" class="art-svg" preserveAspectRatio="xMidYMid meet">',
            f'<rect width="{W}" height="{WATER}" fill="{SKY}"/>']
+    hour = live_hour(live["now"]) if live else None
+    if live and dawn(hour, live.get("sunrise")):  # Morgendämmerung (seit 1.43): Rot über Gelb am Horizont
+        out.append(f'<rect y="{WATER - 30}" width="{W}" height="8" fill="{BLOOD}"/>')
+        out.append(f'<rect y="{WATER - 22}" width="{W}" height="22" fill="{STAR}"/>')
 
     # Polarlicht (seit 1.37) zuerst, also hinter allem. Eigener Zufall: Sterne, Mond und Fenster liegen in einer
     # Polarlicht-Nacht genauso wie ohne (rnd wird dafür nicht angetastet)
@@ -363,9 +450,15 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     # Stadt und Berge (Stadt links, Siebengebirge rechts, beide unten verankert)
     out.append(f'<g transform="translate(0,{WATER}) scale({s:.3f}) translate(0,-{WATER})">')
     out += [f'<path d="{p}" fill="{INK}"/>' for p in CITY]
+    # Fenster: Lage wie bisher aus rnd (dieselbe Folge, sonst verschöbe sich der Regen dahinter); seit 1.43 brennt
+    # mit live nur ein Teil – je Fenster zwei eigene Zufallswerte für die Nacht (Nachteule, Frühaufsteher)
+    wrnd = random.Random((seed if seed is not None else now.date().toordinal()) * 13 + 5)
     for x0, x1, y0, y1, k in WINDOWS:
         for _ in range(k):
-            out.append(f'<rect x="{rnd.uniform(x0, x1 - 3):.0f}" y="{rnd.uniform(y0, y1 - 3):.0f}" width="3" height="3" fill="{STAR}"/>')
+            fx, fy = rnd.uniform(x0, x1 - 3), rnd.uniform(y0, y1 - 3)
+            u, v = wrnd.random(), wrnd.random()
+            if not live or lit(u, v, hour.hour):
+                out.append(f'<rect x="{fx:.0f}" y="{fy:.0f}" width="3" height="3" fill="{STAR}"/>')
     for y in (34, 62, 88):  # Fugen der Sky-Lobbys im Post Tower
         out.append(f'<rect x="266" y="{y}" width="30" height="1.6" fill="{SKY}"/>')
     if snowcaps:  # Schnee auf den flachen Dächern (seit 1.42); Spitzen und Türme bleiben schwarz
@@ -379,8 +472,10 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
                f'<path d="{HILLS}" fill="{INK}"/>'
                f'<rect x="{HOTEL[0]}" y="{HOTEL[1]}" width="{HOTEL[2]}" height="{HOTEL[3]}" fill="{INK}"/>'
                f'<rect x="72" y="64" width="3" height="2" fill="{STAR}"/><rect x="80" y="64" width="3" height="2" fill="{STAR}"/>'
-               + (schnee.hill_cap(HILLS, "snowhills") if snowcaps else "") +  # Hotel bleibt schwarz (Fenster)
-               f'</g>')
+               + (schnee.hill_cap(HILLS, "snowhills") if snowcaps else "")  # Hotel bleibt schwarz (Fenster)
+               + (_snow_caps(W) if peaks else "") + '</g>')
+    if live and roof_cat and wet and cloud >= 85:  # Dachkatze (seit 1.43): Mond verdeckt → Katze aufs Dach links
+        out.append(f'<g transform="translate(0,{WATER}) scale({s:.3f}) translate(0,-{WATER})">{roof_cat(37, 88, min(2.6, 1.7 / s))}</g>')  # hochkant (s < 1) etwas größer
 
     # Rhein mit Kennedybrücke und Spiegelungen
     out.append(f'<rect y="{WATER}" width="{W}" height="{H - WATER}" fill="{INK}"/>')
@@ -390,6 +485,9 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
         for k in range(1, 4):
             px = bx0 + (bx1 - bx0) * k / 4
             out.append(f'<rect x="{px - 1.5:.0f}" y="{WATER - 6}" width="3" height="6" fill="{INK}"/>')
+        pos = tram_at(hour.hour, pegel=bool(pegel)) if live else None
+        if pos is not None:  # Stadtbahn (seit 1.43)
+            out += _tram(bx0 + (bx1 - bx0 - TRAM_LEN * s) * pos, WATER - 6, s)
     reflections = [(x, STAR) for x in (222 * s, 281 * s, 330 * s)]
     if not (wet and cloud >= 85):
         reflections.append((mx, BLOOD if blood_moon else STAR))

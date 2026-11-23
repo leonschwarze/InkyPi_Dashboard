@@ -352,6 +352,18 @@ def caps(data, now, end):
     return bool(vals) and max(vals) >= LIE_CM
 
 
+PEAK = "Ölberg"  # höchster Gipfel im Nachtbild (460 m), einer der Orte in PLACES
+
+
+def peaks(data, now, end):
+    """Nachtbild (seit 1.43, „weiße Gipfel“): Liegt auf dem Ölberg zwischen jetzt und end Schnee (Modell ≥ LIE_CM)?
+    Dann werden Drachenfels und Ölberg weiß – auch wenn in Bonn keiner liegt (caps). Tagsüber (end = now) auch
+    Anlass für die Schlitten-Katze."""
+    vals = [h["depth"] for h in _hours(data, PEAK) if now - timedelta(minutes=59) <= h["dt"] <= end
+            and h["depth"] is not None]
+    return bool(vals) and max(vals) >= LIE_CM
+
+
 def snow_days(records, days):
     """Wochenvorschau: {Datum: "snow" | "mixed"} für Tage mit Schnee nach Bright Sky.
     "snow": mindestens die Hälfte der nassen Stunden ist Schnee (dann zählt der Tag nicht als Regen)."""

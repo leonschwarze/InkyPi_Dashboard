@@ -227,6 +227,8 @@ DEFAULTS = {
     "climCurve": "true", "climCard": "true", "mileEnabled": "true",
     # Schnee-Radar: Karte, Schneekappen im Nachtbild, Schnee in der Wochenvorschau (seit cfgVersion 28)
     "snowCard": "true", "snowNight": "true", "snowWeek": "true",
+    # Lebende Stadt im Nachtbild (seit cfgVersion 29)
+    "liveCity": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -257,7 +259,8 @@ SINCE_VERSION.update({"ninaEnabled": 25, "loadEnabled": 25, "runLogEnabled": 25,
 SINCE_VERSION["comicEnabled"] = 26
 SINCE_VERSION.update({"climCurve": 27, "climCard": 27, "mileEnabled": 27})
 SINCE_VERSION.update({"snowCard": 28, "snowNight": 28, "snowWeek": 28})
-CFG_VERSION = 28  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"liveCity": 29})
+CFG_VERSION = 29  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -358,6 +361,7 @@ class Tagesdashboard(BasePlugin):
 
     # ==================================================================
     def generate_image(self, settings, device_config):
+        self._night_art_kw = None  # Zutaten der Nachtgrafik für die Lebende Stadt (seit 1.43)
         if IMPORT_ERROR is not None:
             raise RuntimeError(f"Plugin unvollständig – Ordner lib/ fehlt oder ist beschädigt ({IMPORT_ERROR}).")
         flag = lambda k: self._opt(settings, k) == "true"  # noqa: E731
@@ -430,6 +434,12 @@ class Tagesdashboard(BasePlugin):
             elif hit and now < hit["until"]:
                 logger.info("Nachtbild von %s wiederverwendet (bis %s)", hit["made"], hit["until"].strftime("%H:%M"))
                 return hit["image"].copy()
+            elif hit and hit.get("art_kw") and now < hit["end"]:
+                # Lebende Stadt (seit 1.43): Daten bleiben die der Nacht, nur die Stadt geht mit der Uhr. Ergibt das
+                # dasselbe Bild wie vorher, zeichnet InkyPi nicht neu (gleicher Bild-Hash).
+                image = self.redraw_night(hit, now, dimensions, device_config, flag)
+                if image is not None:
+                    return image
         if use_cache and not self._manual_refresh():
             hit = _IMAGE_CACHE.get(cache_key)
             takt = cycle_seconds(device_config)
@@ -748,7 +758,15 @@ class Tagesdashboard(BasePlugin):
                     ("zielort", any(ev.get("away_line") for d in params.get("calendar") or [] if d.get("is_today")
                                     for ev in d.get("events") or [])),
                     ("abend", now.hour >= katze.LATE_HOUR),
-                    ("wochenende", today.weekday() >= 5)) if on]
+                    ("wochenende", today.weekday() >= 5),
+                    # seit 1.43: Schnee-Karte oder Schnee am Ölberg, Glätte-, Lauf-, Klima-Karte, Sonntagscomic, Laterne
+                    ("schneekarte", bool(params.get("snow")) or bool(snow_data) and schnee.peaks(snow_data, now, now)),
+                    ("glaette", bool(params.get("ice"))),
+                    ("laufen", bool(params.get("run"))),
+                    ("klima", bool(params.get("clim_card"))),
+                    ("comic", bool(params.get("comics"))),
+                    ("laterne", any(katze.is_lantern(ev.get("title")) for ev in today_events))) if on]
+                logger.debug("Katze: Anlässe %s", ", ".join(occasions) or "keine")
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
                                              feels_like=dwd.feels_like, occasions=occasions,
                                              egg=egg["pose"] if egg else None)
@@ -780,7 +798,11 @@ class Tagesdashboard(BasePlugin):
                               snow_caps=bool(snow_data) and mode == "night" and schnee.caps(
                                   snow_data, now, ansichten.window_end(now, *night_win) if night_win else now + timedelta(hours=7)),
                               snow_week=(snow_data,) if mode == "week" and flag("snowWeek") else None,
-                              run_file=laufbilanz.clean_path(opt("runFile")) if flag("runLogEnabled") else None)
+                              run_file=laufbilanz.clean_path(opt("runFile")) if flag("runLogEnabled") else None,
+                              # seit 1.43: lebende Stadt; weiße Gipfel, wenn auf dem Ölberg Schnee liegt
+                              live_city=flag("liveCity"),
+                              peaks=bool(snow_data) and mode == "night" and schnee.peaks(
+                                  snow_data, now, ansichten.window_end(now, *night_win) if night_win else now + timedelta(hours=7)))
 
         # Meilenstein der Nacht (Frost, Tropennacht) vorn in der Himmelszeile (seit 1.41)
         if clim and mode == "night" and flag("mileEnabled") and (params.get("night") or {}).get("art"):
@@ -802,8 +824,12 @@ class Tagesdashboard(BasePlugin):
         if mode == "night" and flag("nightFreeze"):
             # Einmal pro Nacht zeichnen: bis zum Ende des Nachtfensters bleibt das Bild stehen
             _NIGHT_CACHE.clear()
+            end = ansichten.window_end(now, *night_win)
+            art_kw = self._night_art_kw if flag("liveCity") else None
             _NIGHT_CACHE[cache_key] = {"image": image.copy(), "made": now.strftime("%H:%M"),
-                                       "until": ansichten.window_end(now, *night_win), "warn": warn_sig}
+                                       "until": min(end, nachtgrafik.next_change(now)) if art_kw else end,
+                                       "end": end, "warn": warn_sig, "art_kw": art_kw,
+                                       "params": params if art_kw else None}
         if use_cache:
             # Bild höchstens quietMinutes lang wiederverwenden und nie über eine Fenstergrenze
             # hinweg (Zugfenster beginnt, Nachrichten erscheinen oder verschwinden).
@@ -832,6 +858,28 @@ class Tagesdashboard(BasePlugin):
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "quiet": quiet_until, "edge": edge,
                                        "made": now.strftime("%H:%M"), "warn": warn_sig}
+        return image
+
+    def redraw_night(self, hit, now, dimensions, device_config, flag):
+        """Lebende Stadt (seit 1.43): Nachtbild mit den Daten der Nacht neu zeichnen, nur die Stadt (Fenster,
+        Stadtbahn, Dämmerung) nach der jetzigen Stunde. Gibt das neue Bild zurück (oder None bei einem Fehler –
+        dann zeichnet generate_image alles neu)."""
+        try:
+            kw = dict(hit["art_kw"], live=dict(hit["art_kw"]["live"], now=now))
+            params = hit["params"]
+            params["night"]["art"]["svg"] = nachtgrafik.svg(**kw)
+            zeichensatz.utf8_templates(self)
+            image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
+            if not image:
+                return None
+            if eink is not None:
+                image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
+        except Exception:
+            logger.exception("Lebende Stadt: Nachtbild konnte nicht aufgefrischt werden")
+            return None
+        hit.update(image=image.copy(), until=min(hit["end"], nachtgrafik.next_change(now)))
+        logger.info("Lebende Stadt: Nachtbild für %s Uhr (Daten von %s, bis %s)", now.strftime("%H"), hit["made"],
+                    hit["until"].strftime("%H:%M"))
         return image
 
     # ==================================================================
@@ -928,7 +976,7 @@ class Tagesdashboard(BasePlugin):
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
                      polar=None, pi=False, free_win=None, dims=(800, 480), load=False, run_file=None,
-                     snow_caps=False, snow_week=None):
+                     snow_caps=False, snow_week=None, live_city=False, peaks=False):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -991,13 +1039,25 @@ class Tagesdashboard(BasePlugin):
                 if planet_info:
                     sky.append(first(planet_info["text"], "Planeten: "))
                 daylight = nachtgrafik.daylight(weather["sun_cache"], d) if weather else ""
+                # Lebende Stadt (seit 1.43): Fenster, Stadtbahn, Morgendämmerung (Sonnenaufgang am Morgen), Dachkatze
+                live = None
+                if live_city:
+                    sunrise = None
+                    try:
+                        sunrise = weather["sun_cache"](d)[0] if weather else None
+                    except Exception:  # ohne Sonnenaufgang eben ohne Dämmerung
+                        logger.exception("Sonnenaufgang für die Morgendämmerung unbekannt")
+                    live = {"now": now, "sunrise": sunrise}
+                if peaks:
+                    logger.info("Schnee: weiße Gipfel im Nachtbild (Ölberg)")
+                art_kw = dict(now=now, wx=wx, width=art_w, cat=katze.on_moon if moon_cat else None, meteors=streaks,
+                              blood_moon=blood, planet=planet_dot, extra=iss_svg,
+                              felis=ostereier.felis_svg if felis else None, pegel=river,
+                              aurora=aurora if aurora and aurora["draw"] else None, snowcaps=snow_caps,
+                              live=live, peaks=peaks, roof_cat=katze.on_roof if moon_cat else None)
+                self._night_art_kw = art_kw if live else None
                 params["night"]["art"] = {
-                    "svg": nachtgrafik.svg(now, wx, width=art_w,
-                                           cat=katze.on_moon if moon_cat else None, meteors=streaks,
-                                           blood_moon=blood, planet=planet_dot, extra=iss_svg,
-                                           felis=ostereier.felis_svg if felis else None, pegel=river,
-                                           aurora=aurora if aurora and aurora["draw"] else None,
-                                           snowcaps=snow_caps),
+                    "svg": nachtgrafik.svg(**art_kw),
                     "weather": nachtgrafik.describe(wx),
                     # links unter „Sonnenaufgang“: „8 h 36 min Tageslicht (−3 min)“ (ohne Sonnenwende-Countdown)
                     "daylight": daylight.split(" · ")[0] if daylight else "",

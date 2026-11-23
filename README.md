@@ -1,12 +1,34 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.42
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.43
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat **55 Posen**: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**. Sonntags ohne Termine steht ein **xkcd-Comic** in der Terminspalte. Die Tageskurve zeigt, **wie warm es an diesem Datum üblich ist**, eine Karte meldet **ungewöhnliche Wärme oder Kälte**, und eine Zeile unter der Temperatur feiert **Wetter-Meilensteine** wie den ersten Frost. Kommt **Schnee**, sagt eine Karte, wann und wie viel; in der Tageskurve fallen Flocken, im Nachtbild liegt Schnee auf Bonns Dächern, und die Wochenvorschau zeigt, **wo Schnee liegt** (Winterberg, Eifel, Siebengebirge) – im Dezember auch, ob es **weiße Weihnachten** gibt.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat viele Posen: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**. Sonntags ohne Termine steht ein **xkcd-Comic** in der Terminspalte. Die Tageskurve zeigt, **wie warm es an diesem Datum üblich ist**, eine Karte meldet **ungewöhnliche Wärme oder Kälte**, und eine Zeile unter der Temperatur feiert **Wetter-Meilensteine** wie den ersten Frost. Kommt **Schnee**, sagt eine Karte, wann und wie viel; in der Tageskurve fallen Flocken, im Nachtbild liegt Schnee auf Bonns Dächern, und die Wochenvorschau zeigt, **wo Schnee liegt** (Winterberg, Eifel, Siebengebirge) – im Dezember auch, ob es **weiße Weihnachten** gibt. Im Nachtbild **lebt die Stadt**: Fenster gehen aus, eine Stadtbahn fährt über die Kennedybrücke, im Sommer dämmert es, und liegt oben auf dem Ölberg Schnee, sind die **Gipfel weiß**. Die Katze hat jetzt **62 Posen**.
 
 ## Installieren bzw. aktualisieren
 
 1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
 2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
 3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+
+## Neu in 1.43: lebende Stadt, weiße Gipfel, sieben Katzenposen
+
+![Lebende Stadt um 5:15 Uhr](docs/stadt_800x480.png)
+
+- **Lebende Stadt im Nachtbild:** Die Fenster gehen im Lauf der Nacht aus – um 23 Uhr brennt noch der größte Teil, gegen 2 Uhr nur noch bei ein paar Nachteulen, ab 5 Uhr gehen bei den Frühaufstehern die ersten Lichter an. Solange Stadtbahnen fahren (bis etwa 0:45 und ab etwa 4:45 Uhr), steht eine Bahn mit erleuchteten Fenstern auf der Kennedybrücke. Im Sommer, wenn die Sonne vor 6 Uhr aufgeht, liegt in der letzten Stunde davor ein roter und gelber Streifen über dem Horizont. Ist der Mond hinter Regenwolken verschwunden, sitzt die Katze als schwarze Silhouette mit gelben Augen auf einem Dach.
+- **Nachts höchstens einmal pro Stunde neu:** Mit „Nachts ruhig halten“ (Standard) lädt das Dashboard Wetter und Termine weiterhin einmal pro Nacht. Zu jeder vollen Stunde zeichnet es das Bild mit denselben Daten neu, nur die Stadt geht mit der Uhr. Ist das Bild dabei gleich geblieben (etwa zwischen 2 und 4 Uhr), zeichnet InkyPi das Display gar nicht neu. In einer Novembernacht wechselt das Bild so fünfmal: 23, 0, 1, 2 und 5 Uhr. Warnungen aus NINA erscheinen wie bisher sofort.
+- **Weiße Gipfel:** Liegt auf dem Ölberg Schnee (Modellwert ab 1 cm, aus den Schneedaten von 1.42), sind Drachenfels und Ölberg im Nachtbild oben weiß – auch wenn in Bonn keiner liegt. Liegt auch in Bonn Schnee, kommen wie in 1.42 die Kappen auf Dächern und Kamm dazu. Schalter wie bisher „Schnee auf Dächern und Gipfeln“ unter „Nachtbild“.
+- **Sieben neue Katzenposen** (eingestreut wie die übrigen, jedes zweite Mal):
+  - **Schlitten**: bei Schneefall (im Wechsel mit Schal, Schneeflocke, Schneemann) und wenn die Schnee-Karte steht oder auf dem Ölberg Schnee liegt
+  - **Glatteis**: rutscht auf einer blauen Eisfläche, wenn die Glätte-Karte steht
+  - **Stirnband** und Laufschuh zur Lauf-Fenster-Karte
+  - **Comicheft** mit Sprechblase, wenn sonntags der xkcd-Comic steht
+  - **Thermometer** zur Karte „Ungewöhnlich mild/kalt“
+  - **Plätzchen** auf dem Backblech: in der Adventszeit im Wechsel mit der Lichterkette
+  - **Laterne**: an Tagen mit einem Termin, der „Laterne“, „St. Martin“ oder „Martinszug“ heißt
+  Glätte und Schnee kommen fast nur bei Frost oder Schneefall – dann würde sonst immer die Wetterkatze (Schal, Mütze …) gewinnen. Deshalb wechseln sich Glatteis bzw. Schlitten in dieser Wetterlage mit den Frost- und Schnee-Posen ab.
+- **Einstellung:** unter „Nachtbild“ der Schalter „Lebende Stadt“ (Standard an). „Nur einmal zeichnen“ heißt jetzt „Nachts ruhig halten“ und bedeutet dasselbe, mit lebender Stadt eben stündlich. Log: `journalctl -u inkypi.service | grep -E "Lebende Stadt|Gipfel"`.
+
+![Weiße Gipfel](docs/gipfel_800x480.png)
+
+**Einstellungen:** cfgVersion 29. Der neue Schalter ist von selbst an, auch ohne erneutes Speichern. Python und Einstellungsseite haben sich geändert: Ordner `tagesdashboard/` ersetzen und `sudo systemctl restart inkypi.service`.
 
 ## Neu in 1.42: Schnee-Radar
 
@@ -463,6 +485,8 @@ Siehe `README.md` des Repos (Abschnitt „Schärfer auf dem Inky Impression“):
 
 Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 
+- `stadt_800x480.png`, `stadt_480x800.png` – Nachtbild um 5:15 Uhr: erste Frühaufsteher, Stadtbahn auf der Kennedybrücke (1.43)
+- `gipfel_800x480.png`, `gipfel_480x800.png` – Nachtbild um 1:30 Uhr: Schnee nur oben auf dem Ölberg → weiße Gipfel, nur noch wenige Fenster hell (erfundene Schneehöhe, 1.43)
 - `warnung_800x480.png`, `warnung_480x800.png` – Bombenentschärfung am Wetter-Ort: rotes Band aus NINA (erfundene Warnung, 1.38)
 - `woche_800x480.png`, `woche_480x800.png` – Wochenvorschau mit „Woche: 21 h Termine · deutlich mehr als sonst“ und Laufen der Woche (1.38)
 - `monat_800x480.png`, `monat_480x800.png` – Monatsbild am 1. Dezember: Punkte je Termin, Reisen als Band, Feiertage und Geburtstage (1.38)
@@ -486,7 +510,7 @@ Mit simulierten Daten (Beispieltermine, Beispielverbindungen):
 - `katze_nacht_800x480.png`, `katze_nacht_480x800.png` – Nachtbild: Katze schläft auf dem Mond über Bonn, Band bis zum Rand (1.31)
 - `katze_anlass_800x480.png` – im Nachrichtenfenster liest die Katze Zeitung (1.20)
 - `katze_anlass_480x800.png` – hochkant, Geburtstag: Partyhütchen geht dem Regenschirm vor (1.20)
-- `katze_posen.png` – alle 55 Posen (groß und in Displaygröße, Stand 1.35)
+- `katze_posen.png` – alle 62 Posen (groß und in Displaygröße, Stand 1.43)
 - `status_800x480.png` – Statusanzeige: der GA-Feed ist seit 5:05 nicht erreichbar, Bonn wird mit WDR-Meldungen ergänzt (1.21)
 - `status_480x800.png` – hochkant: Kalender seit 9:10 nicht erreichbar (1.21)
 - `gestern_800x480.png` – Schnee, gefühlt bis −8° · 4° kälter als gestern (1.22)
