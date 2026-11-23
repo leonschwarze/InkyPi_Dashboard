@@ -23,6 +23,7 @@ Was das Dashboard selbst hinzufügt:
 
 import json
 import logging
+import math
 import sys
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -49,13 +50,13 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd)
+                   xkcd, klima)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd)
+                                        laufbilanz, monat, xkcd, klima)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -209,6 +210,8 @@ DEFAULTS = {
     "monthEnabled": "true", "monthFrom": "06:00", "monthTo": "10:00",
     # Sonntagscomic: xkcd statt der leeren Terminliste (seit cfgVersion 26)
     "comicEnabled": "true",
+    # Klimaeinordnung (Kurve, Karte) und Wetter-Meilensteine (seit cfgVersion 27)
+    "climCurve": "true", "climCard": "true", "mileEnabled": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -237,7 +240,8 @@ SINCE_VERSION["zielEnabled"] = 23
 SINCE_VERSION.update({"runEnabled": 24, "iceEnabled": 24, "polarEnabled": 24})
 SINCE_VERSION.update({"ninaEnabled": 25, "loadEnabled": 25, "runLogEnabled": 25, "monthEnabled": 25})
 SINCE_VERSION["comicEnabled"] = 26
-CFG_VERSION = 26  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"climCurve": 27, "climCard": 27, "mileEnabled": 27})
+CFG_VERSION = 27  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -575,6 +579,21 @@ class Tagesdashboard(BasePlugin):
                     params["run"] = run
                     params["run_icon"] = RUN_ICON.format(cls="lw-svg")
                     logger.info("Laufen: %s", run["full"])
+        # ---- Klimaeinordnung und Wetter-Meilensteine (seit 1.41, Leons Wahl „B + C“; Meilensteine als Zeile
+        # unter der Temperatur und in der Himmelszeile des Nachtbilds). Vor commit, damit Ausfälle zählen ----
+        clim = None
+        if (records and weather and mode in ("normal", "night")
+                and (flag("climCurve") or flag("climCard") or flag("mileEnabled"))):
+            try:
+                lat, lon = self.home_position(settings)
+                clim = klima.ensure(lat, lon, now, klima.state_path(device_config), height=weather.get("height"))
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Klimadaten konnten nicht geladen werden")
+        if clim and mode == "normal":
+            try:
+                self.climate_params(params, clim, records, focus, today, now, tz, weather, flag)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Klimaeinordnung konnte nicht bestimmt werden")
         if laundry_win and records and waesche.in_window(now, *laundry_win):
             params["laundry"] = waesche.check(records, now, covered=flag("laundryCovered"))
         if news_now:
@@ -713,6 +732,17 @@ class Tagesdashboard(BasePlugin):
                               dims=dimensions, load=flag("loadEnabled"),
                               run_file=laufbilanz.clean_path(opt("runFile")) if flag("runLogEnabled") else None)
 
+        # Meilenstein der Nacht (Frost, Tropennacht) vorn in der Himmelszeile (seit 1.41)
+        if clim and mode == "night" and flag("mileEnabled") and (params.get("night") or {}).get("art"):
+            try:
+                end = ansichten.window_end(now, *night_win) if night_win else now + timedelta(hours=7)
+                day = now.date() if now.hour >= 12 else now.date() - timedelta(days=1)
+                m = klima.milestone(clim, records, day, night=(now, end))
+                if m:
+                    params["night"]["art"]["sky"] = [m["text"]] + params["night"]["art"]["sky"]
+                    logger.info("Meilenstein (Nacht): %s", m["text"])
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Meilenstein fürs Nachtbild konnte nicht bestimmt werden")
         zeichensatz.utf8_templates(self)  # sonst rät Chromium den Zeichensatz (Akzente → „Ã©“)
         image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
         if not image:
@@ -1095,7 +1125,12 @@ class Tagesdashboard(BasePlugin):
         if uv:
             uv_value = uv.get(["today", "tomorrow", "dayafter_to"][min(offset, 2)])
 
+        # Höhe der nächsten Messstation (für die Wahl der Klimastation, seit 1.41)
+        srcs = (data.get("current") or {}).get("sources") or (data["hourly"] or {}).get("sources") or []
+        height = next((s["height"] for s in sorted(srcs, key=lambda s: s.get("distance") or 1e9)
+                       if isinstance(s.get("height"), (int, float))), None)
         result = {
+            "height": height,
             "uv": uv_value,
             "place": base["title"],
             "station": base["station"],
@@ -1123,6 +1158,31 @@ class Tagesdashboard(BasePlugin):
                                for t in result["tiles"]]
         result["tiles"] = self.slim_tiles(result["tiles"])
         return result
+
+    # ------------------------------------------------------------------
+    def climate_params(self, params, clim, records, focus, today, now, tz, weather, flag):
+        """Kurve mit üblicher Temperatur, Karte bei Ausreißern, Meilenstein-Zeile (seit 1.41)."""
+        graph = params.get("graph")
+        if flag("climCurve") and graph:
+            c = klima.curve(clim, records, focus, graph["rain_summary"])
+            if c:
+                new = self.day_graph(records, focus, now, tz, weather["sun_cache"], normal=(c["tn"], c["tx"]))
+                if new:
+                    if c["head"]:
+                        new["rain_summary"] = c["head"]
+                    params["graph"] = new
+                    logger.info("Klima: üblich %.1f°/%.1f°, %s", c["tn"], c["tx"],
+                                c["head"] or f"Unterschied {c['diff']:+d}° (Kopf zeigt Regen)")
+        if flag("climCard"):
+            card = klima.card(clim, records, focus, today)
+            if card:
+                params["clim_card"] = dict(card, svg=klima.thermo_svg(card["dir"]))
+                logger.info("Klima-Karte: %s (%s)", card["top"], card["log"])
+        if flag("mileEnabled"):
+            m = klima.milestone(clim, records, focus)
+            if m:
+                params["mile"] = dict(m, svg=klima.flag_svg(m["color"]))
+                logger.info("Meilenstein: %s", m["text"])
 
     # ------------------------------------------------------------------
     def load_uv(self, wanted, place):
@@ -1263,7 +1323,7 @@ class Tagesdashboard(BasePlugin):
         }
 
     # ------------------------------------------------------------------
-    def day_graph(self, records, d, now, tz, sun_cache):
+    def day_graph(self, records, d, now, tz, sun_cache, normal=None):
         start = datetime.combine(d, time(GRAPH_START), tz)
         end = datetime.combine(d, time.min, tz) + timedelta(hours=GRAPH_END)
         pts = [r for r in records if start <= r["dt"] <= end and r.get("temperature") is not None]
@@ -1274,8 +1334,12 @@ class Tagesdashboard(BasePlugin):
         slot = W / n
         temps = [r["temperature"] for r in pts]
         tmax, tmin = max(temps), min(temps)
-        span = max(tmax - tmin, 4.0)
-        mid = (tmax + tmin) / 2
+        # Übliche Temperatur (seit 1.41): Tagesgang aus dem üblichen Tiefst- und Höchstwert, Minimum zum
+        # Sonnenaufgang, Maximum um 14 Uhr Normalzeit (Sommerzeit 15 Uhr); die Skala umfasst beide Kurven
+        norm = self.normal_course(pts, normal, sun_cache) if normal else None
+        both = temps + (norm or [])
+        span = max(max(both) - min(both), 4.0)
+        mid = (max(both) + min(both)) / 2
         lo, hi = mid - span / 2, mid + span / 2
         top, bottom = 0.30, 0.72
         x = lambda i: (i + 0.5) * slot  # noqa: E731
@@ -1322,10 +1386,13 @@ class Tagesdashboard(BasePlugin):
             v = float(t["left"])
             t["edge"] = " edge-l" if v < 6 else (" edge-r" if v > 94 else "")
 
+        norm_line = None
+        if norm:
+            norm_line = "M" + " L".join(f"{x(i):.1f},{y(t):.1f}" for i, t in enumerate(norm))
         now_left = None
         if start <= now <= end:
             now_left = f"{((now - start).total_seconds() / 3600 + 0.5) / n * 100:.2f}"
-        return {"line": line, "icons": gicons, "xlabels": xlabels,
+        return {"line": line, "norm_line": norm_line, "icons": gicons, "xlabels": xlabels,
                 "tlabels": tlabels, "now_left": now_left, "rain": rain,
                 "rain_levels": [lv for _, lv in RAIN_LEVELS if lv in used_levels],
                 "rain_summary": self.rain_summary(pts, now, d)}
@@ -1339,6 +1406,25 @@ class Tagesdashboard(BasePlugin):
         if not snowy:
             return "Regen"
         return "Schnee" if snowy >= max(wet, 1) * 0.6 else "Niederschlag"
+
+    @staticmethod
+    def normal_course(pts, normal, sun_cache):
+        """Üblicher Tagesgang für die Stunden der Kurve: Kosinus vom Tiefstwert (Sonnenaufgang) zum
+        Höchstwert (14 Uhr Normalzeit) und über Nacht zurück (seit 1.41)."""
+        tn, tx = normal
+        out = []
+        for r in pts:
+            dt = r["dt"]
+            rise = (sun_cache(dt.date()) or (None, None))[0]
+            h_min = rise.hour + rise.minute / 60 if rise else 7.0
+            h_max = 14.0 + (1 if dt.dst() else 0)
+            h = dt.hour + dt.minute / 60
+            if h_min <= h <= h_max:
+                f = (1 - math.cos(math.pi * (h - h_min) / (h_max - h_min))) / 2
+            else:
+                f = (1 + math.cos(math.pi * ((h - h_max) % 24) / (24 - h_max + h_min))) / 2
+            out.append(tn + (tx - tn) * f)
+        return out
 
     @staticmethod
     def rain_summary(pts, now, d):

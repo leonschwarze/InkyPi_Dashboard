@@ -809,3 +809,22 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .mo-cake { line-height: 0; }
 .mo-cake .mo-ic { width: calc(var(--u) * 2.8); height: calc(var(--u) * 2.8); }
 .mo-li .mo-ic { width: calc(var(--u) * 2.6); height: calc(var(--u) * 2.6); }
+
+/* ---- Klimaeinordnung und Wetter-Meilensteine (seit 1.41) ----
+ * Übliche Temperatur: blau gestrichelt hinter der Tageskurve, Legende „üblich“ rechts im Kopf der Kurve
+ * (nur ohne Regenlegende). Karte bei Ausreißern wie Laufen/Glätte: rot = warm, blau = kalt.
+ * Meilenstein: eine Zeile mit Fahne unter Höchst-/Tiefstwert; fitMile nimmt bei Platzmangel die Kurzform. */
+.norm { fill: none; stroke: #0082C9; stroke-width: 3; stroke-dasharray: 9 7; }
+.g-norm { color: #0082C9; display: inline-flex; align-items: center; gap: 0.25em; }
+.g-norm svg { width: 1.6em; height: 0.6em; }
+.g-norm path { stroke: #0082C9; stroke-width: 3; }
+.clim-card.cl-warm { border-color: #E3001B; }
+.clim-card.cl-warm .tr-badge { background: #E3001B; color: #fff; }
+.clim-card.cl-kalt { border-color: #0082C9; }
+.clim-card.cl-kalt .tr-badge { background: #0082C9; color: #fff; }
+.wx-mile { display: flex; align-items: center; gap: 0.3em; font-size: calc(var(--u) * 2); white-space: nowrap;
+           width: 0; min-width: 100%; }
+.wx-text.has-mile { flex: 1 1 auto; }  /* die Zeile darf bis zur Warnung bzw. zum Rand reichen */
+.wx-mile.ml-out { width: auto; margin-top: calc(var(--u) * -0.2); }
+.ml-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ml-flag { width: 1.3em; height: 1.3em; flex: 0 0 auto; }

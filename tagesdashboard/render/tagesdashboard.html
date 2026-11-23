@@ -290,11 +290,14 @@
     {% if weather %}
     <div class="wx-top">
       <div class="wx-icon{% if rainbow %} has-rainbow{% endif %}">{% if rainbow %}{{ rainbow | safe }}{% endif %}{{ weather.icon | safe }}</div>
-      <div class="wx-text">
+      <div class="wx-text{% if mile %} has-mile{% endif %}">
         {% if weather.label %}<div class="wx-label">{{ weather.label }}</div>{% endif %}
         <div class="wx-temp">{{ weather.temp }}<span class="deg">°C</span></div>
         <div class="wx-cond">{{ weather.text }}</div>
         <div class="wx-sub">{{ weather.sub }}</div>
+        {% if mile %}{# Wetter-Meilenstein (seit 1.41): fitMile nimmt die Kurzform, wenn die Zeile nicht passt #}
+        <div class="wx-mile ml-{{ mile.kind }}" data-short="{{ mile.short }}">{{ mile.svg | safe }}<span class="ml-text">{{ mile.text }}</span></div>
+        {% endif %}
       </div>
       {% if weather.alert %}
       {% set a = weather.alert %}
@@ -343,6 +346,8 @@
         <span class="g-legend">
           {% for lv in graph.rain_levels %}<i class="sw {{ lv }}"></i>{{ {"leicht": "leicht", "maessig": "mäßig", "stark": "stark"}[lv] }}{% endfor %}
         </span>
+        {% elif graph.norm_line %}{# übliche Temperatur (seit 1.41): Legende nur, wenn keine Regenlegende dort steht #}
+        <span class="g-legend g-norm"><svg viewBox="0 0 30 10" aria-hidden="true"><path d="M1 5 H10 M17 5 H26"/></svg>üblich</span>
         {% endif %}
       </div>
       <div class="g-icons">
@@ -351,6 +356,7 @@
       <div class="g-area">
         <div class="g-plot">
           <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+            {% if graph.norm_line %}<path class="norm" d="{{ graph.norm_line }}" vector-effect="non-scaling-stroke"/>{% endif %}
             <path class="line" d="{{ graph.line }}" vector-effect="non-scaling-stroke"/>
           </svg>
           {% for t in graph.tlabels %}<div class="t-label {{ t.cls }}{{ t.edge }}" style="left: {{ t.left }}%; top: {{ t.top }}%;">{{ t.text }}</div>{% endfor %}
@@ -483,6 +489,16 @@
     </div>
     {% endif %}
     {# Glätte-Hinweis und Lauf-Fenster (seit 1.37): Karten wie die Wäsche; Glätte gestrichelt = eigene Schätzung #}
+    {% if clim_card %}{# Klimaeinordnung (seit 1.41): nur bei Ausreißern #}
+    <div class="laundry clim-card cl-{{ clim_card.dir }}">
+      <div class="lw-icon">{{ clim_card.svg | safe }}</div>
+      <div class="tr-main">
+        <div class="tr-top">{{ clim_card.top }}</div>
+        <div class="tr-sub">{{ clim_card.sub }}</div>
+      </div>
+      <div class="tr-badge">{{ clim_card.badge }}</div>
+    </div>
+    {% endif %}
     {% if ice %}
     <div class="laundry ice-card">
       <div class="lw-icon">{{ ice_icon | safe }}</div>
@@ -851,7 +867,25 @@
     if (boxes.some(fitComic)) return;      // some() hört beim ersten passenden auf, die übrigen bleiben aus
     head.style.display = 'none'; list.classList.remove('co-off');   // zu klein: lieber die nächsten Tage
   }
+  // Wetter-Meilenstein (seit 1.41): unter der Temperatur; passt die Zeile nicht (DWD-Warnung daneben),
+  // erst die Kurzform („Erster Frost seit 12.3.“), sonst die lange Form in einer eigenen Zeile unter dem
+  // Wetterkopf über die ganze Breite. Die Zeile macht die Textspalte nie breiter (CSS width: 0).
+  function fitMile(el) {
+    const t = el.querySelector('.ml-text');
+    if (!el.dataset.long) { el.dataset.long = t.textContent; el._home = el.parentElement; }
+    if (el.parentElement !== el._home) el._home.appendChild(el);
+    el.classList.remove('ml-out');
+    t.textContent = el.dataset.long;
+    const over = () => t.scrollWidth > t.clientWidth + 1;
+    if (!over()) return;
+    t.textContent = el.dataset.short;
+    if (!over()) return;
+    t.textContent = el.dataset.long;
+    el.classList.add('ml-out');
+    el._home.closest('.wx-top').insertAdjacentElement('afterend', el);
+  }
   function fitAll() {
+    document.querySelectorAll('.wx-mile').forEach(fitMile);
     document.querySelectorAll('.cal').forEach(fitComics);
     document.querySelectorAll('.graph').forEach(fitGraph);
     fitQr(false);

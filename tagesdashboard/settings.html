@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="26" />
+<input type="hidden" name="cfgVersion" value="27" />
 
 <div class="st">
 
@@ -146,6 +146,14 @@
             <span class="st-note">am Stück</span>
         </div>
     </div>
+    <label class="st-check"><input type="checkbox" class="db-check" name="climCurve" value="true" data-default="true" data-since="27"><span>Übliche Temperatur in der Tageskurve <span class="st-note">blau gestrichelt, wie warm es an diesem Datum meist ist; ohne Regen steht darüber „Tagsüber 4° wärmer als üblich“</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="climCard" value="true" data-default="true" data-since="27"><span>Karte bei ungewöhnlicher Wärme oder Kälte <span class="st-note">nur, wenn der Höchstwert so hoch oder niedrig ist wie an höchstens einem von 20 Tagen um dieses Datum und mindestens 3° vom Üblichen abweicht</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="mileEnabled" value="true" data-default="true" data-since="27"><span>Wetter-Meilensteine <span class="st-note">eine Zeile unter der Temperatur, z. B. „Erster Frost seit 12. März“, „Erstmals Sonne seit 9 Tagen“ oder „Längste Regenserie 2026: 8 Tage“; Frost und Tropennacht auch im Nachtbild</span></span></label>
+    <details class="st-why">
+        <summary>Woher die Klimawerte kommen</summary>
+        <div class="st-hint">Vom Deutschen Wetterdienst: Tageswerte der nächsten Klimastation mit Messungen seit spätestens 1991 (in Bonn Bonn-Roleber oder Köln/Bonn). „Üblich“ ist das Mittel 1991–2020 für dieses Datum (±7 Tage). Beim ersten Mal lädt das Dashboard etwa 1,5 MB und merkt sich das Ergebnis neben den InkyPi-Einstellungen; danach nur noch einmal am Tag die Werte der letzten Monate.</div>
+        <div class="st-hint">Meilensteine: Frost, Eistag (ganztägig unter 0°), Schnee, Sommertag (25°), 30° und Tropennacht (nicht unter 20°) zählen als „erste“, wenn es mindestens 90 Tage nicht so war. Sonne: mindestens 2 Stunden nach mindestens 7 grauen Tagen. Serien: ab 5 Regentagen (≥ 1 mm) bzw. 10 trockenen Tagen, wenn es die längste des Jahres ist.</div>
+    </details>
 </section>
 
 <section class="st-sec">
