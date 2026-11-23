@@ -853,3 +853,14 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .mono .snow-card .tr-badge { background: currentColor; }
 .mono .snow-card .tr-badge { color: var(--bg, #fff); }
 .mono .sn-bar { fill: currentColor; }
+
+/* ---------------- Feierabend (seit 1.47, Variante B) ----------------
+ * Zeile unter „Heute“ statt „Keine weiteren Termine“: grünes Häkchen, „Feierabend“ in Grün, Rest in Textfarbe.
+ * Etwas größer als der leere Hinweis (2,0 statt 1,9 u), damit der Übergang auffällt; bricht nicht um. */
+.ev.fb-line { display: flex; align-items: center; gap: calc(var(--u) * 0.7); font-size: calc(var(--u) * 2.0);
+  padding: calc(var(--u) * 0.3) 0; white-space: nowrap; }
+.fb-ck { flex: 0 0 auto; width: calc(var(--u) * 2.6); height: calc(var(--u) * 2.6); }
+.fb-line b { color: #2E9E3F; font-weight: 600; }
+.mono .fb-line b { color: inherit; }
+.mono .fb-ck circle { fill: currentColor; }
+.mono .fb-ck path { stroke: var(--bg); }

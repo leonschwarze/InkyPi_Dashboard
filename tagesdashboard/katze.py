@@ -872,6 +872,18 @@ def g_eichhoernchen():
     return 27, 26, tail + body + face + nut
 
 
+# ------------------------------------------------------------ Feierabend (seit 1.47)
+def sessel():
+    """Feierabend: liegt eingerollt im blauen Sessel (Leons Wahl aus Pantoffeln, Sessel, Buch)."""
+    back = f'<path fill="{BLUE}" stroke="currentColor" d="M7 30 V11 Q7 5 13 5 H43 Q49 5 49 11 V30 Z"/>'
+    cat = f'<g transform="translate(9.5 6.5) scale(0.8)">{kastenbrot()[2]}</g>'
+    seat = f'<path {F} d="M8 29 H48 V36 H8 Z"/>'
+    arms = (f'<path fill="{BLUE}" stroke="currentColor" d="M2 20 Q2 17 5 17 Q9 17 9 20 V36 H2 Z"/>'
+            f'<path fill="{BLUE}" stroke="currentColor" d="M47 20 Q47 17 51 17 Q54 17 54 20 V36 H47 Z"/>')
+    legs = f'<path {L} d="M5 36 V40 M51 36 V40"/>'
+    return 56, 40, back + cat + seat + arms + legs
+
+
 def _place(inner, x, y, k=1.0):
     return f'<g transform="translate({x:.1f} {y:.1f}) scale({k})">{inner}</g>'
 
@@ -939,6 +951,8 @@ POSES = {
     # seit 1.43
     "schlitten": schlitten, "glatteis": glatteis, "stirnband": stirnband, "comic": comic,
     "thermometer": thermometer, "plätzchen": plaetzchen, "laterne": laterne,
+    # seit 1.47: nur über den Anlass „feierabend“, nie zufällig
+    "sessel": sessel,
     # Saisonale Gäste (seit 1.46): nie zufällig, nur in ihrer Saison auf Gast-Takten (guest_slot)
     **GUEST_POSES,
 }
@@ -969,7 +983,9 @@ OCCASION_POSE = {"geburtstag": "partyhut", "nachrichten": "zeitung", "zug": "kof
                  "wahlkampf": "plakat", "zielort": "karte", "abend": "zipfelmütze", "wochenende": "hängematte",
                  # seit 1.43: Schnee-Karte oder Schnee am Ölberg, Glätte-, Lauf-, Klima-Karte, Sonntagscomic, Laternenumzug
                  "schneekarte": "schlitten", "glaette": "glatteis", "laufen": "stirnband", "klima": "thermometer",
-                 "comic": "comic", "laterne": "laterne"}
+                 "comic": "comic", "laterne": "laterne",
+                 # seit 1.47: nach dem letzten Termin des Tages (feierabend.check) – vor dem Wetter, siehe choose()
+                 "feierabend": "sessel"}
 # Laternenumzug (seit 1.43): Termin heute, dessen Titel eines dieser Wörter enthält (Groß-/Kleinschreibung egal)
 LANTERN_WORDS = ("laterne", "st. martin", "st.martin", "sankt martin", "martinszug", "martinsumzug")
 
@@ -1130,17 +1146,27 @@ def guest_slot(now):
     return (slot_of(now) // 2 + shift) % 2 == 0
 
 
+def _turn(others, slot):
+    """Welcher der gleichzeitigen Anlässe auf diesem Anlass-Takt dran ist (abwechselnd über slot // 2).
+    Ist ein seltener Anlass dabei, ist slot // 2 hier immer gerade – dann über slot // 4, sonst käme bei
+    zwei Anlässen nur der erste dran (seit 1.35, Test)."""
+    step = 4 if RARE_OCCASIONS & set(others) else 2
+    return others[(slot // step) % len(others)]
+
+
 def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occasions=(), egg=None, guests=True):
     """Was die Katze diesmal tut und wo sie es zuerst versucht.
 
     occasions – aktive Anlässe aus OCCASION_POSE (geburtstag, nachrichten, zug, waesche, advent; seit 1.35 radar, rad,
                 oepnv, pollen, wahlkampf, zielort, abend, wochenende; seit 1.43 schneekarte, glaette, laufen, klima,
-                comic, laterne) und „rat“
+                comic, laterne; seit 1.47 feierabend) und „rat“
                 (seit 1.27: Ratssitzung läuft, die Livestream-Karte steht)
     egg       – Pose eines Ostereis (seit 1.24, ostereier.today) oder None
     guests    – saisonale Gäste zulassen (seit 1.46, GUEST_SEASON, nur auf Gast-Takten)
 
-    Rangfolge: Geburtstag > Ratssitzung > Osterei > Gast (seit 1.46) > Wetter > übrige Anlässe > Alltag; seit 1.43 schlagen Glätte und
+    Rangfolge: Geburtstag > Ratssitzung > Osterei > Gast (seit 1.46) > Wetter > übrige Anlässe > Alltag; seit 1.47 geht der
+    Feierabend (Sessel) dem Wetter vor, wechselt sich aber mit den übrigen Anlässen ab (Leons Wahl) – ist er
+    an der Reihe, liegt sie im Sessel, sonst gilt die Rangfolge wie gehabt; seit 1.43 schlagen Glätte und
     Schnee am Berg (WINTER_OCCASIONS) auf ihren Takten die Wetterlagen Frost und Schnee. Anlässe (auch Geburtstag
     und Ratssitzung) zählen nur in jedem zweiten Takt (occasion_slot); Osterei und Wetter gelten immer, wenn sie
     zutreffen – an einem Ostereier-Tag mit Ratssitzung wechseln sich also Osterei und Rednerpult ab.
@@ -1168,6 +1194,8 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         reason, main = "rat", RAT_LATE_POSE if now.hour >= RAT_LATE_HOUR else RAT_POSE
     elif egg:  # Ostereier (seit 1.24): an ihrem Tag in jedem Takt, vor dem Wetter
         reason, main = "osterei", egg
+    elif "feierabend" in others and _turn(others, slot) == "feierabend":  # seit 1.47: vor dem Wetter, im Wechsel
+        reason, main = "feierabend", OCCASION_POSE["feierabend"]
     elif guests and guest_of(day) and guest_slot(now):  # seit 1.46: Gast der Saison, auch bei Wetter (Leons Wahl)
         reason, main = "gast", guest_of(day)
     elif winter and weather_why in ("frost", "schnee"):  # seit 1.43: Glätte/Schnee am Berg passen zum Winterwetter
@@ -1175,11 +1203,8 @@ def choose(now, records=None, nowcast=None, weather=True, feels_like=None, occas
         main = OCCASION_POSE[reason]
     elif weather_why:  # seit 1.34: Varianten reihum, Reihenfolge je Tag und Wetterlage gemischt
         reason, main = weather_why, weather_pose(weather_why, day, slot)
-    elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln
-        # Abwechseln auf den Anlass-Takten (slot // 2). Ist ein seltener Anlass dabei, ist slot // 2 hier immer
-        # gerade – dann über slot // 4, sonst käme bei zwei Anlässen nur der erste dran (seit 1.35, Test).
-        step = 4 if RARE_OCCASIONS & set(others) else 2
-        reason = others[(slot // step) % len(others)]
+    elif others:  # mehrere zugleich (Zug-Dienstag im Nachrichtenfenster): abwechseln (_turn)
+        reason = _turn(others, slot)
         main = occasion_pose(reason, day, slot)
     else:
         reason, main = None, everyday[slot % len(everyday)]

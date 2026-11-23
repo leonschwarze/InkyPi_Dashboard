@@ -568,7 +568,7 @@
       {% for day in (calendar[:1] if news else calendar) %}
       <div class="day{% if day.is_today %} is-today{% endif %}">
         <div class="day-head fit-item"><span class="dl">{{ day.label }}</span>{% if day.date %}<span class="dd">{{ day.date }}</span>{% endif %}</div>
-        {% if not day.events %}<div class="ev empty fit-item">Keine weiteren Termine</div>{% endif %}
+        {% if not day.events and not (day.is_today and fb) %}<div class="ev empty fit-item">Keine weiteren Termine</div>{% endif %}
         {% for ev in day.events %}
         <div class="ev fit-item{% if ev.all_day %} allday{% endif %}" style="--c: {{ ev.color }}; --fg: {{ ev.fg }};">
           <div class="ev-time">{% if ev.now %}<span class="now-tag">jetzt</span>{% elif not ev.all_day %}{{ ev.short }}{% endif %}</div>
@@ -586,6 +586,8 @@
           </div>
         </div>
         {% endfor %}
+        {# Feierabend (seit 1.47): statt „Keine weiteren Termine“; mit „Beendete Termine zeigen“ unter ihnen #}
+        {% if day.is_today and fb %}<div class="ev empty fb-line fit-item">{{ fb_icon | safe }}<span><b>Feierabend</b> seit {{ fb.since_text }} · {{ fb.count_text }}</span></div>{% endif %}
       </div>
       {% endfor %}
     </div>

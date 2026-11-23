@@ -50,13 +50,13 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd, klima, schnee, freigabe)
+                   xkcd, klima, schnee, freigabe, feierabend)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd, klima, schnee, freigabe)
+                                        laufbilanz, monat, xkcd, klima, schnee, freigabe, feierabend)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -223,6 +223,7 @@ DEFAULTS = {
     "monthEnabled": "true", "monthFrom": "06:00", "monthTo": "10:00",
     # Sonntagscomic: xkcd statt der leeren Terminliste (seit cfgVersion 26)
     "comicEnabled": "true",
+    "fbEnabled": "true",  # seit 1.47: Feierabend-Zeile unter „Heute“ und Sessel-Katze
     # Klimaeinordnung (Kurve, Karte) und Wetter-Meilensteine (seit cfgVersion 27)
     "climCurve": "true", "climCard": "true", "mileEnabled": "true",
     # Schnee-Radar: Karte, Schneekappen im Nachtbild, Schnee in der Wochenvorschau (seit cfgVersion 28)
@@ -260,7 +261,8 @@ SINCE_VERSION["comicEnabled"] = 26
 SINCE_VERSION.update({"climCurve": 27, "climCard": 27, "mileEnabled": 27})
 SINCE_VERSION.update({"snowCard": 28, "snowNight": 28, "snowWeek": 28})
 SINCE_VERSION.update({"liveCity": 29})
-CFG_VERSION = 29  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION["fbEnabled"] = 30
+CFG_VERSION = 30  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -744,6 +746,14 @@ class Tagesdashboard(BasePlugin):
             if card:
                 params["live"] = card
                 logger.info("Livestream: %s %s → %s", card["title"], card["until"], card["href"])
+        # ---- Feierabend-Schwelle (seit 1.47, Leons Wahl „B Zeile unter Heute“): ist der letzte Termin des Tages
+        # vorbei, steht unter „Heute“ „✓ Feierabend seit 17:30 · 3 Termine“ – bis das Nachtbild übernimmt ----
+        if mode == "normal" and flag("fbEnabled") and not cal_error:
+            fb = feierabend.check(events, now, today)
+            if fb:
+                params["fb"] = fb
+                params["fb_icon"] = feierabend.CHECK_ICON.format(cls="fb-ck")
+                logger.info("Feierabend seit %s (%s)", fb["since_text"], fb["count_text"])
         # ---- Wahlkampf-Modus (seit 1.35 vor der Katzenwahl, Anlass „wahlkampf“): Karte an Tagen mit Wahlkampftermin (und am Wahltag selbst) ----
         wahl_cfg = wahlkampf.read_config(opt, flag, today) if mode == "normal" else None
         if wahl_cfg:
@@ -776,7 +786,9 @@ class Tagesdashboard(BasePlugin):
                     ("laufen", bool(params.get("run"))),
                     ("klima", bool(params.get("clim_card"))),
                     ("comic", bool(params.get("comics"))),
-                    ("laterne", any(katze.is_lantern(ev.get("title")) for ev in today_events))) if on]
+                    ("laterne", any(katze.is_lantern(ev.get("title")) for ev in today_events)),
+                    # seit 1.47: Sessel nach Feierabend (vor dem Wetter, im Wechsel mit den übrigen Anlässen)
+                    ("feierabend", bool(params.get("fb")))) if on]
                 logger.debug("Katze: Anlässe %s", ", ".join(occasions) or "keine")
                 params["cat"] = katze.choose(now, records, nowcast, weather=flag("catWeather"),
                                              feels_like=dwd.feels_like, occasions=occasions,
@@ -863,6 +875,8 @@ class Tagesdashboard(BasePlugin):
             edges += advent.boundaries(now) if flag("adventEnabled") else []  # Kranz kommt, bekommt eine Kerze mehr, geht nach Heiligabend
             if flag("comicEnabled"):  # Sonntagscomic: erscheint, sobald der letzte Termin des Tages vorbei ist
                 edges += xkcd.boundaries(now, today_events)
+            if flag("fbEnabled") and mode == "normal" and not cal_error:  # Feierabend-Zeile pünktlich zum Ende des letzten Termins
+                edges += feierabend.boundaries(events, now, today)
             if flag("liveEnabled"):  # Livestream-Karte kommt zu Beginn der Sitzung und geht an ihrem Ende
                 edges += livestream.boundaries(today_events, live_words, now)
             edge = min((e for e in edges if e and e > now), default=None)
