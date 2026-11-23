@@ -1,12 +1,63 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.43
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.44
 
-Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat viele Posen: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**. Sonntags ohne Termine steht ein **xkcd-Comic** in der Terminspalte. Die Tageskurve zeigt, **wie warm es an diesem Datum üblich ist**, eine Karte meldet **ungewöhnliche Wärme oder Kälte**, und eine Zeile unter der Temperatur feiert **Wetter-Meilensteine** wie den ersten Frost. Kommt **Schnee**, sagt eine Karte, wann und wie viel; in der Tageskurve fallen Flocken, im Nachtbild liegt Schnee auf Bonns Dächern, und die Wochenvorschau zeigt, **wo Schnee liegt** (Winterberg, Eifel, Siebengebirge) – im Dezember auch, ob es **weiße Weihnachten** gibt. Im Nachtbild **lebt die Stadt**: Fenster gehen aus, eine Stadtbahn fährt über die Kennedybrücke, im Sommer dämmert es, und liegt oben auf dem Ölberg Schnee, sind die **Gipfel weiß**. Die Katze hat jetzt **62 Posen**.
+Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat viele Posen: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**. Sonntags ohne Termine steht ein **xkcd-Comic** in der Terminspalte. Die Tageskurve zeigt, **wie warm es an diesem Datum üblich ist**, eine Karte meldet **ungewöhnliche Wärme oder Kälte**, und eine Zeile unter der Temperatur feiert **Wetter-Meilensteine** wie den ersten Frost. Kommt **Schnee**, sagt eine Karte, wann und wie viel; in der Tageskurve fallen Flocken, im Nachtbild liegt Schnee auf Bonns Dächern, und die Wochenvorschau zeigt, **wo Schnee liegt** (Winterberg, Eifel, Siebengebirge) – im Dezember auch, ob es **weiße Weihnachten** gibt. Im Nachtbild **lebt die Stadt**: Fenster gehen aus, eine Stadtbahn fährt über die Kennedybrücke, im Sommer dämmert es, und liegt oben auf dem Ölberg Schnee, sind die **Gipfel weiß**. Die Katze hat jetzt **62 Posen**. Neu: **signierte Updates** – auf den Pi kommt nur, was du selbst freigegeben hast, auf Wunsch nachts automatisch und mit Rückfall auf den alten Stand.
 
-## Installieren bzw. aktualisieren
+## Installieren und aktualisieren: signierte Updates (seit 1.44)
 
-1. Den Ordner `tagesdashboard/` aus diesem Paket nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen).
-2. `sudo systemctl restart inkypi.service` (Python-Dateien haben sich geändert).
-3. In der Web-Oberfläche die Plugin-Einstellungen öffnen und einmal speichern.
+Das Repo ist öffentlich, und InkyPi läuft als root. Deshalb kommt auf den Pi nur ein Stand, den du **mit deinem eigenen SSH-Schlüssel freigegeben** hast: ein signiertes Git-Tag wie `v1.44`. Der Pi kennt nur den öffentlichen Teil des Schlüssels und prüft vor jeder Installation die Unterschrift. Das gilt für das Tagesdashboard und das Ausschaltbild, von Hand wie nachts.
+
+### Einmalig auf deinem Rechner
+
+```bash
+ssh-keygen -t ed25519 -C "InkyPi-Freigabe" -f ~/.ssh/inkypi_freigabe     # mit Passphrase
+git clone https://github.com/leonschwarze/InkyPi_Dashboard ~/InkyPi_Dashboard
+git clone https://github.com/leonschwarze/InkyPi_Ausschaltbild ~/InkyPi_Ausschaltbild
+cat ~/.ssh/inkypi_freigabe.pub        # diese eine Zeile brauchst du gleich auf dem Pi
+```
+
+Der Freigabe-Schlüssel ist ein eigener Schlüssel, nicht dein Login-Schlüssel. Der private Teil (`~/.ssh/inkypi_freigabe`) bleibt auf deinem Rechner; mach eine Sicherungskopie.
+
+### Eine Version freigeben
+
+```bash
+cd ~/InkyPi_Dashboard && git pull --ff-only && bash aktualisierung/freigeben.sh
+cd ~/InkyPi_Ausschaltbild && git pull --ff-only && bash ~/InkyPi_Dashboard/aktualisierung/freigeben.sh .
+```
+
+Das Skript zeigt Version, Commit und die Änderungen seit der letzten Freigabe, fragt nach, signiert das Tag `v<Version>`, prüft die Unterschrift und schiebt das Tag zu GitHub. Die Versionsnummer kommt aus dem Code (`tagesdashboard/plugin-info.json` bzw. `VERSION` in `ausschaltbild.py`); jede Nummer lässt sich nur einmal freigeben.
+
+### Einmalig auf dem Pi
+
+```bash
+git -c advice.detachedHead=false clone --branch v1.44 https://github.com/leonschwarze/InkyPi_Dashboard ~/inkypi-dashboard
+cd ~/inkypi-dashboard
+echo 'leon namespaces="git" ssh-ed25519 AAAA… InkyPi-Freigabe' > /tmp/freigabe     # deine .pub-Zeile
+git -c gpg.ssh.allowedSignersFile=/tmp/freigabe verify-tag v1.44                   # „Good "git" signature for leon“
+sudo bash aktualisierung/install.sh --schluessel "ssh-ed25519 AAAA… InkyPi-Freigabe"
+sudo inkypi-update
+```
+
+Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wie der Code, die Prüfung mit `verify-tag` davor ist deshalb die eigentliche Sicherung. `install.sh` prüft den Klon danach noch einmal (Tag, Unterschrift, keine veränderten Dateien), trägt den Schlüssel in `/usr/local/inkypi-update/allowed_signers` ein (gehört root), richtet den Befehl `inkypi-update` und den nächtlichen Lauf ein. Der erste `sudo inkypi-update` installiert Dashboard und Ausschaltbild aus den freigegebenen Tags. Das Ausschaltbild wird nur aktualisiert, wenn es schon installiert ist (sonst einmal wie in seiner README, aus einem Klon auf einem freigegebenen Tag). Der Klon in `~/inkypi-dashboard` wird danach nicht mehr gebraucht.
+
+### Im Alltag
+
+- **Nachts** (zwischen 3:30 und 3:50 Uhr, im Nachtbild-Fenster) sieht der Pi nach, ob es eine neuere Freigabe gibt. War er um diese Zeit aus, wird nicht morgens nachgeholt.
+- **Von Hand:** `sudo inkypi-update` (sofort), `sudo inkypi-update --pruefen` (nur nachsehen), `sudo inkypi-update --verlauf` (die letzten Einträge), `sudo inkypi-update --nur tagesdashboard --version v1.42` (bewusst eine ältere Freigabe).
+- **Was geprüft wird:** gültige Unterschrift von deinem Schlüssel; der Name im Inneren des Tags passt zum Namen im Repo; die Version im Code passt zum Tag; neuer als installiert (außer mit `--version`). Ein Tag, das das nicht erfüllt, wird übersprungen und im Verlauf gemeldet – es kann eine gültige Freigabe nicht blockieren.
+- **Wie installiert wird:** Genau der freigegebene Commit wird entpackt (nur `tagesdashboard/`), vorab mit InkyPis Python geladen, dann gegen den alten Ordner getauscht, InkyPi neu gestartet und das Dashboard einmal gezeichnet. Klappt das nicht, kommt der alte Stand zurück. Beim Ausschaltbild ein Probebild, dann sein `install.sh`. Nachts wird eine Version höchstens dreimal versucht; von Hand immer.
+- **Einstellungen** müssen nach einem Update nicht neu gespeichert werden.
+- **Nachts aus:** `sudo systemctl disable --now inkypi-update.timer` (wieder an: `enable --now`). Log: `journalctl -u inkypi-update.service`.
+- **Schlüssel verloren oder ersetzt:** neuen Schlüssel anlegen, dann auf dem Pi `sudo bash aktualisierung/install.sh --schluessel "…" --schluessel-ersetzen` (aus einem Klon, der mit dem neuen Schlüssel freigegeben ist). Bis dahin installiert der Pi einfach nichts Neues.
+- **Entfernen:** `sudo bash /pfad/zum/klon/aktualisierung/uninstall.sh` (Dashboard und Ausschaltbild bleiben).
+
+### Ohne signierte Updates
+
+Den Ordner `tagesdashboard/` nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen) und `sudo systemctl restart inkypi.service`.
+
+## Neu in 1.44: signierte Updates
+
+- Neuer Ordner `aktualisierung/` mit dem Befehl `inkypi-update`, dem nächtlichen Timer, `install.sh`/`uninstall.sh` und `freigeben.sh` für deinen Rechner (siehe oben).
+- `plugin-info.json` nennt jetzt Version und Repo. Am Bild und an den Einstellungen ändert sich nichts.
 
 ## Neu in 1.43: lebende Stadt, weiße Gipfel, sieben Katzenposen
 

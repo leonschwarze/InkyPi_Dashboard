@@ -1,0 +1,13 @@
+[Unit]
+Description=InkyPi: signierte Updates (Tagesdashboard, Ausschaltbild)
+Documentation=https://github.com/leonschwarze/InkyPi_Dashboard
+After=network-online.target inkypi.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/inkypi-update/inkypi_update.py --nachts
+Nice=10
+TimeoutStartSec=45min
+StandardOutput=journal
+StandardError=journal

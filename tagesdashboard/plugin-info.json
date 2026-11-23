@@ -2,5 +2,6 @@
     "display_name": "Wetter & Kalender",
     "id": "tagesdashboard",
     "class": "Tagesdashboard",
-    "repository": ""
+    "version": "1.44",
+    "repository": "https://github.com/leonschwarze/InkyPi_Dashboard"
 }

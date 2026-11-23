@@ -1,0 +1,12 @@
+[Unit]
+Description=InkyPi: nachts nach signierten Updates sehen
+
+[Timer]
+# Im Nachtbild-Fenster (23–6 Uhr); zufällig bis 20 min später, damit nicht jede Nacht auf die Minute.
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=20min
+# War der Pi um 3:30 aus, wird NICHT morgens nachgeholt (Neustart und Neuzeichnen mitten am Tag).
+Persistent=false
+
+[Install]
+WantedBy=timers.target
