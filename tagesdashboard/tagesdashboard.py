@@ -50,13 +50,13 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd, klima, schnee)
+                   xkcd, klima, schnee, freigabe)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd, klima, schnee)
+                                        laufbilanz, monat, xkcd, klima, schnee, freigabe)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -330,6 +330,12 @@ class Tagesdashboard(BasePlugin):
             "service": "Nextcloud (App-Passwort)",
             "expected_key": "NEXTCLOUD_APP_PASSWORD",
         }
+        # Signierte Updates (seit 1.45): nur anzeigen, was inkypi-update festgehalten hat
+        try:
+            params["updates"] = freigabe.status(self.config.get("version"))
+        except Exception:  # pragma: no cover – die Einstellungsseite darf daran nie scheitern
+            logger.exception("Updates: Status nicht lesbar")
+            params["updates"] = None
         return params
 
     def current_time(self, tz):
@@ -362,6 +368,11 @@ class Tagesdashboard(BasePlugin):
     # ==================================================================
     def generate_image(self, settings, device_config):
         self._night_art_kw = None  # Zutaten der Nachtgrafik für die Lebende Stadt (seit 1.43)
+        if freigabe.angefordert(settings):
+            # Knopf „Jetzt prüfen und installieren“ (seit 1.45): kein Bild, nur die Meldung für die Weboberfläche
+            ok, text = freigabe.starten()
+            logger.info(f"Updates: von Hand angestoßen – {text}")
+            raise RuntimeError(text)
         if IMPORT_ERROR is not None:
             raise RuntimeError(f"Plugin unvollständig – Ordner lib/ fehlt oder ist beschädigt ({IMPORT_ERROR}).")
         flag = lambda k: self._opt(settings, k) == "true"  # noqa: E731

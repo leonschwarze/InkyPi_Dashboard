@@ -415,6 +415,55 @@
     <div class="st-hint">Gilt immer – nur im Zeitfenster des Zugs zeichnet das Dashboard bei jedem Wechsel von InkyPi neu. Nachrichten, Wäsche, Nachtbild und Co. erscheinen trotzdem pünktlich. Ist das Wechselintervall von InkyPi (<b>Einstellungen</b> → Plugin Cycle Interval) länger, gilt dieses.</div>
 </section>
 
+{% if updates %}
+<section class="st-sec" id="updSec">
+    <h3 class="st-h">Updates</h3>
+    {% if updates.installiert %}
+    <div>Installiert: <b>{{ updates.installiert.version }}</b> · signiert von {{ updates.installiert.von }}{% if updates.installiert.wann %} · {{ updates.installiert.wann }}{% endif %}</div>
+    {% else %}
+    <div>Dieses Plugin: <b>{{ updates.plugin }}</b> (nicht über signierte Updates installiert)</div>
+    {% endif %}
+    {% if updates.fremd %}
+    <div class="st-hint upd-warn">Hier läuft {{ updates.plugin }}, signiert installiert war {{ updates.installiert.version }} – das Dashboard kam auf anderem Weg auf den Pi (z. B. Plugin Manager). Am besten jetzt neu installieren lassen.</div>
+    {% endif %}
+    {% if updates.bereit %}
+    <div><b>Freigabe {{ updates.bereit }} liegt bereit.</b></div>
+    {% endif %}
+    {% if updates.lauf %}
+    <div class="st-hint">Letzter Lauf {{ updates.lauf.wann }} ({{ updates.lauf.art }}): {{ updates.lauf.text }}</div>
+    {% endif %}
+    {% if updates.eingerichtet %}
+    <div class="st-line"><button type="button" id="updStart" class="action-button">Jetzt prüfen und installieren</button></div>
+    <div class="st-hint" id="updMsg" aria-live="polite">Installiert nur Versionen, die mit deinem Schlüssel freigegeben sind – sonst passiert nichts. Nachts sieht der Pi ohnehin von selbst nach.</div>
+    {% else %}
+    <div class="st-hint">Signierte Updates sind auf diesem Pi nicht eingerichtet (README: „Installieren und aktualisieren“).</div>
+    {% endif %}
+</section>
+<script>
+(function () {
+    const btn = document.getElementById('updStart');
+    if (!btn) return;
+    btn.addEventListener('click', async function () {
+        const msg = document.getElementById('updMsg');
+        btn.disabled = true;               // Knopf, kein Formularfeld – wird nicht gespeichert
+        msg.textContent = 'Wird gestartet …';
+        const fd = new FormData();
+        fd.append('plugin_id', 'tagesdashboard');
+        fd.append('inkypiUpdate', 'jetzt');  // nur dieses Feld: die gespeicherten Einstellungen bleiben unberührt
+        try {
+            const r = await fetch('/update_now', { method: 'POST', body: fd });
+            const d = await r.json().catch(() => ({}));
+            // Das Dashboard antwortet absichtlich mit einer Meldung statt eines Bildes (Display bleibt, wie es ist)
+            msg.textContent = (d.error || d.message || 'Keine Antwort.').replace(/^An error occurred:\s*/, '');
+        } catch (e) {
+            msg.textContent = 'Keine Verbindung zu InkyPi.';
+        }
+        btn.disabled = false;
+    });
+})();
+</script>
+{% endif %}
+
 <details class="st-more" id="moreBox">
     <summary>Erweitert</summary>
     <div class="st-field">
@@ -470,6 +519,7 @@
        die Werte wären dann weg. */
     .st-off { opacity: 0.45; }
     .st-hint { font-size: 0.9em; color: var(--text-secondary); line-height: 1.4; }
+    #updSec .upd-warn { color: #c62828; }
     .st-hint code { font-size: 0.95em; }
     .st-check + .st-hint { margin: -4px 0 0 28px; }
     /* Zweispaltige Paare Beschriftung | Feld (Zug) */

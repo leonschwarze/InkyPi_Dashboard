@@ -1,4 +1,4 @@
-# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.44
+# Tagesdashboard (Wetter & Kalender) für InkyPi – Version 1.45
 
 Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, Pollenflug, Lauf-Fenster, Glätte-Hinweis fürs Rad, Sternschnuppenströme, Mondfinsternisse, helle Planeten und Polarlicht im Nachtbild, Zug mit Störungsmonitor, Morgen-Schlagzeilen, Wäsche-Karte, Nachtbild mit Bonner Silhouette, Wochenvorschau, Anfahrt zu Terminen, Festtage, Regenradar, Schlagzeilen aus Frankreich, Luftqualität, Streckenmeldungen und eine **kleine Katze**, die sich bei jeder Aktualisierung woanders versteckt – nachts schläft sie auf dem Mond über Bonn, mit Maus, Laserpunkt, Karton und passenden Posen zu Nachrichten, Zug, Wäsche, Geburtstag und Ratssitzung. Dazu eine **Statusanzeige** im Kopf, wenn eine Datenquelle ausfällt. Die Kleidungsempfehlung sagt, ob es **kälter oder wärmer als gestern** wird. Dazu ein **Urlaubsbild**, eine **Wahlkampf-Karte** und der **ISS-Überflug** im Nachtbild. Während einer **Ratssitzung** führt ein **QR-Code zum Livestream**. **Abgelehnte Einladungen** erscheinen nicht mehr. Während der Ratssitzung steht die Katze **am Rednerpult**. Im Nachtbild steht der **Rhein so hoch wie am Pegel Bonn**, und die Wochenvorschau sagt, **wie es dem Pi geht**. In der Adventszeit steht ein **Adventskranz** im Kopf, und die Wochenvorschau nennt die **freien Abende**. Liegt ein Termin weiter weg, etwa in Düsseldorf, steht das **Wetter am Zielort** dabei. Das **Nachtbild reicht bis an den Rand** des Displays. Ohne Zug zeichnet das Dashboard im gewohnten Takt neu statt alle 5 Minuten. Der Zugang zur Nextcloud ist besser abgesichert. Die Wetterseite ist **aufgeräumter**: weniger Kacheln, keine Rahmen, mehr Platz für die Tageskurve. Die Katze hat viele Posen: bei jedem Wetter mehrere, die sich abwechseln, in der Adventszeit eine Lichterkette und neu passende Posen zu Regenradar, Anfahrt, Pollen, Wahlkampf, Zielort, spätem Abend und Wochenende. Neu: **Warnungen des Bevölkerungsschutzes** (NINA) als rotes Band, in der Wochenvorschau **wie voll die Woche ist** und **wie viel du gelaufen bist**, und am Monatsersten ein **Monatsbild**. Sonntags ohne Termine steht ein **xkcd-Comic** in der Terminspalte. Die Tageskurve zeigt, **wie warm es an diesem Datum üblich ist**, eine Karte meldet **ungewöhnliche Wärme oder Kälte**, und eine Zeile unter der Temperatur feiert **Wetter-Meilensteine** wie den ersten Frost. Kommt **Schnee**, sagt eine Karte, wann und wie viel; in der Tageskurve fallen Flocken, im Nachtbild liegt Schnee auf Bonns Dächern, und die Wochenvorschau zeigt, **wo Schnee liegt** (Winterberg, Eifel, Siebengebirge) – im Dezember auch, ob es **weiße Weihnachten** gibt. Im Nachtbild **lebt die Stadt**: Fenster gehen aus, eine Stadtbahn fährt über die Kennedybrücke, im Sommer dämmert es, und liegt oben auf dem Ölberg Schnee, sind die **Gipfel weiß**. Die Katze hat jetzt **62 Posen**. Neu: **signierte Updates** – auf den Pi kommt nur, was du selbst freigegeben hast, auf Wunsch nachts automatisch und mit Rückfall auf den alten Stand.
 
@@ -42,10 +42,12 @@ Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wi
 ### Im Alltag
 
 - **Nachts** (zwischen 3:30 und 3:50 Uhr, im Nachtbild-Fenster) sieht der Pi nach, ob es eine neuere Freigabe gibt. War er um diese Zeit aus, wird nicht morgens nachgeholt.
+- **In der Weboberfläche** (seit 1.45): Einstellungen des Dashboards → Abschnitt **Updates** zeigt die installierte Version, eine bereitliegende Freigabe und den letzten Lauf; **Jetzt prüfen und installieren** startet denselben Lauf wie `sudo inkypi-update`. Der Knopf kann nur installieren, was du signiert hast.
 - **Von Hand:** `sudo inkypi-update` (sofort), `sudo inkypi-update --pruefen` (nur nachsehen), `sudo inkypi-update --verlauf` (die letzten Einträge), `sudo inkypi-update --nur tagesdashboard --version v1.42` (bewusst eine ältere Freigabe).
 - **Was geprüft wird:** gültige Unterschrift von deinem Schlüssel; der Name im Inneren des Tags passt zum Namen im Repo; die Version im Code passt zum Tag; neuer als installiert (außer mit `--version`). Ein Tag, das das nicht erfüllt, wird übersprungen und im Verlauf gemeldet – es kann eine gültige Freigabe nicht blockieren.
 - **Wie installiert wird:** Genau der freigegebene Commit wird entpackt (nur `tagesdashboard/`), vorab mit InkyPis Python geladen, dann gegen den alten Ordner getauscht, InkyPi neu gestartet und das Dashboard einmal gezeichnet. Klappt das nicht, kommt der alte Stand zurück. Beim Ausschaltbild ein Probebild, dann sein `install.sh`. Nachts wird eine Version höchstens dreimal versucht; von Hand immer.
 - **Einstellungen** müssen nach einem Update nicht neu gespeichert werden.
+- **Nicht über den Plugin Manager aktualisieren:** Er lädt den aktuellen Stand von `main` ohne jede Prüfung. Seit 1.45 bietet er das Dashboard deshalb gar nicht mehr an; andere Plugins kannst du dort weiter pflegen.
 - **Nachts aus:** `sudo systemctl disable --now inkypi-update.timer` (wieder an: `enable --now`). Log: `journalctl -u inkypi-update.service`.
 - **Schlüssel verloren oder ersetzt:** neuen Schlüssel anlegen, dann auf dem Pi `sudo bash aktualisierung/install.sh --schluessel "…" --schluessel-ersetzen` (aus einem Klon, der mit dem neuen Schlüssel freigegeben ist). Bis dahin installiert der Pi einfach nichts Neues.
 - **Entfernen:** `sudo bash /pfad/zum/klon/aktualisierung/uninstall.sh` (Dashboard und Ausschaltbild bleiben).
@@ -53,6 +55,13 @@ Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wi
 ### Ohne signierte Updates
 
 Den Ordner `tagesdashboard/` nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen) und `sudo systemctl restart inkypi.service`.
+
+## Neu in 1.45: Updates in den Einstellungen
+
+- Neuer Abschnitt **Updates** am Ende der Einstellungen: installierte Version, bereitliegende Freigabe, letzter Lauf und der Knopf **Jetzt prüfen und installieren**. Läuft ein anderer Stand, als signiert installiert wurde, steht dort ein Hinweis.
+- `plugin-info.json` nennt kein Repo mehr – so zeigt der Plugin Manager für das Dashboard kein (ungeprüftes) Update an.
+- `freigeben.sh` findet den Klon jetzt auch, wenn es aus einem Unterordner gestartet wird.
+- Am Bild ändert sich nichts.
 
 ## Neu in 1.44: signierte Updates
 

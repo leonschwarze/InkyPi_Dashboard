@@ -10,22 +10,38 @@
 set -euo pipefail
 
 SCHLUESSEL="${INKYPI_SCHLUESSEL:-$HOME/.ssh/inkypi_freigabe}"
-cd "${1:-.}"
 
 fehler() { echo "FEHLER: $*" >&2; exit 1; }
 
-[ -f "$SCHLUESSEL.pub" ] || fehler "Freigabe-Schlüssel $SCHLUESSEL.pub fehlt (anlegen: ssh-keygen -t ed25519 -C InkyPi-Freigabe -f $SCHLUESSEL)"
-git rev-parse --git-dir >/dev/null 2>&1 || fehler "$(pwd) ist kein Git-Klon"
-
-if [ -f tagesdashboard/plugin-info.json ]; then
-  NAME="Tagesdashboard"
-  VERSION="$(sed -n 's/.*"version" *: *"\([0-9.]*\)".*/\1/p' tagesdashboard/plugin-info.json | head -1)"
-elif [ -f ausschaltbild/ausschaltbild.py ]; then
-  NAME="Ausschaltbild"
-  VERSION="$(sed -n 's/^VERSION = "\([0-9.]*\)".*/\1/p' ausschaltbild/ausschaltbild.py | head -1)"
-else
-  fehler "weder tagesdashboard/ noch ausschaltbild/ gefunden – im richtigen Klon?"
+# Welcher Klon? Mit Angabe dieser Ordner, sonst der Klon, in dem du gerade stehst (egal in welchem
+# Unterordner), sonst der Klon, in dem dieses Skript liegt (InkyPi_Dashboard).
+if [ $# -ge 1 ]; then
+  cd "$1" 2>/dev/null || fehler "Ordner $1 gibt es nicht"
 fi
+WURZEL="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$WURZEL" ]; then
+  [ $# -ge 1 ] && fehler "$(pwd) ist kein Git-Klon"
+  WURZEL="$(cd "$(dirname "$0")/.." && git rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$WURZEL" ] || fehler "kein Git-Klon gefunden – bitte im Klon starten oder den Ordner angeben"
+fi
+cd "$WURZEL"
+
+[ -f "$SCHLUESSEL.pub" ] || fehler "Freigabe-Schlüssel $SCHLUESSEL.pub fehlt (anlegen: ssh-keygen -t ed25519 -C InkyPi-Freigabe -f $SCHLUESSEL)"
+
+# Nur die beiden Repos, die der Pi kennt (nicht InkyPi_Plugin_Dev – dort gäbe es beide Ordner)
+HERKUNFT="$(git remote get-url origin 2>/dev/null || true)"
+case "$HERKUNFT" in
+  *[Ii]nky[Pp]i_[Dd]ashboard|*[Ii]nky[Pp]i_[Dd]ashboard.git|*[Ii]nky[Pp]i_[Dd]ashboard/)
+    NAME="Tagesdashboard"
+    [ -f tagesdashboard/plugin-info.json ] || fehler "$WURZEL: tagesdashboard/plugin-info.json fehlt"
+    VERSION="$(sed -n 's/.*"version" *: *"\([0-9.]*\)".*/\1/p' tagesdashboard/plugin-info.json | head -1)" ;;
+  *[Ii]nky[Pp]i_[Aa]usschaltbild|*[Ii]nky[Pp]i_[Aa]usschaltbild.git|*[Ii]nky[Pp]i_[Aa]usschaltbild/)
+    NAME="Ausschaltbild"
+    [ -f ausschaltbild/ausschaltbild.py ] || fehler "$WURZEL: ausschaltbild/ausschaltbild.py fehlt"
+    VERSION="$(sed -n 's/^VERSION = "\([0-9.]*\)".*/\1/p' ausschaltbild/ausschaltbild.py | head -1)" ;;
+  *)
+    fehler "$WURZEL ist ein Klon von ${HERKUNFT:-?} – freigegeben werden nur InkyPi_Dashboard und InkyPi_Ausschaltbild" ;;
+esac
 [ -n "$VERSION" ] || fehler "keine Versionsnummer im Code gefunden"
 TAG="v$VERSION"
 

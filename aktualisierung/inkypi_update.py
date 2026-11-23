@@ -43,7 +43,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-PROGRAMM_VERSION = "1.0"
+PROGRAMM_VERSION = "1.1"
 
 # Feste Einstellungen. Bewusst keine Datei, die man nebenbei ändern könnte: Woher Updates kommen und wem
 # vertraut wird, steht hier und in allowed_signers (nur root). --konfig gibt es nur für die Tests.
@@ -66,6 +66,7 @@ STANDARD = {
 }
 
 TEILE = ("tagesdashboard", "ausschaltbild")
+NAMEN = {"tagesdashboard": "Dashboard", "ausschaltbild": "Ausschaltbild"}
 TAG_RE = re.compile(r"^v(\d{1,4}(?:\.\d{1,4}){0,3})$")
 SIG_START = b"-----BEGIN SSH SIGNATURE-----"
 MAX_VERSUCHE_NACHTS = 3
@@ -89,6 +90,7 @@ class Lauf:
         self.stand_datei = self.daten / "stand.json"
         self.verlauf_datei = self.daten / "verlauf.txt"
         self._zeilen = []
+        self.kurz = []      # Ergebnis je Teil in wenigen Worten (für die Einstellungsseite des Dashboards)
 
     def log(self, text):
         zeile = f"{datetime.now():%Y-%m-%d %H:%M:%S}  {text}"
@@ -541,9 +543,11 @@ def installiert(lauf, teil, stand):
 
 def teil_bearbeiten(lauf, teil, args, stand):
     vorher = installiert(lauf, teil, stand)
+    name = NAMEN.get(teil, teil)
     if vorher == "fehlt":
         lauf.log(f"{teil}: nicht installiert – übersprungen")
         return False
+    eintrag = stand.setdefault(teil, {})
     vorher_text = version_text(vorher) if vorher else "unbekannt (noch nie per Update)"
     fehl = stand.setdefault("fehlversuche", {}).setdefault(teil, {})
     auslassen = [t for t, n in fehl.items() if n >= MAX_VERSUCHE_NACHTS] if args.nachts else []
@@ -551,11 +555,15 @@ def teil_bearbeiten(lauf, teil, args, stand):
     if not frei:
         hinweis = f" (nachts ausgelassen nach {MAX_VERSUCHE_NACHTS} Fehlversuchen: {', '.join(auslassen)})" if auslassen else ""
         lauf.log(f"{teil}: installiert {vorher_text}, keine neuere freigegebene Version{hinweis}")
+        eintrag.pop("bereit", None)
+        lauf.kurz.append(f"{name} aktuell")
         return False
     neu_text = version_text(frei["version"])
     lauf.log(f"{teil}: installiert {vorher_text}, freigegeben {frei['tag']} "
              f"(Commit {frei['commit'][:7]}, signiert von {frei['wer']})")
     if args.pruefen:
+        eintrag["bereit"] = frei["tag"]
+        lauf.kurz.append(f"{name}: {frei['tag']} liegt bereit")
         return False
     if vorher and frei["version"] < vorher:
         lauf.log(f"  ACHTUNG: {frei['tag']} ist älter als die installierte Version {vorher_text} (bewusst gewählt)")
@@ -574,6 +582,7 @@ def teil_bearbeiten(lauf, teil, args, stand):
     stand[teil] = {"version": neu_text, "tag": frei["tag"], "commit": frei["commit"], "signiert_von": frei["wer"],
                    "installiert": datetime.now().isoformat(timespec="seconds")}
     lauf.log(f"{teil}: {frei['tag']} installiert")
+    lauf.kurz.append(f"{name}: {frei['tag']} installiert")
     return True
 
 
@@ -658,17 +667,25 @@ def main(argv=None):
                 except Abbruch as exc:
                     fehler += 1
                     lauf.log(f"{teil}: FEHLER – {exc}")
+                    lauf.kurz.append(f"{NAMEN[teil]}: Fehler – {exc}")
                 except subprocess.TimeoutExpired as exc:
                     fehler += 1
                     lauf.log(f"{teil}: FEHLER – Zeitüberschreitung bei {exc.cmd[0]}")
+                    lauf.kurz.append(f"{NAMEN[teil]}: Zeitüberschreitung")
                 finally:
-                    if not args.pruefen:
-                        with contextlib.suppress(OSError):
-                            lauf.stand_speichern(stand)
+                    with contextlib.suppress(OSError):
+                        lauf.stand_speichern(stand)
         except Abbruch as exc:
             fehler += 1
             lauf.log(f"FEHLER – {exc}")
+            lauf.kurz.append(str(exc))
         finally:
+            # Kurzfassung des Laufs für die Einstellungsseite des Dashboards (seit 1.1 des Updaters)
+            with contextlib.suppress(Exception):
+                stand = lauf.stand()
+                stand["letzter_lauf"] = {"zeit": datetime.now().isoformat(timespec="seconds"), "art": art,
+                                         "fehler": fehler, "text": " · ".join(lauf.kurz) or "nichts zu tun"}
+                lauf.stand_speichern(stand)
             lauf.verlauf_schreiben()
     return 1 if fehler else 0
 
