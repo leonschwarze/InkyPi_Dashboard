@@ -50,13 +50,13 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd, klima)
+                   xkcd, klima, schnee)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd, klima)
+                                        laufbilanz, monat, xkcd, klima, schnee)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -76,6 +76,19 @@ ICE_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true"><g fill="
             'stroke-linecap="round" stroke-linejoin="round"><path d="M24 4 V44 M6.7 14 L41.3 34 M6.7 34 L41.3 14"/>'
             '<path d="M18.5 7.5 L24 13 L29.5 7.5 M18.5 40.5 L24 35 L29.5 40.5 M5.5 21.5 L13 20 L10.5 12.5 '
             'M42.5 26.5 L35 28 L37.5 35.5 M5.5 26.5 L13 28 L10.5 35.5 M42.5 21.5 L35 20 L37.5 12.5"/></g></svg>')
+
+# Schneewolke mit zwei Flocken (Schnee-Karte, seit 1.42), 48er-ViewBox wie die Karten-Icons; Flocken als
+# Sternchen aus drei Strichen – kleine Kreise oder Kristalle mit Seitenästen laufen bei 30 px zu
+SNOW_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true">'
+             '<path d="M8 24 Q2 24 2 18.5 Q2 13 8.5 13 Q10.5 4 20.5 4 Q29.5 4 31.5 11 Q34.5 8.5 38.5 9.5 Q45.5 11 45 17.5 '
+             'Q46 24 38 24 Z" fill="#FFFFFF" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/>'
+             '<g stroke="#0082C9" stroke-width="3.6" stroke-linecap="round">'
+             '<path d="M14 29 V45 M7.1 33 L20.9 41 M7.1 41 L20.9 33"/>'
+             '<path d="M34 29 V45 M27.1 33 L40.9 41 M27.1 41 L40.9 33"/></g></svg>')
+
+# Einzelne Flocke für Tageskurve und Legende (seit 1.42): Sternchen aus drei Strichen, Blau wie die Regenbalken
+FLAKE_SVG = ('<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 V14.4 M2.5 4.8 L13.5 11.2 M2.5 11.2 L13.5 4.8" '
+             'stroke="#0082C9" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>')
 
 # Sirene mit Blinklicht (Warnungen aus NINA, seit 1.38), 48er-ViewBox wie die Karten-Icons
 NINA_ICON = ('<svg class="{cls}" viewBox="0 0 48 48" aria-hidden="true">'
@@ -212,6 +225,8 @@ DEFAULTS = {
     "comicEnabled": "true",
     # Klimaeinordnung (Kurve, Karte) und Wetter-Meilensteine (seit cfgVersion 27)
     "climCurve": "true", "climCard": "true", "mileEnabled": "true",
+    # Schnee-Radar: Karte, Schneekappen im Nachtbild, Schnee in der Wochenvorschau (seit cfgVersion 28)
+    "snowCard": "true", "snowNight": "true", "snowWeek": "true",
 }
 # Ab welcher cfgVersion es einen Schlüssel gibt. Ist die gespeicherte Version älter, gilt für
 # Checkboxen der Standardwert statt "fehlt = aus" (sonst wären neue Funktionen stumm aus).
@@ -241,7 +256,8 @@ SINCE_VERSION.update({"runEnabled": 24, "iceEnabled": 24, "polarEnabled": 24})
 SINCE_VERSION.update({"ninaEnabled": 25, "loadEnabled": 25, "runLogEnabled": 25, "monthEnabled": 25})
 SINCE_VERSION["comicEnabled"] = 26
 SINCE_VERSION.update({"climCurve": 27, "climCard": 27, "mileEnabled": 27})
-CFG_VERSION = 27  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
+SINCE_VERSION.update({"snowCard": 28, "snowNight": 28, "snowWeek": 28})
+CFG_VERSION = 28  # muss zu cfgVersion in settings.html passen (dev/test_settings.py prüft das)
 WEEK_DAY = 6  # Wochenvorschau sonntags
 
 # Das Nachtbild wird einmal gezeichnet und bis zum Ende der Nacht wiederverwendet
@@ -534,6 +550,7 @@ class Tagesdashboard(BasePlugin):
         if weather:
             if flag("showGraph"):
                 params["graph"] = self.day_graph(records, focus, now, tz, weather["sun_cache"])
+                params["flake_svg"] = FLAKE_SVG
             if flag("showWear"):
                 params["wear"] = self.wear(records, events, focus, now, tz, self._opt(settings, "sensitivity"),
                                            uv=weather.get("uv"))
@@ -579,6 +596,31 @@ class Tagesdashboard(BasePlugin):
                     params["run"] = run
                     params["run_icon"] = RUN_ICON.format(cls="lw-svg")
                     logger.info("Laufen: %s", run["full"])
+        # ---- Schnee-Radar (seit 1.42, Leons Wahl „A und D für den Alltag, C für die Wochenvorschau“). Ob und wann
+        # es schneit, sagt Bright Sky; Menge, Schneefallgrenze und Schneehöhe kommen von Open-Meteo (DWD ICON).
+        # Abgefragt wird nur, wenn es etwas zu sagen geben kann, und vor commit, damit ein Ausfall zählt ----
+        snow_data = None
+        if records and weather and (
+                (mode == "normal" and flag("snowCard") and schnee.snow_soon(records, now, focus))
+                or (mode == "night" and flag("nightArt") and flag("snowNight") and schnee.in_season(today)
+                    and schnee.was_cold(records, now))
+                or (mode == "week" and flag("snowWeek") and schnee.in_season(today))):
+            try:
+                snow_data = schnee.load(*self.home_position(settings), tz,
+                                        home_name=(weather.get("place") or "Bonn").split(",")[0].strip())
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                logger.exception("Schneedaten konnten nicht geladen werden")
+        if mode == "normal" and records and flag("snowCard"):
+            try:
+                snow = schnee.card(records, snow_data, now)
+            except Exception:  # Zusatz: nie das ganze Bild verlieren
+                snow = None
+                logger.exception("Schnee-Karte konnte nicht erzeugt werden")
+            if snow:
+                if nowcast or news_now:  # Radar zeigt die nächsten zwei Stunden genauer; morgens gehört der Platz den Schlagzeilen
+                    snow["strip"] = None
+                params["snow"], params["snow_icon"] = snow, SNOW_ICON.format(cls="lw-svg")
+                logger.info("Schnee: %s · %s%s", snow["top"], snow["sub"], f" · {snow['badge']}" if snow["badge"] else "")
         # ---- Klimaeinordnung und Wetter-Meilensteine (seit 1.41, Leons Wahl „B + C“; Meilensteine als Zeile
         # unter der Temperatur und in der Himmelszeile des Nachtbilds). Vor commit, damit Ausfälle zählen ----
         clim = None
@@ -594,6 +636,11 @@ class Tagesdashboard(BasePlugin):
                 self.climate_params(params, clim, records, focus, today, now, tz, weather, flag)
             except Exception:  # Zusatz: nie das ganze Bild verlieren
                 logger.exception("Klimaeinordnung konnte nicht bestimmt werden")
+        if snow_data and (params.get("graph") or {}).get("snow_window"):  # nach der Klimakurve (die baut die Kurve neu): „Schnee 17–23 Uhr · 5–7 cm“ statt mm
+            a, b = params["graph"]["snow_window"]
+            rt = schnee.range_text(schnee.snowfall(schnee.home_hours(snow_data), a, b))
+            if rt:
+                params["graph"]["rain_summary"] = params["graph"]["rain_summary"].split(" · ")[0] + " · " + rt
         if laundry_win and records and waesche.in_window(now, *laundry_win):
             params["laundry"] = waesche.check(records, now, covered=flag("laundryCovered"))
         if news_now:
@@ -730,6 +777,9 @@ class Tagesdashboard(BasePlugin):
                               iss_pos=self.home_position(settings) if flag("issEnabled") else None,
                               river=river_info, polar=polar_values, pi=flag("piEnabled"), free_win=self.free_window(opt, flag),
                               dims=dimensions, load=flag("loadEnabled"),
+                              snow_caps=bool(snow_data) and mode == "night" and schnee.caps(
+                                  snow_data, now, ansichten.window_end(now, *night_win) if night_win else now + timedelta(hours=7)),
+                              snow_week=(snow_data,) if mode == "week" and flag("snowWeek") else None,
                               run_file=laufbilanz.clean_path(opt("runFile")) if flag("runLogEnabled") else None)
 
         # Meilenstein der Nacht (Frost, Tropennacht) vorn in der Himmelszeile (seit 1.41)
@@ -769,6 +819,7 @@ class Tagesdashboard(BasePlugin):
             # Glätte-Karte endet, Lauf-Fenster beginnt („jetzt bis …“) bzw. ist zu kurz geworden (seit 1.37)
             edges += [params["ice"]["until"]] if params.get("ice") else []
             edges += [params["run"]["start"] - laufen.STEP, params["run"]["last_start"]] if params.get("run") else []
+            edges += schnee.boundaries(params.get("snow"), now)  # Schnee beginnt („ab“ → „bis etwa“) bzw. endet (seit 1.42)
             edges += festtage.boundaries(now, fest_cfg)  # Gruß und Festbild (u. a. Mitternacht an Silvester)
             edges += status.boundaries(now)  # „● Kalender“ wird zu „● Kalender seit 9:10 nicht erreichbar“
             edges += ostereier.boundaries(now)  # Osterei des Tages (Mitternacht, 11.11. um 11:11)
@@ -876,7 +927,8 @@ class Tagesdashboard(BasePlugin):
 
     def special_view(self, params, mode, now, tz, events, weather, train_cfg, cal_error, art=False, night_end=None,
                      moon_cat=False, meteors=False, eclipses=False, planets=False, iss_pos=None, river=None,
-                     polar=None, pi=False, free_win=None, dims=(800, 480), load=False, run_file=None):
+                     polar=None, pi=False, free_win=None, dims=(800, 480), load=False, run_file=None,
+                     snow_caps=False, snow_week=None):
         helper = nc.NextcloudKalender({"id": "nextcloud_kalender"})
         records = weather["records"] if weather else []
         w = weather["dwd_plugin"] if weather else None
@@ -944,17 +996,29 @@ class Tagesdashboard(BasePlugin):
                                            cat=katze.on_moon if moon_cat else None, meteors=streaks,
                                            blood_moon=blood, planet=planet_dot, extra=iss_svg,
                                            felis=ostereier.felis_svg if felis else None, pegel=river,
-                                           aurora=aurora if aurora and aurora["draw"] else None),
+                                           aurora=aurora if aurora and aurora["draw"] else None,
+                                           snowcaps=snow_caps),
                     "weather": nachtgrafik.describe(wx),
                     # links unter „Sonnenaufgang“: „8 h 36 min Tageslicht (−3 min)“ (ohne Sonnenwende-Countdown)
                     "daylight": daylight.split(" · ")[0] if daylight else "",
                     "sky": sky,
                 }
+                if snow_caps:
+                    logger.info("Schnee: Schneekappen im Nachtbild")
         else:
             portrait = params["orientation"] == "portrait"
             params["week"] = ansichten.week(now, records if w else [], items_on, w, dwd, icons, train_cfg,
                                             per_row=4 if portrait else 3, has_calendar=not cal_error,
-                                            evening=free_win)
+                                            evening=free_win, snow_days=schnee.snow_days if snow_week else None)
+            if snow_week:  # Wo liegt Schnee? (seit 1.42, Variante C) und 15.–24.12. weiße Weihnachten
+                try:
+                    params["snow_line"] = schnee.umland(snow_week[0], now)
+                    params["xmas_line"] = schnee.christmas(snow_week[0], now.date(), now)
+                    for key in ("snow_line", "xmas_line"):
+                        if params[key]:
+                            logger.info("Schnee (Woche): %s", params[key]["text"] if key == "snow_line" else params[key])
+                except Exception:  # Zusatz: nie das ganze Bild verlieren
+                    logger.exception("Schnee für die Wochenvorschau konnte nicht bestimmt werden")
             if load and not cal_error:  # Wie voll ist die Woche? (seit 1.38, Fußzeile)
                 try:
                     nxt = params["week"]["start"]
@@ -1357,9 +1421,14 @@ class Tagesdashboard(BasePlugin):
             line += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
 
         # Regen bekommt eine eigene Zeile unter der Kurve: Höhe = Menge, Füllung = Stärke.
-        rain = []
+        # Schnee (seit 1.42) statt Balken als Flocken über der Grundlinie: eine Flocke, ab 1 mm/Std. zwei.
+        # Die Zeile ist ein gestrecktes SVG (preserveAspectRatio="none"), Flocken stehen deshalb als HTML darüber.
+        rain, flakes = [], []
         for i, r in enumerate(pts):
             amount = r.get("precipitation") or 0
+            if amount >= 0.05 and schnee.is_snow(r, 0.05):
+                flakes.append({"left": left(i), "n": 2 if amount >= 1.0 else 1})
+                continue
             if amount >= 0.05:
                 level = next(name for limit, name in RAIN_LEVELS if amount < limit)
                 h = 100 * max(min(amount / RAIN_SCALE, 1.0), 0.28)  # auch Niesel bleibt sichtbar
@@ -1395,7 +1464,8 @@ class Tagesdashboard(BasePlugin):
         return {"line": line, "norm_line": norm_line, "icons": gicons, "xlabels": xlabels,
                 "tlabels": tlabels, "now_left": now_left, "rain": rain,
                 "rain_levels": [lv for _, lv in RAIN_LEVELS if lv in used_levels],
-                "rain_summary": self.rain_summary(pts, now, d)}
+                "rain_summary": self.rain_summary(pts, now, d), "flakes": flakes,
+                "snow_window": self.snow_window(pts, now, d)}
 
     @staticmethod
     def precip_word(records, now):
@@ -1425,6 +1495,18 @@ class Tagesdashboard(BasePlugin):
                 f = (1 + math.cos(math.pi * ((h - h_max) % 24) / (24 - h_max + h_min))) / 2
             out.append(tn + (tx - tn) * f)
         return out
+
+    @staticmethod
+    def snow_window(pts, now, d):
+        """Zeitraum (a, b] des Schnees in der Kopfzeile der Tageskurve, wenn sie „Schnee …“ sagt (seit 1.42),
+        sonst None – dieselbe Auswahl wie rain_summary, damit Zentimeter und Uhrzeiten zusammenpassen."""
+        relevant = [r for r in pts if d != now.date() or r["dt"] >= now - timedelta(minutes=59)]
+        wet = [r for r in relevant if (r.get("precipitation") or 0) >= 0.1
+               or (r.get("precipitation_probability") or 0) >= 50]
+        snowy = sum(1 for r in wet if r.get("icon") in ("snow", "sleet") or r.get("condition") in ("snow", "sleet"))
+        if not wet or snowy <= len(wet) / 2:
+            return None
+        return wet[0]["dt"] - timedelta(hours=1), wet[-1]["dt"]
 
     @staticmethod
     def rain_summary(pts, now, d):

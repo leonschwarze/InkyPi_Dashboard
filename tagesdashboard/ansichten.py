@@ -223,21 +223,27 @@ def free_text(free):
     return "Freie Abende: " + day_list(free)
 
 
-def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3, has_calendar=True, evening=EVENING):
+def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3, has_calendar=True, evening=EVENING,
+         snow_days=None):
     """Wochenvorschau: die nächsten Tage Mo–So (sonntags: ab morgen).
 
     evening: Fenster für die freien Abende oder None (Schalter aus); ohne Kalender keine Aussage.
+    snow_days: Funktion (records, Tage) → {Datum: "snow"|"mixed"} (schnee.snow_days, seit 1.42) oder None.
+    Dann steht vorn im Kopf „Schnee Do, Fr“; Tage mit überwiegend Schnee zählen nicht mehr als Regen.
     """
     show_free = has_calendar and evening is not None
     start = now.date() + timedelta(days=(7 - now.weekday()) % 7 or 7)  # nächster Montag
-    rows, rainy, free = [], [], []
+    rows, rainy, free, snowy = [], [], [], []
+    snow = snow_days(records, [start + timedelta(days=i) for i in range(7)]) if snow_days and records else {}
     for i in range(7):
         d = start + timedelta(days=i)
         items = day_items(d)
         if show_free and free_evening(items, d, now.tzinfo, evening):
             free.append(KURZ[d.weekday()])
         wx = day_summary(w, dwd, icons, records, d) if records else None
-        if wx and wx["rainy"]:
+        if d in snow:
+            snowy.append(KURZ[d.weekday()])
+        if wx and wx["rainy"] and snow.get(d) != "snow":
             rainy.append(KURZ[d.weekday()])
         rows.append({
             "name": KURZ[d.weekday()],
@@ -255,9 +261,11 @@ def week(now, records, day_items, w, dwd, icons, train_cfg, per_row=3, has_calen
     span_short = (f"{start.day}.–{end.day}.{end.month}." if start.month == end.month
                   else f"{start.day}.{start.month}.–{end.day}.{end.month}.")
     summary = []
+    if snowy:
+        summary.append("Schnee " + ", ".join(snowy))
     if rainy:
         summary.append("Regen " + ", ".join(rainy))
-    elif records:
+    elif records and not snowy:
         summary.append("kaum Regen")
     if show_free:
         summary.append(free_text(free))

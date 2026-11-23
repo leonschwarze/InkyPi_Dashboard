@@ -243,7 +243,7 @@ def _pegel(W, pegel, reflections, bx0, bx1):
 
 
 def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, planet=None, extra=None, felis=None,
-        pegel=None, aurora=None):
+        pegel=None, aurora=None, snowcaps=False):
     """SVG-Band für die Nacht. width: 800 quer, 480 hochkant.
     cat: Funktion (Mondmitte x, Oberkante des Mondes) → SVG; dann schläft eine Katze auf dem Mond (seit 1.15).
     meteors: Anzahl SVG-Sternschnuppen (seit 1.17, meteore.show_streaks); nur bei starken Strömen im
@@ -256,7 +256,9 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
     pegel: Ergebnis von pegel.load ({"cm", "label", "trend"}) oder None (seit 1.28); dann steht das Wasser so
     hoch wie am Pegel Bonn, mit Pegellatte. None → Rhein wie bisher (pixelgleich).
     aurora: Ergebnis von polarlicht.night_info mit draw=True oder None (seit 1.37); dann steht ein grüner
-    Vorhang hinter Sternen, Mond und Stadt. None → Nachtbild wie bisher (pixelgleich)."""
+    Vorhang hinter Sternen, Mond und Stadt. None → Nachtbild wie bisher (pixelgleich).
+    snowcaps: Liegt in Bonn Schnee (seit 1.42, schnee.caps), bekommen flache Dächer
+    und der Kamm des Siebengebirges weiße Kappen. False → Nachtbild wie bisher (pixelgleich)."""
     W = width
     # Stadt im Hochformat etwas kleiner. Seit 1.31 kommen auch Breiten zwischen 480 und 800 vor (band_width,
     # z. B. 516 bei 448×600); dort wüchse die Stadt schneller als die Szene und die Kennedybrücke verschwände.
@@ -366,11 +368,18 @@ def svg(now, wx, width=800, seed=None, cat=None, meteors=0, blood_moon=False, pl
             out.append(f'<rect x="{rnd.uniform(x0, x1 - 3):.0f}" y="{rnd.uniform(y0, y1 - 3):.0f}" width="3" height="3" fill="{STAR}"/>')
     for y in (34, 62, 88):  # Fugen der Sky-Lobbys im Post Tower
         out.append(f'<rect x="266" y="{y}" width="30" height="1.6" fill="{SKY}"/>')
+    if snowcaps:  # Schnee auf den flachen Dächern (seit 1.42); Spitzen und Türme bleiben schwarz
+        try:
+            from . import schnee
+        except ImportError:  # Tests importieren die Module ohne Paket
+            import schnee
+        out += [f'<path d="{c}" fill="{WHITE}"/>' for p in CITY for c in schnee.roof_caps(p)]
     out.append("</g>")
     out.append(f'<g transform="translate({hills_x:.1f},{WATER}) scale({s:.3f}) translate(0,-{WATER})">'
                f'<path d="{HILLS}" fill="{INK}"/>'
                f'<rect x="{HOTEL[0]}" y="{HOTEL[1]}" width="{HOTEL[2]}" height="{HOTEL[3]}" fill="{INK}"/>'
                f'<rect x="72" y="64" width="3" height="2" fill="{STAR}"/><rect x="80" y="64" width="3" height="2" fill="{STAR}"/>'
+               + (schnee.hill_cap(HILLS, "snowhills") if snowcaps else "") +  # Hotel bleibt schwarz (Fenster)
                f'</g>')
 
     # Rhein mit Kennedybrücke und Spiegelungen

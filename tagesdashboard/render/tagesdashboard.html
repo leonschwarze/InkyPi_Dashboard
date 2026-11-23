@@ -189,6 +189,9 @@
     {% endfor %}
   </div>
   {# Wie voll ist die Woche und Laufen der Woche (seit 1.38, Variante C + Laufen A): Fußzeilen über der Pi-Zeile #}
+  {# Wo liegt Schnee? und weiße Weihnachten (seit 1.42, Variante C): über den übrigen Fußzeilen #}
+  {% if snow_line %}<div class="wk-line wk-snow"><b>Schnee:</b> {{ snow_line.text }}</div>{% endif %}
+  {% if xmas_line %}<div class="wk-line wk-xmas">{{ xmas_line }}</div>{% endif %}
   {% if load %}<div class="wk-line wk-load-{{ load.level }}"><b>Woche:</b> {{ load.total_text }}{% if load.word %} · <span class="wl-word">{{ load.word }}</span>{% endif %}{% if load.avg_text %} ({{ load.avg_text }}){% endif %}{% if load.peak_text %} · {{ load.peak_text }}{% endif %}</div>{% endif %}
   {% if runs %}<div class="wk-line"><b>Laufen:</b> {{ runs.km_text }} · {{ runs.count_text }}{% if runs.avg_text %} · {{ runs.avg_text }} in den vier Wochen davor{% endif %}</div>{% endif %}
   {# Zustand des Pi: ganzer Text wie bis 1.38; die Teile stehen in data-parts, damit fitPi bei Platzmangel
@@ -342,9 +345,10 @@
     <div class="graph">
       <div class="g-head">
         <span class="g-rain">{{ graph.rain_summary }}</span>
-        {% if graph.rain_levels %}
+        {% if graph.rain_levels or graph.flakes %}
         <span class="g-legend">
           {% for lv in graph.rain_levels %}<i class="sw {{ lv }}"></i>{{ {"leicht": "leicht", "maessig": "mäßig", "stark": "stark"}[lv] }}{% endfor %}
+          {% if graph.flakes %}<span class="sw-flake">{{ flake_svg | safe }}</span>Schnee{% endif %}
         </span>
         {% elif graph.norm_line %}{# übliche Temperatur (seit 1.41): Legende nur, wenn keine Regenlegende dort steht #}
         <span class="g-legend g-norm"><svg viewBox="0 0 30 10" aria-hidden="true"><path d="M1 5 H10 M17 5 H26"/></svg>üblich</span>
@@ -366,6 +370,8 @@
             {% for c in graph.rain %}<rect class="rain {{ c.cls }}" x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" vector-effect="non-scaling-stroke"/>{% endfor %}
             <line class="axis" x1="0" y1="100" x2="1000" y2="100" vector-effect="non-scaling-stroke"/>
           </svg>
+          {# Schnee (seit 1.42): Flocken statt Balken, als HTML über der gestreckten Zeile #}
+          {% for f in graph.flakes %}<div class="g-flake n{{ f.n }}" style="left: {{ f.left }}%;">{% for _ in range(f.n) %}{{ flake_svg | safe }}{% endfor %}</div>{% endfor %}
         </div>
         {% if graph.now_left %}<div class="now-line" style="left: {{ graph.now_left }}%;"></div>{% endif %}
       </div>
@@ -497,6 +503,24 @@
         <div class="tr-sub">{{ clim_card.sub }}</div>
       </div>
       <div class="tr-badge">{{ clim_card.badge }}</div>
+    </div>
+    {% endif %}
+    {% if snow %}{# Schnee-Radar (seit 1.42, Variante A): Schnee in den nächsten 48 Stunden; darunter ein Balken je Stunde #}
+    <div class="laundry snow-card">
+      <div class="sn-row">
+        <div class="lw-icon">{{ snow_icon | safe }}</div>
+        <div class="tr-main">
+          <div class="tr-top">{{ snow.top }}</div>
+          {% if snow.sub %}<div class="tr-sub">{{ snow.sub }}</div>{% endif %}
+        </div>
+        {% if snow.badge %}<div class="tr-badge">{{ snow.badge }}</div>{% endif %}
+      </div>
+      {% if snow.strip %}
+      <div class="sn-stripbox">
+        {{ snow.strip.svg | safe }}
+        <div class="sn-ticks">{% for t in snow.strip.ticks %}<span class="sn-tick" style="left: {{ '%.1f' | format(t.x) }}%;">{{ t.text }} Uhr</span>{% endfor %}</div>
+      </div>
+      {% endif %}
     </div>
     {% endif %}
     {% if ice %}

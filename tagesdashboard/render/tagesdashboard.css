@@ -828,3 +828,28 @@ body:has(> .container > .ur) > .container { width: 100vw; height: 100vh; }
 .wx-mile.ml-out { width: auto; margin-top: calc(var(--u) * -0.2); }
 .ml-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ml-flag { width: 1.3em; height: 1.3em; flex: 0 0 auto; }
+
+/* ---- Schnee-Radar (seit 1.42) ----
+ * Karte wie Glätte/Laufen, blau (wie Schnee in der Tageskurve), darunter ein Balken je Stunde (wie das Radar).
+ * In der Tageskurve stehen Flocken statt Balken: eine, ab 1 mm/Std. zwei übereinander. */
+.snow-card { flex-direction: column; align-items: stretch; gap: calc(var(--u) * 0.4); border-color: #0082C9; }
+.sn-row { display: flex; align-items: center; gap: calc(var(--u) * 1); min-width: 0; }
+.snow-card .tr-badge { background: #0082C9; color: #fff; }
+.sn-stripbox { position: relative; padding-bottom: calc(var(--u) * 2); }
+.sn-strip { display: block; width: 100%; height: calc(var(--u) * 2.6); }
+.sn-bar { fill: #0082C9; }
+.sn-ticks { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--u) * 1.9); }
+.sn-tick { position: absolute; transform: translateX(-50%); font-size: calc(var(--u) * 1.7); white-space: nowrap; }
+.sn-tick::before { content: ""; position: absolute; left: 50%; top: calc(var(--u) * -0.5); height: calc(var(--u) * 0.5);
+  border-left: calc(var(--u) * 0.3) solid #000; }
+.g-flake { position: absolute; bottom: calc(var(--u) * 0.25); transform: translateX(-50%); display: flex;
+  flex-direction: column; align-items: center; line-height: 0; }
+.g-rainrow .g-flake svg { position: static; inset: auto; width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); overflow: visible; }
+.graph.g-tighter .g-rainrow .g-flake.n2 svg { width: calc(var(--u) * 1.2); height: calc(var(--u) * 1.2); }
+.sw-flake { display: inline-flex; margin-left: 0.5em; line-height: 0; }
+.sw-flake svg { width: 1.05em; height: 1.05em; }
+.mono .g-flake path, .mono .sw-flake path { stroke: currentColor; }
+.mono .snow-card { border-color: currentColor; }
+.mono .snow-card .tr-badge { background: currentColor; }
+.mono .snow-card .tr-badge { color: var(--bg, #fff); }
+.mono .sn-bar { fill: currentColor; }

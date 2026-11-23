@@ -5,7 +5,7 @@
      Checkboxen als "aus". Neue Checkboxen: cfgVersion erhöhen, data-since setzen, SINCE_VERSION im Python-Code.
      Seit 1.10 neu gegliederte Seite. Version 10 (1.11): neue Checkboxen radarEnabled und newsFrEnabled.
      Version 11 (1.12): Luftqualität (airEnabled, airGases). Version 15 (1.16): Pollenflug (pollenEnabled). -->
-<input type="hidden" name="cfgVersion" value="27" />
+<input type="hidden" name="cfgVersion" value="28" />
 
 <div class="st">
 
@@ -149,6 +149,11 @@
     <label class="st-check"><input type="checkbox" class="db-check" name="climCurve" value="true" data-default="true" data-since="27"><span>Übliche Temperatur in der Tageskurve <span class="st-note">blau gestrichelt, wie warm es an diesem Datum meist ist; ohne Regen steht darüber „Tagsüber 4° wärmer als üblich“</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="climCard" value="true" data-default="true" data-since="27"><span>Karte bei ungewöhnlicher Wärme oder Kälte <span class="st-note">nur, wenn der Höchstwert so hoch oder niedrig ist wie an höchstens einem von 20 Tagen um dieses Datum und mindestens 3° vom Üblichen abweicht</span></span></label>
     <label class="st-check"><input type="checkbox" class="db-check" name="mileEnabled" value="true" data-default="true" data-since="27"><span>Wetter-Meilensteine <span class="st-note">eine Zeile unter der Temperatur, z. B. „Erster Frost seit 12. März“, „Erstmals Sonne seit 9 Tagen“ oder „Längste Regenserie 2026: 8 Tage“; Frost und Tropennacht auch im Nachtbild</span></span></label>
+    <label class="st-check"><input type="checkbox" class="db-check" name="snowCard" value="true" data-default="true" data-since="28"><span>Schnee-Karte <span class="st-note">kommt in den nächsten 48 Stunden Schnee, eine Karte über den Terminen: wann, wie viel (als Spanne), ob er liegen bleibt, dazu ein Balken je Stunde. In der Tageskurve stehen bei Schnee immer Flocken statt Balken</span></span></label>
+    <details class="st-why">
+        <summary>Woher die Schneewerte kommen</summary>
+        <div class="st-hint">Ob und wann es schneit, kommt wie das übrige Wetter vom DWD (über Bright Sky). Menge, Schneefallgrenze und Schneehöhe kommen aus dem ICON-Modell des DWD über Open-Meteo (frei, ohne Schlüssel). Die Zentimeter sind aus dem Schmelzwasser umgerechnet; weil nasser Schnee um 0 °C dichter liegt, zeigt die Karte eine Spanne, z. B. „2–3 cm“. „Bleibt liegen“ ist ein Modellwert, keine Messung.</div>
+    </details>
     <details class="st-why">
         <summary>Woher die Klimawerte kommen</summary>
         <div class="st-hint">Vom Deutschen Wetterdienst: Tageswerte der nächsten Klimastation mit Messungen seit spätestens 1991 (in Bonn Bonn-Roleber oder Köln/Bonn). „Üblich“ ist das Mittel 1991–2020 für dieses Datum (±7 Tage). Beim ersten Mal lädt das Dashboard etwa 1,5 MB und merkt sich das Ergebnis neben den InkyPi-Einstellungen; danach nur noch einmal am Tag die Werte der letzten Monate.</div>
@@ -312,6 +317,7 @@
                 <div class="st-hint">Eine Zeile je Lauf: <code>2026-11-22;5,2;31</code> (Datum, Kilometer, Minuten – die Minuten dürfen fehlen). Am einfachsten mit einem iPhone-Kurzbefehl, der nach dem Lauf die Kilometer abfragt und die Zeile an die Datei anhängt (Anleitung in der README). Gelesen wird mit demselben Zugang wie der Kalender. Fehlt die Datei, fehlt nur die Zeile.</div>
             </details>
         </div>
+        <label class="st-check"><input type="checkbox" class="db-check" name="snowWeek" value="true" data-default="true" data-since="28"><span>Schnee in der Woche <span class="st-note">im Kopf „Schnee Do, Fr“; dazu eine Zeile, wo Schnee liegt (Winterberg, Hohe Acht, Ölberg, Bonn; in Klammern der erwartete Neuschnee) und vom 15. bis 24.12., ob weiße Weihnachten in Bonn möglich sind</span></span></label>
         <label class="st-check"><input type="checkbox" class="db-check" name="piEnabled" value="true" data-default="true" data-since="21"><span>Zustand des Pi <span class="st-note">eine Zeile unten: Ausfälle der Woche, Neustarts, Unterspannung, wie lange online, höchste Temperatur, freier Speicher</span></span></label>
     </div>
 </section>
@@ -336,6 +342,7 @@
             <label class="st-check"><input type="checkbox" class="db-check" name="planetEnabled" value="true" data-default="true" data-since="18"><span>Helle Planeten <span class="st-note">als Text, wenn Venus, Jupiter, Mars oder Saturn ihren Höhepunkt erreichen (Opposition bzw. größte Helligkeit); zusätzlich als heller Punkt am Himmel, nur am Höhepunkt bei klarem Himmel</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="pegelEnabled" value="true" data-default="true" data-since="21"><span>Rhein auf echtem Pegel <span class="st-note">das Wasser steht so hoch wie am Pegel Bonn, mit Pegellatte und Wert (PEGELONLINE); ohne Daten bleibt der Rhein wie bisher</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="polarEnabled" value="true" data-default="true" data-since="24"><span>Polarlicht <span class="st-note">bei einem starken Sturm (Kp ab 7, Vorhersage der NOAA) ein grüner Vorhang hinter der Stadt, ab Kp 8 mit roten Spitzen; bei Wolken nur als Text</span></span></label>
+            <label class="st-check"><input type="checkbox" class="db-check" name="snowNight" value="true" data-default="true" data-since="28"><span>Schnee auf den Dächern <span class="st-note">liegt in Bonn Schnee (Modellwert, mindestens 1 cm), bekommen Dächer und Siebengebirge weiße Kappen</span></span></label>
             <label class="st-check"><input type="checkbox" class="db-check" name="issEnabled" value="true" data-default="true" data-since="19"><span>ISS-Überflüge <span class="st-note">als Textzeile, wenn die Raumstation hell und hoch über Bonn fliegt (Dämmerung, mindestens 25° hoch); bei klarem Himmel zusätzlich ihre Bahn als gestrichelte Linie. Bahndaten von Celestrak, höchstens alle 2 Stunden</span></span></label>
         </div>
         <label class="st-check"><input type="checkbox" class="db-check" name="nightFreeze" value="true" data-default="true" data-since="5"><span>Nur einmal zeichnen (kein Flackern bis zum Morgen)</span></label>
