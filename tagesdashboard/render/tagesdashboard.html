@@ -13,6 +13,18 @@
     {% if warn.more %}<div class="nb-more">+{{ warn.more }}<small>weitere</small></div>{% endif %}
   </div>
 {% endmacro %}
+{# Rand (seit 1.48, Variante A): statt InkyPis 1,5vw + 5 px (≈ 17 px) nur 1 × --u (quer 8 px). Hat Leon in
+   InkyPis Stileinstellungen einen Rand eingetragen, gilt dieser Pixelwert (leer = unser Standard).
+   --ru ist --u, aber am body (die Ansichten definieren --u erst in ihrer Wurzel). #}
+{% macro edge(side) %}{% set v = plugin_settings[side ~ 'Margin'] or plugin_settings.margin %}{% if v %}{{ v | int }}px{% else %}var(--ru){% endif %}{% endmacro %}
+<style>
+  body { --ru: min(1vw, 1.667vh); }
+  body:has(> .container > .portrait) { --ru: min(1.45vw, 0.98vh); }
+  body:has(> .container > :is(.db, .wk, .mo, .nt:not(.has-art))) {
+    padding: {{ edge('top') }} {{ edge('right') }} {{ edge('bottom') }} {{ edge('left') }} !important;
+    margin: 0 !important;
+  }
+</style>
 {% if urlaub %}
 <!-- ===================== Urlaubsbild (Abfahrtstafel) ===================== -->
 <div lang="de" class="ur {{ orientation }}">{{ urlaub.svg | safe }}</div>
@@ -78,7 +90,7 @@
 {% elif night %}
 <!-- ===================== Nachtbild ===================== -->
 <div lang="de" class="nt {{ orientation }}{% if night.art %} has-art{% endif %}{% if warn %} has-warn{% endif %}"{% if night.art %}
-     style="--et: calc(1.5vw + {{ plugin_settings.topMargin or plugin_settings.margin or 5 }}px); --el: calc(1.5vw + {{ plugin_settings.leftMargin or plugin_settings.margin or 5 }}px); --er: calc(1.5vw + {{ plugin_settings.rightMargin or plugin_settings.margin or 5 }}px);"{% endif %}>
+     style="--et: {{ edge('top') }}; --el: {{ edge('left') }}; --er: {{ edge('right') }};"{% endif %}>
   {% if warn %}<div class="nt-warn">{{ warnband(warn) }}</div>{% endif %}
   <section class="nt-day">
     <div class="nt-wd">{{ night.weekday }}</div>
