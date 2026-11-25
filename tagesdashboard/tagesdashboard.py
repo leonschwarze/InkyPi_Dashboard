@@ -50,13 +50,13 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd, klima, schnee, freigabe, feierabend)
+                   xkcd, klima, schnee, freigabe, feierabend, hilfsbild)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd, klima, schnee, freigabe, feierabend)
+                                        laufbilanz, monat, xkcd, klima, schnee, freigabe, feierabend, hilfsbild)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -425,6 +425,19 @@ class Tagesdashboard(BasePlugin):
         if mode != "normal":
             news_now = train_now = False  # Sonderansichten zeigen weder Nachrichten noch Live-Zug
 
+        # ---- Tasten (seit 1.49): Hilfsbild (Taste D) und „Jetzt neu zeichnen“ (Taste A) laut Zustandsdatei ----
+        tasten_frisch = False
+        try:
+            hilfe_an, tasten_frisch = hilfsbild.check(hilfsbild.state_path(device_config), now, mode == "night")
+        except Exception:  # Zusatz: nie das ganze Bild verlieren
+            hilfe_an = False
+            logger.exception("Zustand der Tasten konnte nicht gelesen werden")
+        if hilfe_an:
+            return self.hilfe_image(settings, device_config, now, dimensions, night_win, flag)
+        if tasten_frisch:
+            logger.info("Tasten: neu gezeichnet, Bild-Caches übersprungen")
+        forced = tasten_frisch or self._manual_refresh()  # „Jetzt aktualisieren“ oder Taste A: nie den Cache nutzen
+
         # Bild-Cache außerhalb des Zugfensters – auch ohne Zug bzw. ohne gewählten Wochentag: Steht
         # die Playlist noch auf dem schnellen Zug-Takt (5 min), gilt sonst „Sonst alle … min“ nie
         # (Fehler bis 1.31). Verlängern kann der Cache einen langsameren Takt nicht (cache_fresh).
@@ -440,7 +453,7 @@ class Tagesdashboard(BasePlugin):
                 warn_sig = nina.signature(warnings)
             except Exception:  # Zusatz: nie das ganze Bild verlieren
                 logger.exception("Warnungen konnten nicht geladen werden")
-        if mode == "night" and flag("nightFreeze") and not self._manual_refresh():
+        if mode == "night" and flag("nightFreeze") and not forced:
             hit = _NIGHT_CACHE.get(cache_key)
             if hit and hit.get("warn") != warn_sig:
                 logger.info("Warnungen haben sich geändert – Nachtbild wird neu gezeichnet")
@@ -453,7 +466,7 @@ class Tagesdashboard(BasePlugin):
                 image = self.redraw_night(hit, now, dimensions, device_config, flag)
                 if image is not None:
                     return image
-        if use_cache and not self._manual_refresh():
+        if use_cache and not forced:
             hit = _IMAGE_CACHE.get(cache_key)
             takt = cycle_seconds(device_config)
             if hit and hit.get("warn") != warn_sig:
@@ -883,6 +896,28 @@ class Tagesdashboard(BasePlugin):
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "quiet": quiet_until, "edge": edge,
                                        "made": now.strftime("%H:%M"), "warn": warn_sig}
+        return image
+
+    def hilfe_image(self, settings, device_config, now, dimensions, night_win, flag):
+        """Hilfsbild (seit 1.49, Taste D): Belegung der Tasten, Version, Zustand des Pi. Ohne Datenabrufe, geht
+        deshalb schnell; weder im Bild-Cache noch in der Statusanzeige (die Ansicht ist keine Datenrunde)."""
+        try:
+            pi_parts = pizustand.parts(now, pizustand.state_path(device_config))
+        except Exception:  # Zusatz: das Hilfsbild braucht den Pi-Zustand nicht
+            pi_parts = []
+            logger.exception("Zustand des Pi konnte für das Hilfsbild nicht gelesen werden")
+        params = {
+            "hilfe": hilfsbild.build(self.config.get("version"), now, pi_parts, hilfsbild.night_text(night_win)),
+            "orientation": "portrait" if dimensions[1] > dimensions[0] else "landscape",
+            "plugin_settings": settings,
+        }
+        logger.info("Tasten: Hilfsbild")
+        zeichensatz.utf8_templates(self)
+        image = self.render_image(dimensions, "tagesdashboard.html", "tagesdashboard.css", params)
+        if not image:
+            raise RuntimeError("Bild konnte nicht erzeugt werden – siehe Logs.")
+        if eink is not None:
+            image = eink.prepare(image, device_config, enabled=flag("einkSnap"))
         return image
 
     def redraw_night(self, hit, now, dimensions, device_config, flag):

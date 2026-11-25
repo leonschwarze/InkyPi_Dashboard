@@ -20,12 +20,38 @@
 <style>
   body { --ru: min(1vw, 1.667vh); }
   body:has(> .container > .portrait) { --ru: min(1.45vw, 0.98vh); }
-  body:has(> .container > :is(.db, .wk, .mo, .nt:not(.has-art))) {
+  body:has(> .container > :is(.db, .wk, .mo, .hf, .nt:not(.has-art))) {
     padding: {{ edge('top') }} {{ edge('right') }} {{ edge('bottom') }} {{ edge('left') }} !important;
     margin: 0 !important;
   }
 </style>
-{% if urlaub %}
+{% if hilfe %}
+<!-- ===================== Hilfsbild der Tasten (seit 1.49, Taste D) ===================== -->
+<div lang="de" class="hf {{ orientation }}">
+  <header class="hf-head">
+    <span class="hf-title">Tasten</span>
+    <span class="hf-ver">{% if hilfe.version %}Version {{ hilfe.version }} · {% endif %}Stand {{ hilfe.stand }}</span>
+  </header>
+  <div class="hf-body">
+    <ul class="hf-keys">
+      {% for k in hilfe.tasten %}
+      <li class="hf-key{% if not k.title %} free{% endif %}">
+        <span class="hf-cap">{{ k.letter }}</span>
+        <span class="hf-txt">{% if k.title %}<b>{{ k.title }}</b><small>{{ k.sub }}</small>{% else %}<b>nicht belegt</b>{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <section class="hf-pi">
+      <h2>Zustand des Pi</h2>
+      {% for line in hilfe.pi %}<p>{{ line }}</p>{% endfor %}
+    </section>
+  </div>
+  <footer class="hf-foot">
+    <span><i class="hf-led"></i>Die LED leuchtet, solange das Display arbeitet.</span>
+    {% if hilfe.night_text %}<span>{{ hilfe.night_text }}</span>{% endif %}
+  </footer>
+</div>
+{% elif urlaub %}
 <!-- ===================== Urlaubsbild (Abfahrtstafel) ===================== -->
 <div lang="de" class="ur {{ orientation }}">{{ urlaub.svg | safe }}</div>
 {% elif fest %}
