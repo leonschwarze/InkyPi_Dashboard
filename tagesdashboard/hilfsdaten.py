@@ -1,5 +1,5 @@
 """Daten für das Hilfsbild (seit 1.50, Taste D): Zugang zur Weboberfläche, Zeichnen, Updates, Datenquellen,
-Netz, Dienste, Ereignisse, letzter Fehler.
+Netz, Dienste, Ereignisse, letzter Fehler; seit 1.53 auch die apt-Updates des Pi.
 
 Alles hier liest nur und wirft nie: Fehlt etwas (anderer Rechner, keine Rechte, Programm nicht installiert),
 fehlt einfach die Zeile. Das Hilfsbild ist ein Werkzeug für den Fehlerfall und darf selbst nie einer sein.
@@ -14,6 +14,7 @@ import os
 import re
 import socket
 import subprocess
+import time
 from datetime import datetime, timedelta
 
 from . import livestream, status as anzeige
@@ -31,6 +32,11 @@ DIENSTE = [                    # (Einheit, Name im Bild)
     ("inkypi-update.timer", "Update"),
 ]
 WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+APT_TIMEOUT = 20               # s; `apt-get -s` liest den ganzen Paketzwischenspeicher, auf einem Pi 3 dauert das einige Sekunden
+APT_MERKEN_MIN = 60            # so lange gilt ein Ergebnis (Taste D soll nicht jedes Mal darauf warten)
+APT_FEHLER_MIN = 10            # ein Fehlschlag wird früher wiederholt
+LISTEN_ALT_TAGE = 7            # ältere Paketlisten → „Zahl unsicher“
+_apt_gemerkt = {}              # {"bis": time.time()-Wert, "n": …, "sicher": …}; Tests leeren es
 
 
 def _run(cmd, timeout=RUN_TIMEOUT):
@@ -225,6 +231,106 @@ def updates(info):
     return lines
 
 
+# ---------------------------------------------------------------------------------------------- Pi-Updates (apt)
+def apt_auswerten(text):
+    """Ausgabe von `apt-get -s dist-upgrade` (mit LC_ALL=C) → (Updates, davon Sicherheit) oder None.
+    Die Zahl steht in der Schlusszeile („12 upgraded, 2 newly installed, …“); fehlt sie, war die Ausgabe
+    unbrauchbar (None statt „0 Updates“). Sicherheit: Zeilen `Inst <Paket> [alt] (neu Quelle1, Quelle2 [arch])`,
+    in denen irgendeine Quelle „security“ heißt (Debian-Security:12/stable-security). Neu installierte Pakete
+    (ohne `[alt]`, z. B. ein neuer Kernel) zählen nicht als Update."""
+    if not text:
+        return None
+    m = re.search(r"^(\d+) upgraded, \d+ newly installed", text, re.M)
+    if not m:
+        return None
+    sicher = sum(1 for ln in text.splitlines()
+                 if re.match(r"Inst \S+ \[[^\]]+\] \(", ln) and re.search(r"security", ln, re.I))
+    return int(m.group(1)), sicher
+
+
+def _kernel_schluessel(name):
+    """„6.6.51+rpt-rpi-v8“ → ((6, 6, 51), 0, „+rpt-rpi-v8“); „6.1.0-13-arm64“ → ((6, 1, 0), 13, „-arm64“)."""
+    m = re.match(r"(\d+(?:\.\d+)*)(?:-(\d+))?(.*)$", name)
+    if not m:
+        return None
+    return tuple(int(x) for x in m.group(1).split(".")), int(m.group(2) or 0), m.group(3)
+
+
+def neustart_grund(run=None, read=None):
+    """Warum ein Neustart aussteht: „kernel“ (unter /lib/modules liegt ein neuerer Kernel derselben Art als der
+    laufende), „hinweis“ (das System hat /run/reboot-required angelegt) oder None. Kernel vergleichen wir selbst,
+    weil Raspberry Pi OS die Hinweisdatei nicht anlegt."""
+    run, read = run or _run, read or _read
+    mein = _kernel_schluessel((run(["uname", "-r"]) or "").strip())
+    if mein:
+        for name in (run(["ls", "/lib/modules"]) or "").split():
+            k = _kernel_schluessel(name)
+            if k and k[2] == mein[2] and k[:2] > mein[:2]:
+                return "kernel"
+    if read("/run/reboot-required") is not None or read("/var/run/reboot-required") is not None:
+        return "hinweis"
+    return None
+
+
+def listen_alter_tage(now, run=None):
+    """Alter der Paketlisten in Tagen (neuester Zeitstempel von update-success-stamp und den *Release-Dateien in
+    /var/lib/apt/lists) oder None. `apt-get -s` rechnet nur mit dem, was die Listen wissen: Hat niemand
+    `apt update` ausgeführt, ist die Zahl veraltet – das Hilfsbild sagt es dann dazu."""
+    out = (run or _run)(["find", "/var/lib/apt/lists", "/var/lib/apt/periodic", "-maxdepth", "1", "(",
+                         "-name", "*Release", "-o", "-name", "update-success-stamp", ")", "-printf", "%T@\\n"])
+    zeiten = []
+    for ln in (out or "").split():
+        try:
+            zeiten.append(float(ln))
+        except ValueError:
+            pass
+    return max(0.0, (now.timestamp() - max(zeiten)) / 86400) if zeiten else None
+
+
+def apt_lage(now, run=None, read=None):
+    """Alles über die Updates des Pi: {"n": Updates oder None, "sicher": davon Sicherheit, "neustart": Grund oder
+    None, "alter": Alter der Paketlisten in Tagen oder None}. Die apt-Abfrage wird gemerkt (`APT_MERKEN_MIN`)."""
+    run = run or _run
+    jetzt = time.time()
+    if _apt_gemerkt.get("bis", 0) <= jetzt:
+        t0 = time.time()
+        erg = apt_auswerten(run(["env", "LC_ALL=C", "apt-get", "-s", "dist-upgrade"], timeout=APT_TIMEOUT))
+        _apt_gemerkt.update(bis=jetzt + 60 * (APT_MERKEN_MIN if erg else APT_FEHLER_MIN),
+                            n=erg[0] if erg else None, sicher=erg[1] if erg else 0)
+        logger.info("Pi-Updates: %s in %.1f s",
+                    f"{erg[0]} ({erg[1]} Sicherheit)" if erg else "nicht ermittelt", time.time() - t0)
+    return {"n": _apt_gemerkt.get("n"), "sicher": _apt_gemerkt.get("sicher", 0),
+            "neustart": neustart_grund(run, read), "alter": listen_alter_tage(now, run)}
+
+
+def apt_zeilen(lage):
+    """Zeilen für den Abschnitt „Updates“. Rot gepunktet (bad): Sicherheitsupdates, Neustart, veraltete Listen."""
+    lines = []
+    n = lage.get("n")
+    if n is not None:
+        if n == 0:
+            lines.append(_line("Pi: aktuell"))
+        else:
+            sicher = lage.get("sicher") or 0
+            lines.append(_line(f"Pi: {n} {'Update' if n == 1 else 'Updates'}"
+                               + (f" ({sicher} Sicherheit)" if sicher else ""), bad=bool(sicher)))
+        alter = lage.get("alter")
+        if alter is not None and alter > LISTEN_ALT_TAGE:
+            lines.append(_line(f"Paketlisten {int(alter)} Tage alt, Zahl unsicher", bad=True))
+    if lage.get("neustart"):
+        lines.append(_line("Neustart nötig" + (" (neuer Kernel)" if lage["neustart"] == "kernel" else ""), bad=True))
+    return lines
+
+
+def pi_updates(now, run=None, read=None):
+    """Wie alles hier: wirft nie, im Zweifel fehlen die Zeilen."""
+    try:
+        return apt_zeilen(apt_lage(now, run, read))
+    except Exception:
+        logger.exception("Pi-Updates nicht ermittelt")
+        return []
+
+
 # ---------------------------------------------------------------------------------------------- Datenquellen
 def quellen(snapshot, now, nennen=3):
     """Quellen, die gerade ausfallen: „Kalender seit 9:10 · Radar seit 11:20“. Der Speicher von status.py
@@ -375,7 +481,7 @@ def abschnitte(now, pi_lines, draw=None, update_info=None, status_snapshot=None,
     out = [
         {"key": "anzeige", "title": "Anzeige", "lines": zeichnen(draw, now)
          + ereignisse(now, night_win, week_win, month_win, week_day)},
-        {"key": "updates", "title": "Updates", "lines": updates(update_info)},
+        {"key": "updates", "title": "Updates", "lines": pi_updates(now, run, read) + updates(update_info)},
         {"key": "quellen", "title": "Datenquellen", "lines": quellen(status_snapshot or {}, now)},
         {"key": "pi", "title": "Pi", "lines": [_line(t) for t in pi_lines] + ([zeit] if zeit else [])},
         {"key": "netz", "title": "Netz und Dienste", "lines": ([netz] if netz else []) + dienste(run)},
