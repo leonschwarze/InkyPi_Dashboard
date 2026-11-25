@@ -387,6 +387,7 @@ class Tagesdashboard(BasePlugin):
             tz = ZoneInfo("Europe/Berlin")
         now = self.current_time(tz)
         today = now.date()
+        hilfsdaten.apt_anstossen(hilfsdaten.apt_pfad(device_config))  # Pi-Updates: dreimal am Tag, im Hintergrund (seit 1.55)
 
         dimensions = device_config.get_resolution()
         if device_config.get_config("orientation") == "vertical":
@@ -935,8 +936,10 @@ class Tagesdashboard(BasePlugin):
         hilfe = hilfsbild.build(self.config.get("version"), now, pi_parts, hilfsbild.night_text(night_win))
         try:  # Zusatzdaten (seit 1.50): Zugang mit QR-Code, Zeichnen, Updates, Quellen, Netz, Dienste, Fehler
             hilfe["zugang"] = hilfsdaten.zugang_mit_qr(hilfsdaten.zugang())
+            apt_datei = hilfsdaten.apt_pfad(device_config)
+            hilfsdaten.apt_anstossen(apt_datei)  # nur falls noch nie abgefragt/überfällig; das Hilfsbild liest nur die Datei
             hilfe["abschnitte"] = hilfsdaten.abschnitte(
-                now, hilfe["pi"], draw=hilfsbild.last_draw(),
+                now, hilfe["pi"], draw=hilfsbild.last_draw(), apt_datei=apt_datei,
                 update_info=freigabe.status(self.config.get("version")), status_snapshot=status.snapshot(),
                 night_win=night_win, week_win=week_win, month_win=month_win, week_day=WEEK_DAY)
         except Exception:  # das Hilfsbild bleibt auch ohne diese Zeilen brauchbar

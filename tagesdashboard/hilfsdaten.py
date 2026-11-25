@@ -9,11 +9,14 @@ Jede Zeile ist ein Wörterbuch {"text": …, "bad": True|False}: `bad` markiert,
 
 Zugriffe auf das System laufen über `_run` (Programme) und `_read` (Dateien); Tests ersetzen beide.
 """
+import json
 import logging
 import os
 import re
 import socket
 import subprocess
+import tempfile
+import threading
 import time
 from datetime import datetime, timedelta
 
@@ -32,11 +35,18 @@ DIENSTE = [                    # (Einheit, Name im Bild)
     ("inkypi-update.timer", "Update"),
 ]
 WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-APT_TIMEOUT = 20               # s; `apt-get -s` liest den ganzen Paketzwischenspeicher, auf einem Pi 3 dauert das einige Sekunden
-APT_MERKEN_MIN = 60            # so lange gilt ein Ergebnis (Taste D soll nicht jedes Mal darauf warten)
-APT_FEHLER_MIN = 10            # ein Fehlschlag wird früher wiederholt
+APT_TIMEOUT = 180              # s; `apt-get -s` braucht auf dem Pi länger als 20 s (Journal 25.11.: Abbruch nach 20,2 s)
+APT_BEFEHL = ["nice", "-n", "19", "env", "LC_ALL=C", "apt-get", "-s", "dist-upgrade"]  # nice: die Zeichenrunde geht vor
+APT_HINTERGRUND = True         # Abfrage in einem Hintergrund-Thread (Tests schalten es aus)
+APT_INTERVALL_STD = 8          # Stunden zwischen zwei Abfragen → dreimal am Tag (seit 1.55)
+APT_FEHLER_STD = 1             # nach einem Fehlschlag früher wieder versuchen
+APT_ALT_STD = 30               # Zahl älter als das (Abfrage fällt aus) → „Zahl vom 24.11.“ in Rot
+APT_DATEI = "tagesdashboard_apt.json"   # neben InkyPis device.json: überlebt Neustarts
+APT_LESEN_VERSUCHE = 4         # Lesen, während die Datei gerade neu geschrieben wird: kurz warten, dann nochmal
+APT_LESEN_PAUSE = 0.15         # s
 LISTEN_ALT_TAGE = 7            # ältere Paketlisten → „Zahl unsicher“
-_apt_gemerkt = {}              # {"bis": time.time()-Wert, "n": …, "sicher": …}; Tests leeren es
+_apt_zuletzt = {}              # letzter gut gelesener Dateiinhalt: Rückfall, wenn das Lesen scheitert; Tests leeren es
+_apt_sperre = threading.Lock()  # gehalten, solange eine Abfrage läuft (nie zwei gleichzeitig)
 
 
 def _run(cmd, timeout=RUN_TIMEOUT):
@@ -287,19 +297,126 @@ def listen_alter_tage(now, run=None):
     return max(0.0, (now.timestamp() - max(zeiten)) / 86400) if zeiten else None
 
 
-def apt_lage(now, run=None, read=None):
-    """Alles über die Updates des Pi: {"n": Updates oder None, "sicher": davon Sicherheit, "neustart": Grund oder
-    None, "alter": Alter der Paketlisten in Tagen oder None}. Die apt-Abfrage wird gemerkt (`APT_MERKEN_MIN`)."""
-    run = run or _run
-    jetzt = time.time()
-    if _apt_gemerkt.get("bis", 0) <= jetzt:
+def apt_pfad(device_config):
+    """Datei neben InkyPis device.json. Ohne InkyPi-Konfiguration (Entwicklungsrechner) None: dann gibt es weder
+    Abfrage noch Zeilen – der Entwicklungsrechner fragt nie sein eigenes apt."""
+    cfg = getattr(device_config, "config_file", None)
+    return os.path.join(os.path.dirname(cfg), APT_DATEI) if isinstance(cfg, str) and cfg else None
+
+
+def apt_speichern(pfad, daten):
+    """Atomar: erst in eine eigene Nebendatei im selben Ordner, dann umbenennen – ein Leser sieht nie eine halbe Datei."""
+    tmp = f"{pfad}.{os.getpid()}.{threading.get_ident()}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(daten, f, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, pfad)
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
+def apt_lesen(pfad):
+    """Gespeicherter Stand (dict) oder None. Ist die Datei gerade im Umbau oder unlesbar, kurz warten und neu
+    versuchen; hilft das nicht, gilt der letzte gut gelesene Stand. Wirft nie."""
+    if not pfad:
+        return None
+    for versuch in range(APT_LESEN_VERSUCHE):
+        try:
+            with open(pfad, encoding="utf-8") as f:
+                daten = json.load(f)
+            if isinstance(daten, dict) and daten.get("v") == 1:
+                _apt_zuletzt["d"] = daten
+                return daten
+        except FileNotFoundError:
+            return _apt_zuletzt.get("d")           # noch nie geschrieben (oder gelöscht)
+        except (OSError, ValueError):
+            pass                                    # halb geschrieben oder beschädigt
+        if versuch + 1 < APT_LESEN_VERSUCHE:
+            time.sleep(APT_LESEN_PAUSE)
+    logger.warning("Pi-Updates: %s nicht lesbar – letzter bekannter Stand", pfad)
+    return _apt_zuletzt.get("d")
+
+
+def apt_faellig(daten, jetzt):
+    """Ist eine neue Abfrage dran? Nie abgefragt → ja; sonst nach `APT_INTERVALL_STD`, nach einem Fehlschlag
+    nach `APT_FEHLER_STD` Stunden."""
+    if not daten:
+        return True
+    letzter = daten.get("versuch") or daten.get("t") or 0
+    return jetzt - letzter >= (APT_INTERVALL_STD if daten.get("ok") else APT_FEHLER_STD) * 3600
+
+
+def _apt_lauf(pfad, run):
+    """Eine Abfrage ausführen und das Ergebnis speichern; hält dabei `_apt_sperre`."""
+    try:
         t0 = time.time()
-        erg = apt_auswerten(run(["env", "LC_ALL=C", "apt-get", "-s", "dist-upgrade"], timeout=APT_TIMEOUT))
-        _apt_gemerkt.update(bis=jetzt + 60 * (APT_MERKEN_MIN if erg else APT_FEHLER_MIN),
-                            n=erg[0] if erg else None, sicher=erg[1] if erg else 0)
+        erg = apt_auswerten(run(APT_BEFEHL, timeout=APT_TIMEOUT))
+        alt = apt_lesen(pfad) or {}
+        jetzt = time.time()
+        apt_speichern(pfad, {"v": 1, "versuch": jetzt, "ok": bool(erg),
+                             "t": jetzt if erg else alt.get("t"),
+                             "n": erg[0] if erg else alt.get("n"),
+                             "sicher": erg[1] if erg else alt.get("sicher", 0)})
         logger.info("Pi-Updates: %s in %.1f s",
-                    f"{erg[0]} ({erg[1]} Sicherheit)" if erg else "nicht ermittelt", time.time() - t0)
-    return {"n": _apt_gemerkt.get("n"), "sicher": _apt_gemerkt.get("sicher", 0),
+                    f"{erg[0]} ({erg[1]} Sicherheit)" if erg else "nicht ermittelt", jetzt - t0)
+    except Exception:
+        logger.exception("Pi-Updates nicht ermittelt")
+        try:  # den Versuch trotzdem vermerken, sonst fragt jede Runde neu
+            alt = apt_lesen(pfad) or {}
+            apt_speichern(pfad, {"v": 1, "versuch": time.time(), "ok": False,
+                                 "t": alt.get("t"), "n": alt.get("n"), "sicher": alt.get("sicher", 0)})
+        except Exception:
+            logger.exception("Pi-Updates: Fehlversuch nicht gespeichert")
+    finally:
+        _apt_sperre.release()
+
+
+def apt_anstossen(pfad, run=None, jetzt=None):
+    """Startet die Abfrage im Hintergrund, wenn sie dran ist (alle `APT_INTERVALL_STD` Stunden) und keine läuft.
+    Kehrt sofort zurück, wirft nie. True = gestartet."""
+    if not pfad:
+        return False
+    try:
+        if not apt_faellig(apt_lesen(pfad), jetzt if jetzt is not None else time.time()):
+            return False
+        if not _apt_sperre.acquire(blocking=False):
+            return False
+        run = run or _run
+        try:
+            if APT_HINTERGRUND:
+                threading.Thread(target=_apt_lauf, args=(pfad, run), name="pi-updates", daemon=True).start()
+            else:
+                _apt_lauf(pfad, run)
+        except Exception:
+            if _apt_sperre.locked():
+                _apt_sperre.release()
+            raise
+        return True
+    except Exception:
+        logger.exception("Pi-Updates nicht angestoßen")
+        return False
+
+
+def apt_lage(now, run=None, read=None, pfad=None):
+    """Alles über die Updates des Pi: {"n": Updates oder None, "sicher": davon Sicherheit, "stand_alt": Datum, wenn
+    die Zahl älter als `APT_ALT_STD` Stunden ist, "fehler": letzte Abfrage ohne Ergebnis und nie eine Zahl,
+    "laeuft": Abfrage läuft gerade, "neustart": Grund oder None, "alter": Alter der Paketlisten in Tagen}.
+    Die Zahl kommt aus der Datei (`apt_anstossen` schreibt sie) – hier wird nie auf apt gewartet."""
+    run = run or _run
+    daten = apt_lesen(pfad) or {}
+    stand = daten.get("t")
+    stand_alt = None
+    if stand and time.time() - stand > APT_ALT_STD * 3600:
+        d = datetime.fromtimestamp(stand, now.tzinfo)
+        stand_alt = f"{d.day}.{d.month}."
+    return {"n": daten.get("n"), "sicher": daten.get("sicher") or 0, "stand_alt": stand_alt,
+            "fehler": bool(daten) and daten.get("n") is None and not daten.get("ok"),
+            "laeuft": _apt_sperre.locked(),
             "neustart": neustart_grund(run, read), "alter": listen_alter_tage(now, run)}
 
 
@@ -307,6 +424,10 @@ def apt_zeilen(lage):
     """Zeilen für den Abschnitt „Updates“. Rot gepunktet (bad): Sicherheitsupdates, Neustart, veraltete Listen."""
     lines = []
     n = lage.get("n")
+    if n is None and lage.get("laeuft"):
+        lines.append(_line("Pi: Updates werden geprüft …"))
+    elif n is None and lage.get("fehler"):
+        lines.append(_line("Pi: Updates nicht ermittelt"))
     if n is not None:
         if n == 0:
             lines.append(_line("Pi: aktuell"))
@@ -317,15 +438,17 @@ def apt_zeilen(lage):
         alter = lage.get("alter")
         if alter is not None and alter > LISTEN_ALT_TAGE:
             lines.append(_line(f"Paketlisten {int(alter)} Tage alt, Zahl unsicher", bad=True))
+        if lage.get("stand_alt"):
+            lines.append(_line(f"Zahl vom {lage['stand_alt']}, Abfrage klemmt", bad=True))
     if lage.get("neustart"):
         lines.append(_line("Neustart nötig" + (" (neuer Kernel)" if lage["neustart"] == "kernel" else ""), bad=True))
     return lines
 
 
-def pi_updates(now, run=None, read=None):
+def pi_updates(now, run=None, read=None, pfad=None):
     """Wie alles hier: wirft nie, im Zweifel fehlen die Zeilen."""
     try:
-        return apt_zeilen(apt_lage(now, run, read))
+        return apt_zeilen(apt_lage(now, run, read, pfad))
     except Exception:
         logger.exception("Pi-Updates nicht ermittelt")
         return []
@@ -474,14 +597,14 @@ def _kurz(text, n=FEHLER_LAENGE):
 
 # ---------------------------------------------------------------------------------------------- Zusammenbau
 def abschnitte(now, pi_lines, draw=None, update_info=None, status_snapshot=None,
-               night_win=None, week_win=None, month_win=None, week_day=6, run=_run, read=_read):
+               night_win=None, week_win=None, month_win=None, week_day=6, run=_run, read=_read, apt_datei=None):
     """Alle Abschnitte des Hilfsbilds (ohne Tasten und Zugang) in Anzeigereihenfolge. Leere fehlen."""
     zeit = zeit_synchron(run)
     netz = wlan(run, read)
     out = [
         {"key": "anzeige", "title": "Anzeige", "lines": zeichnen(draw, now)
          + ereignisse(now, night_win, week_win, month_win, week_day)},
-        {"key": "updates", "title": "Updates", "lines": pi_updates(now, run, read) + updates(update_info)},
+        {"key": "updates", "title": "Updates", "lines": pi_updates(now, run, read, apt_datei) + updates(update_info)},
         {"key": "quellen", "title": "Datenquellen", "lines": quellen(status_snapshot or {}, now)},
         {"key": "pi", "title": "Pi", "lines": [_line(t) for t in pi_lines] + ([zeit] if zeit else [])},
         {"key": "netz", "title": "Netz und Dienste", "lines": ([netz] if netz else []) + dienste(run)},
