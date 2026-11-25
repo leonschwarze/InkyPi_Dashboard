@@ -50,13 +50,14 @@ try:
     from . import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt, festtage, radar, luft,
                    katze, pollen, meteore, finsternisse, planeten, status, urlaub, wahlkampf, iss, ostereier, livestream,
                    pegel, pizustand, advent, zielort, laufen, glaette, polarlicht, nina, wochenlast, laufbilanz, monat,
-                   xkcd, klima, schnee, freigabe, feierabend, hilfsbild)
+                   xkcd, klima, schnee, freigabe, feierabend, hilfsbild, hilfsdaten)
 except ImportError:  # pragma: no cover
     from plugins.tagesdashboard import (kleidung, bahn, nachrichten, waesche, ansichten, nachtgrafik, anfahrt,
                                         festtage, radar, luft, katze, pollen, meteore, finsternisse, planeten,
                                         status, urlaub, wahlkampf, iss, ostereier, livestream, pegel, pizustand, advent,
                                         zielort, laufen, glaette, polarlicht, nina, wochenlast,
-                                        laufbilanz, monat, xkcd, klima, schnee, freigabe, feierabend, hilfsbild)
+                                        laufbilanz, monat, xkcd, klima, schnee, freigabe, feierabend, hilfsbild,
+                                        hilfsdaten)
 
 # Wahlurne (Stimmzettel mit Kreuz steckt im Schlitz)
 WAHL_ICON = ('<svg class="{cls}" viewBox="0 0 32 32" aria-hidden="true">'
@@ -433,7 +434,7 @@ class Tagesdashboard(BasePlugin):
             hilfe_an = False
             logger.exception("Zustand der Tasten konnte nicht gelesen werden")
         if hilfe_an:
-            return self.hilfe_image(settings, device_config, now, dimensions, night_win, flag)
+            return self.hilfe_image(settings, device_config, now, dimensions, night_win, flag, week_win, month_win)
         if tasten_frisch:
             logger.info("Tasten: neu gezeichnet, Bild-Caches übersprungen")
         forced = tasten_frisch or self._manual_refresh()  # „Jetzt aktualisieren“ oder Taste A: nie den Cache nutzen
@@ -898,7 +899,7 @@ class Tagesdashboard(BasePlugin):
                                        "made": now.strftime("%H:%M"), "warn": warn_sig}
         return image
 
-    def hilfe_image(self, settings, device_config, now, dimensions, night_win, flag):
+    def hilfe_image(self, settings, device_config, now, dimensions, night_win, flag, week_win=None, month_win=None):
         """Hilfsbild (seit 1.49, Taste D): Belegung der Tasten, Version, Zustand des Pi. Ohne Datenabrufe, geht
         deshalb schnell; weder im Bild-Cache noch in der Statusanzeige (die Ansicht ist keine Datenrunde)."""
         try:
@@ -906,8 +907,24 @@ class Tagesdashboard(BasePlugin):
         except Exception:  # Zusatz: das Hilfsbild braucht den Pi-Zustand nicht
             pi_parts = []
             logger.exception("Zustand des Pi konnte für das Hilfsbild nicht gelesen werden")
+        hilfe = hilfsbild.build(self.config.get("version"), now, pi_parts, hilfsbild.night_text(night_win))
+        try:  # Zusatzdaten (seit 1.50): Zugang mit QR-Code, Zeichnen, Updates, Quellen, Netz, Dienste, Fehler
+            try:
+                refresh = device_config.get_refresh_info()
+                letzte = getattr(refresh, "refresh_time", None)
+            except Exception:
+                letzte = None
+            hilfe["zugang"] = hilfsdaten.zugang_mit_qr(hilfsdaten.zugang())
+            hilfe["abschnitte"] = hilfsdaten.abschnitte(
+                now, hilfe["pi"], refresh_info=letzte, takt_s=cycle_seconds(device_config),
+                update_info=freigabe.status(self.config.get("version")), status_snapshot=status.snapshot(),
+                night_win=night_win, week_win=week_win, month_win=month_win, week_day=WEEK_DAY)
+        except Exception:  # das Hilfsbild bleibt auch ohne diese Zeilen brauchbar
+            logger.exception("Zusatzdaten fürs Hilfsbild nicht gelesen")
+            hilfe.setdefault("zugang", None)
+            hilfe.setdefault("abschnitte", [])
         params = {
-            "hilfe": hilfsbild.build(self.config.get("version"), now, pi_parts, hilfsbild.night_text(night_win)),
+            "hilfe": hilfe,
             "orientation": "portrait" if dimensions[1] > dimensions[0] else "landscape",
             "plugin_settings": settings,
         }

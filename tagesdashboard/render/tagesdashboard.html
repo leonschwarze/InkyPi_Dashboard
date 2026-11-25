@@ -26,7 +26,7 @@
   }
 </style>
 {% if hilfe %}
-<!-- ===================== Hilfsbild der Tasten (seit 1.49, Taste D) ===================== -->
+<!-- ===================== Hilfsbild der Tasten (seit 1.49, Taste D; seit 1.50 mit Zugang, Zeichnen, Updates, Quellen, Netz, Fehler) ===================== -->
 <div lang="de" class="hf {{ orientation }}">
   <header class="hf-head">
     <span class="hf-title">Tasten</span>
@@ -41,10 +41,32 @@
       </li>
       {% endfor %}
     </ul>
-    <section class="hf-pi">
-      <h2>Zustand des Pi</h2>
-      {% for line in hilfe.pi %}<p>{{ line }}</p>{% endfor %}
-    </section>
+    <div class="hf-info">
+      {% if hilfe.zugang %}
+      <section class="hf-sec hf-web">
+        <h2>Weboberfläche</h2>
+        <div class="hf-webrow">
+          {% if hilfe.zugang.svg %}<div class="hf-qr">{{ hilfe.zugang.svg | safe }}</div>{% endif %}
+          <div class="hf-addr">
+            {% for n in hilfe.zugang.namen %}<p class="hf-url">{{ n }}</p>{% endfor %}
+            <small>im Heimnetz im Browser öffnen</small>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+      {% for sec in hilfe.abschnitte %}
+      <section class="hf-sec hf-{{ sec.key }}">
+        <h2>{{ sec.title }}</h2>
+        {% for line in sec.lines %}<p{% if line.bad %} class="bad"{% endif %}>{{ line.text }}</p>{% endfor %}
+      </section>
+      {% endfor %}
+      {% if not hilfe.abschnitte %}
+      <section class="hf-sec hf-pi">
+        <h2>Zustand des Pi</h2>
+        {% for line in hilfe.pi %}<p>{{ line }}</p>{% endfor %}
+      </section>
+      {% endif %}
+    </div>
   </div>
   <footer class="hf-foot">
     <span><i class="hf-led"></i>Die LED leuchtet, solange das Display arbeitet.</span>
