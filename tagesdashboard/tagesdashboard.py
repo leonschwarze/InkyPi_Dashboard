@@ -897,7 +897,32 @@ class Tagesdashboard(BasePlugin):
             _IMAGE_CACHE.clear()  # nur ein Bild merken (Speicher auf dem Pi Zero)
             _IMAGE_CACHE[cache_key] = {"image": image.copy(), "quiet": quiet_until, "edge": edge,
                                        "made": now.strftime("%H:%M"), "warn": warn_sig}
+        self.note_draw(now, mode, use_cache, flag, cache_key, quiet_until if use_cache else None,
+                       edge if use_cache else None, device_config)
         return image
+
+    @staticmethod
+    def note_draw(now, mode, use_cache, flag, cache_key, quiet_until, edge, device_config):
+        """Merkt fürs Hilfsbild (seit 1.51), wann das Dashboard wirklich gezeichnet hat und wann es das nächste Mal
+        neu zeichnet – nicht InkyPis Takt (der zählt jeden Aufruf, auch die aus dem Bild-Cache).
+        Nachtbild: bis zum Ende der Nacht (bzw. zur nächsten Stunde der lebenden Stadt), kein fester Abstand.
+        Mit Cache: das Ende von „Alle … min neu zeichnen“ oder die nächste Fenstergrenze, was früher kommt.
+        Im Zugfenster (kein Cache) zeichnet jeder Aufruf neu, also im Takt von InkyPi."""
+        try:
+            next_at, every = None, None
+            night = _NIGHT_CACHE.get(cache_key) if mode == "night" and flag("nightFreeze") else None
+            if night:
+                next_at = night["until"]
+            elif use_cache:
+                next_at = min((t for t in (quiet_until, edge) if t), default=None)
+                every = round((quiet_until - now).total_seconds() / 60)
+            else:
+                takt = cycle_seconds(device_config)
+                if takt:
+                    next_at, every = now + timedelta(seconds=takt), round(takt / 60)
+            hilfsbild.note_draw(now, next_at, every)
+        except Exception:  # Zusatz fürs Hilfsbild – nie das Bild kosten
+            logger.exception("Zeichenvorgang fürs Hilfsbild nicht gemerkt")
 
     def hilfe_image(self, settings, device_config, now, dimensions, night_win, flag, week_win=None, month_win=None):
         """Hilfsbild (seit 1.49, Taste D): Belegung der Tasten, Version, Zustand des Pi. Ohne Datenabrufe, geht
@@ -909,14 +934,9 @@ class Tagesdashboard(BasePlugin):
             logger.exception("Zustand des Pi konnte für das Hilfsbild nicht gelesen werden")
         hilfe = hilfsbild.build(self.config.get("version"), now, pi_parts, hilfsbild.night_text(night_win))
         try:  # Zusatzdaten (seit 1.50): Zugang mit QR-Code, Zeichnen, Updates, Quellen, Netz, Dienste, Fehler
-            try:
-                refresh = device_config.get_refresh_info()
-                letzte = getattr(refresh, "refresh_time", None)
-            except Exception:
-                letzte = None
             hilfe["zugang"] = hilfsdaten.zugang_mit_qr(hilfsdaten.zugang())
             hilfe["abschnitte"] = hilfsdaten.abschnitte(
-                now, hilfe["pi"], refresh_info=letzte, takt_s=cycle_seconds(device_config),
+                now, hilfe["pi"], draw=hilfsbild.last_draw(),
                 update_info=freigabe.status(self.config.get("version")), status_snapshot=status.snapshot(),
                 night_win=night_win, week_win=week_win, month_win=month_win, week_day=WEEK_DAY)
         except Exception:  # das Hilfsbild bleibt auch ohne diese Zeilen brauchbar
@@ -955,6 +975,7 @@ class Tagesdashboard(BasePlugin):
             logger.exception("Lebende Stadt: Nachtbild konnte nicht aufgefrischt werden")
             return None
         hit.update(image=image.copy(), until=min(hit["end"], nachtgrafik.next_change(now)))
+        hilfsbild.note_draw(now, hit["until"])  # echter Zeichenvorgang fürs Hilfsbild (seit 1.51)
         logger.info("Lebende Stadt: Nachtbild für %s Uhr (Daten von %s, bis %s)", now.strftime("%H"), hit["made"],
                     hit["until"].strftime("%H:%M"))
         return image

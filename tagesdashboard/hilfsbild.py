@@ -36,6 +36,7 @@ HILFE_SEKUNDEN = 180   # so lange steht das Hilfsbild (der Dienst setzt hilfe_bi
 
 _seen_neu = None       # zuletzt gesehener Zähler (Modulspeicher; nach einem Neustart zählt der erste Blick als neu)
 _hilfe_war = False     # beim letzten Zeichnen stand das Hilfsbild → danach einmal frisch zeichnen
+_last_draw = None      # letzter echter Zeichenvorgang des Dashboards (seit 1.51), siehe note_draw
 
 
 def state_path(device_config):
@@ -80,10 +81,33 @@ def check(path, now, night=False):
     return False, frisch
 
 
+def note_draw(at, next_at=None, every_min=None):
+    """Merkt sich, wann das Dashboard zuletzt wirklich ein neues Bild gebaut hat (seit 1.51).
+
+    Fürs Hilfsbild zählt, was auf dem Display passiert, nicht InkyPis Takt: InkyPi ruft das Plugin im
+    Playlist-Takt (z. B. 5 min) und schreibt dabei jedes Mal `refresh_time` fort – auch wenn das Dashboard
+    nur sein gemerktes Bild zurückgibt und das Display in Ruhe bleibt. Hier steht deshalb nur, was
+    generate_image tatsächlich gezeichnet hat.
+
+    at         Zeitpunkt dieses Zeichnens
+    next_at    wann das Dashboard das nächste Mal neu zeichnet (frühestens; Cache-Ende oder nächste
+               Fenstergrenze, im Zugfenster der nächste Takt), None = unbekannt
+    every_min  Abstand in Minuten, nach dem es sonst neu zeichnet („alle 30 min“), None = kein fester Abstand
+               (Nachtbild: einmal pro Nacht bzw. stündlich mit lebender Stadt)
+    """
+    global _last_draw
+    _last_draw = {"at": at, "next": next_at, "every": every_min}
+
+
+def last_draw():
+    """Der letzte echte Zeichenvorgang (Wörterbuch aus note_draw) oder None, solange seit dem Start nichts gezeichnet wurde."""
+    return dict(_last_draw) if _last_draw else None
+
+
 def reset():
     """Nur für Tests: Modulspeicher zurücksetzen."""
-    global _seen_neu, _hilfe_war
-    _seen_neu, _hilfe_war = None, False
+    global _seen_neu, _hilfe_war, _last_draw
+    _seen_neu, _hilfe_war, _last_draw = None, False, None
 
 
 KEYS = [

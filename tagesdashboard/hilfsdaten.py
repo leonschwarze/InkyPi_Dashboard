@@ -114,30 +114,34 @@ def zugang_mit_qr(daten):
 
 
 # ---------------------------------------------------------------------------------------------- Zeichnen
-def zeichnen(letzte, takt_s, now):
-    """„Zuletzt gezeichnet 15:41“ und „Takt 15 min · nächstes 15:56“.
+def zeichnen(draw, now):
+    """„Zuletzt gezeichnet 15:41“, „Neu alle 30 min“ und „Nächstes Bild ca. 16:11“ (je eine kurze Zeile: die
+    mittlere Spalte des Hilfsbilds ist quer schmal, eine zusammengezogene Zeile brach um).
 
-    `letzte` = Zeitpunkt des vorigen Wechsels laut InkyPi (refresh_info.refresh_time, ISO-Text oder datetime). Das Hilfsbild selbst wird
-    erst nach diesem Zeichnen eingetragen, hier steht also noch der Wechsel davor (das Dashboard)."""
-    if isinstance(letzte, str):   # InkyPi speichert refresh_time als ISO-Text
-        try:
-            letzte = datetime.fromisoformat(letzte)
-        except ValueError:
-            return []
-    if not isinstance(letzte, datetime):
+    `draw` = hilfsbild.last_draw(): wann das Dashboard zuletzt wirklich ein neues Bild gebaut hat und wann es
+    das nächste Mal neu zeichnet. Bewusst *nicht* InkyPis Playlist-Takt und nicht `refresh_time`: Beides
+    zählt jeden Aufruf von InkyPi (z. B. alle 5 min), auch wenn das Dashboard nur sein gemerktes Bild
+    zurückgibt und das Display in Ruhe bleibt (seit 1.51; in 1.50 stand dort „Takt 5 min · nächstes …“,
+    obwohl das Bild nur alle 30 min wechselte). Ohne Zeichenvorgang seit dem Start (`None`) fehlen beide Zeilen."""
+    at = (draw or {}).get("at")
+    if not isinstance(at, datetime):
         return []
     try:
-        if letzte.tzinfo is not None and now.tzinfo is not None:
-            letzte = letzte.astimezone(now.tzinfo)
+        if at.tzinfo is not None and now.tzinfo is not None:
+            at = at.astimezone(now.tzinfo)
     except (ValueError, OSError):
         pass
-    lines = [_line(f"Zuletzt gezeichnet {_tag(letzte, now)}")]
-    if isinstance(takt_s, (int, float)) and not isinstance(takt_s, bool) and takt_s > 0:
-        nxt = letzte + timedelta(seconds=takt_s)
-        mins = round(takt_s / 60)
-        takt = f"{mins} min" if mins < 120 else f"{mins // 60} Std."
-        wann = "gleich" if nxt <= now else _hm(nxt) if nxt.date() == now.date() else _tag(nxt, now)
-        lines.append(_line(f"Takt {takt} · nächstes {wann}" if wann != "gleich" else f"Takt {takt} · nächstes gleich"))
+    lines = [_line(f"Zuletzt gezeichnet {_tag(at, now)}")]
+    nxt, every = draw.get("next"), draw.get("every")
+    if isinstance(nxt, datetime):
+        try:
+            if nxt.tzinfo is not None and now.tzinfo is not None:
+                nxt = nxt.astimezone(now.tzinfo)
+        except (ValueError, OSError):
+            pass
+        if isinstance(every, (int, float)) and not isinstance(every, bool) and every > 0:
+            lines.append(_line(f"Neu alle {round(every)} min" if every < 120 else f"Neu alle {round(every) // 60} Std."))
+        lines.append(_line("Nächstes Bild gleich" if nxt <= now else f"Nächstes Bild ca. {_tag(nxt, now)}"))
     return lines
 
 
@@ -363,13 +367,13 @@ def _kurz(text, n=FEHLER_LAENGE):
 
 
 # ---------------------------------------------------------------------------------------------- Zusammenbau
-def abschnitte(now, pi_lines, refresh_info=None, takt_s=None, update_info=None, status_snapshot=None,
+def abschnitte(now, pi_lines, draw=None, update_info=None, status_snapshot=None,
                night_win=None, week_win=None, month_win=None, week_day=6, run=_run, read=_read):
     """Alle Abschnitte des Hilfsbilds (ohne Tasten und Zugang) in Anzeigereihenfolge. Leere fehlen."""
     zeit = zeit_synchron(run)
     netz = wlan(run, read)
     out = [
-        {"key": "anzeige", "title": "Anzeige", "lines": zeichnen(refresh_info, takt_s, now)
+        {"key": "anzeige", "title": "Anzeige", "lines": zeichnen(draw, now)
          + ereignisse(now, night_win, week_win, month_win, week_day)},
         {"key": "updates", "title": "Updates", "lines": updates(update_info)},
         {"key": "quellen", "title": "Datenquellen", "lines": quellen(status_snapshot or {}, now)},
