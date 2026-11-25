@@ -1,13 +1,13 @@
 #!/usr/bin/python3
-"""Signierte Updates für das Tagesdashboard und das Ausschaltbild (seit 1.44).
+"""Signierte Updates für das Tagesdashboard, das Ausschaltbild und die Tasten (seit 1.44, Tasten seit 1.2 des Updaters).
 
 Auf den Pi kommt nur, was Leon mit seinem SSH-Schlüssel freigegeben hat: ein signiertes Git-Tag `v<Version>`
-in InkyPi_Dashboard bzw. InkyPi_Ausschaltbild. Der Pi kennt nur den öffentlichen Schlüssel
+in InkyPi_Dashboard, InkyPi_Ausschaltbild bzw. inkypi_tasten. Der Pi kennt nur den öffentlichen Schlüssel
 (/usr/local/inkypi-update/allowed_signers).
 
     sudo inkypi-update                 freigegebene neue Versionen prüfen und installieren
     sudo inkypi-update --pruefen       nur nachsehen, nichts ändern
-    sudo inkypi-update --nur ausschaltbild
+    sudo inkypi-update --nur ausschaltbild     (auch: tasten)
     sudo inkypi-update --nur tagesdashboard --version v1.42    bewusst eine (ältere) freigegebene Version
     sudo inkypi-update --verlauf       die letzten Einträge
     (nachts: inkypi-update.timer startet `--nachts`)
@@ -43,7 +43,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-PROGRAMM_VERSION = "1.1"
+PROGRAMM_VERSION = "1.2"
 
 # Feste Einstellungen. Bewusst keine Datei, die man nebenbei ändern könnte: Woher Updates kommen und wem
 # vertraut wird, steht hier und in allowed_signers (nur root). --konfig gibt es nur für die Tests.
@@ -52,11 +52,13 @@ STANDARD = {
     "daten": "/var/lib/inkypi-update",            # Spiegel der Repos, Sicherungen, stand.json, verlauf.txt
     "inkypi": "/usr/local/inkypi",                # InkyPi (src ist ein Link auf den Klon)
     "ausschaltbild_ziel": "/usr/local/inkypi-ausschaltbild",
+    "tasten_ziel": "/usr/local/inkypi-tasten",
     "systemd": "/etc/systemd/system",
     "web": "http://127.0.0.1:80",
     "repos": {
         "tagesdashboard": "https://github.com/leonschwarze/InkyPi_Dashboard",
         "ausschaltbild": "https://github.com/leonschwarze/InkyPi_Ausschaltbild",
+        "tasten": "https://github.com/leonschwarze/inkypi_tasten",
     },
     "neustart": ["systemctl", "restart", "inkypi.service"],
     "warte_web_s": 180,         # bis InkyPi nach dem Neustart antwortet
@@ -65,8 +67,8 @@ STANDARD = {
     "zeichnen_pause_s": 60,
 }
 
-TEILE = ("tagesdashboard", "ausschaltbild")
-NAMEN = {"tagesdashboard": "Dashboard", "ausschaltbild": "Ausschaltbild"}
+TEILE = ("tagesdashboard", "ausschaltbild", "tasten")
+NAMEN = {"tagesdashboard": "Dashboard", "ausschaltbild": "Ausschaltbild", "tasten": "Tasten"}
 TAG_RE = re.compile(r"^v(\d{1,4}(?:\.\d{1,4}){0,3})$")
 SIG_START = b"-----BEGIN SSH SIGNATURE-----"
 MAX_VERSUCHE_NACHTS = 3
@@ -226,7 +228,9 @@ def inhalt_version(repo, teil, commit):
             return json.loads(text).get("version")
         except ValueError:
             return None
-    text = git("show", f"{commit}:ausschaltbild/ausschaltbild.py", repo=repo, pruefen=False).stdout
+    # Ausschaltbild liegt im Unterordner, das Tasten-Repo ist flach (tasten.py im Wurzelverzeichnis)
+    pfad = "tasten.py" if teil == "tasten" else "ausschaltbild/ausschaltbild.py"
+    text = git("show", f"{commit}:{pfad}", repo=repo, pruefen=False).stdout
     m = re.search(rb'^VERSION = "([0-9.]+)"', text, re.M)
     return m.group(1).decode() if m else None
 
@@ -510,6 +514,57 @@ def installiere_ausschaltbild(lauf, frei, arbeit):
     raise Abbruch("neue Version zurückgenommen")
 
 
+TASTEN_DATEIEN = ["tasten.py"]
+TASTEN_DIENSTE = ["inkypi-tasten.service"]
+TASTEN_QUELLE = ["tasten.py", "inkypi-tasten.service", "install.sh"]   # das Repo ist flach, kein Unterordner
+
+
+def installiere_tasten(lauf, frei, arbeit):
+    p = inkypi_pfade(lauf)
+    neu = arbeit / "neu"
+    entpacken(frei["repo"], frei["commit"], TASTEN_QUELLE, neu)
+    for n in TASTEN_QUELLE:
+        if not (neu / n).is_file():
+            raise Abbruch(f"Vortest: {n} fehlt im freigegebenen Stand")
+    # Vortest: Das Skript startet und meldet genau die freigegebene Version (die Tasten-Leitungen bleiben unberührt)
+    r = run([str(p["python"]), str(neu / "tasten.py"), "--version"], pruefen=False, zeit=60)
+    gemeldet = r.stdout.decode("utf-8", "replace").strip()
+    if r.returncode != 0 or gemeldet != version_text(frei["version"]):
+        fehler = (r.stderr or r.stdout).decode("utf-8", "replace").strip().splitlines()
+        raise Abbruch(f"Vortest: {fehler[-1] if fehler else 'meldet Version ' + (gemeldet or '?')}")
+    lauf.log("  Vortest ok (tasten.py --version)")
+
+    ziel = Path(lauf.cfg["tasten_ziel"])
+    sicherung = lauf.daten / "sicherung" / "tasten"
+    if sicherung.exists():
+        shutil.rmtree(sicherung)
+    sicherung.mkdir(parents=True)
+    for n in TASTEN_DATEIEN:
+        if (ziel / n).exists():
+            shutil.copy2(ziel / n, sicherung / n)
+    for n in TASTEN_DIENSTE:
+        if (Path(lauf.cfg["systemd"]) / n).exists():
+            shutil.copy2(Path(lauf.cfg["systemd"]) / n, sicherung / n)
+
+    r = run(["bash", str(neu / "install.sh")], pruefen=False, zeit=300)
+    ausgabe = (r.stdout + r.stderr).decode("utf-8", "replace").strip().splitlines()
+    if r.returncode == 0:
+        lauf.log("  install.sh ok")
+        return
+    lauf.log(f"  FEHLER in install.sh: {ausgabe[-1] if ausgabe else r.returncode}")
+    for n in TASTEN_DATEIEN:
+        if (sicherung / n).exists():
+            shutil.copy2(sicherung / n, ziel / n)
+    for n in TASTEN_DIENSTE:
+        if (sicherung / n).exists():
+            shutil.copy2(sicherung / n, Path(lauf.cfg["systemd"]) / n)
+    run(["systemctl", "daemon-reload"], pruefen=False)
+    # install.sh hat den Dienst angehalten – mit dem alten Stand wieder starten
+    run(["systemctl", "restart", TASTEN_DIENSTE[0]], pruefen=False)
+    lauf.log("  Rückfall auf den alten Stand")
+    raise Abbruch("neue Version zurückgenommen")
+
+
 SELBST_DATEIEN = {"inkypi_update.py": 0o755, "inkypi-update.service": 0o644, "inkypi-update.timer": 0o644}
 
 
@@ -536,6 +591,8 @@ def selbst_aktualisieren(lauf, quelle):
 def installiert(lauf, teil, stand):
     """Installierte Version (Tupel) oder None, wenn der Teil nicht da ist bzw. noch nie per Update kam."""
     if teil == "ausschaltbild" and not (Path(lauf.cfg["ausschaltbild_ziel"]) / "ausschaltbild.py").exists():
+        return "fehlt"
+    if teil == "tasten" and not (Path(lauf.cfg["tasten_ziel"]) / "tasten.py").exists():
         return "fehlt"
     v = (stand.get(teil) or {}).get("version")
     return version_tupel(v) if v else None
@@ -571,6 +628,8 @@ def teil_bearbeiten(lauf, teil, args, stand):
     try:
         if teil == "tagesdashboard":
             installiere_dashboard(lauf, frei, arbeit)
+        elif teil == "tasten":
+            installiere_tasten(lauf, frei, arbeit)
         else:
             installiere_ausschaltbild(lauf, frei, arbeit)
     except Abbruch:
@@ -632,7 +691,7 @@ def main(argv=None):
             print("\n".join(lauf.verlauf_datei.read_text(encoding="utf-8").splitlines()[-40:]))
         return 0
     if args.version and not args.nur:
-        ap.error("--version braucht --nur tagesdashboard bzw. --nur ausschaltbild")
+        ap.error("--version braucht --nur tagesdashboard, ausschaltbild bzw. tasten")
     if args.version and not TAG_RE.match(args.version):
         ap.error("--version wie v1.43")
     if streng and os.geteuid() != 0:

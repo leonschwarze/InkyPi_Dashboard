@@ -4,7 +4,7 @@ Wetter vom DWD links, Nextcloud-Termine rechts, Kleidungsempfehlung, UV-Index, P
 
 ## Installieren und aktualisieren: signierte Updates (seit 1.44)
 
-Das Repo ist öffentlich, und InkyPi läuft als root. Deshalb kommt auf den Pi nur ein Stand, den du **mit deinem eigenen SSH-Schlüssel freigegeben** hast: ein signiertes Git-Tag wie `v1.44`. Der Pi kennt nur den öffentlichen Teil des Schlüssels und prüft vor jeder Installation die Unterschrift. Das gilt für das Tagesdashboard und das Ausschaltbild, von Hand wie nachts.
+Das Repo ist öffentlich, und InkyPi läuft als root. Deshalb kommt auf den Pi nur ein Stand, den du **mit deinem eigenen SSH-Schlüssel freigegeben** hast: ein signiertes Git-Tag wie `v1.44`. Der Pi kennt nur den öffentlichen Teil des Schlüssels und prüft vor jeder Installation die Unterschrift. Das gilt für das Tagesdashboard, das Ausschaltbild und den Tasten-Dienst, von Hand wie nachts.
 
 ### Einmalig auf deinem Rechner
 
@@ -12,6 +12,7 @@ Das Repo ist öffentlich, und InkyPi läuft als root. Deshalb kommt auf den Pi n
 ssh-keygen -t ed25519 -C "InkyPi-Freigabe" -f ~/.ssh/inkypi_freigabe     # mit Passphrase
 git clone https://github.com/leonschwarze/InkyPi_Dashboard ~/InkyPi_Dashboard
 git clone https://github.com/leonschwarze/InkyPi_Ausschaltbild ~/InkyPi_Ausschaltbild
+git clone https://github.com/leonschwarze/inkypi_tasten ~/inkypi_tasten      # nur, wenn du die Tasten nutzt
 cat ~/.ssh/inkypi_freigabe.pub        # diese eine Zeile brauchst du gleich auf dem Pi
 ```
 
@@ -22,9 +23,10 @@ Der Freigabe-Schlüssel ist ein eigener Schlüssel, nicht dein Login-Schlüssel.
 ```bash
 cd ~/InkyPi_Dashboard && git pull --ff-only && bash aktualisierung/freigeben.sh
 cd ~/InkyPi_Ausschaltbild && git pull --ff-only && bash ~/InkyPi_Dashboard/aktualisierung/freigeben.sh .
+cd ~/inkypi_tasten && git pull --ff-only && bash ~/InkyPi_Dashboard/aktualisierung/freigeben.sh .
 ```
 
-Das Skript zeigt Version, Commit und die Änderungen seit der letzten Freigabe, fragt nach, signiert das Tag `v<Version>`, prüft die Unterschrift und schiebt das Tag zu GitHub. Die Versionsnummer kommt aus dem Code (`tagesdashboard/plugin-info.json` bzw. `VERSION` in `ausschaltbild.py`); jede Nummer lässt sich nur einmal freigeben.
+Das Skript zeigt Version, Commit und die Änderungen seit der letzten Freigabe, fragt nach, signiert das Tag `v<Version>`, prüft die Unterschrift und schiebt das Tag zu GitHub. Die Versionsnummer kommt aus dem Code (`tagesdashboard/plugin-info.json` bzw. `VERSION` in `ausschaltbild.py` und `tasten.py`); jede Nummer lässt sich nur einmal freigeben.
 
 ### Einmalig auf dem Pi
 
@@ -37,7 +39,7 @@ sudo bash aktualisierung/install.sh --schluessel "ssh-ed25519 AAAA… InkyPi-Fre
 sudo inkypi-update
 ```
 
-Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wie der Code, die Prüfung mit `verify-tag` davor ist deshalb die eigentliche Sicherung. `install.sh` prüft den Klon danach noch einmal (Tag, Unterschrift, keine veränderten Dateien), trägt den Schlüssel in `/usr/local/inkypi-update/allowed_signers` ein (gehört root), richtet den Befehl `inkypi-update` und den nächtlichen Lauf ein. Der erste `sudo inkypi-update` installiert Dashboard und Ausschaltbild aus den freigegebenen Tags. Das Ausschaltbild wird nur aktualisiert, wenn es schon installiert ist (sonst einmal wie in seiner README, aus einem Klon auf einem freigegebenen Tag). Der Klon in `~/inkypi-dashboard` wird danach nicht mehr gebraucht.
+Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wie der Code, die Prüfung mit `verify-tag` davor ist deshalb die eigentliche Sicherung. `install.sh` prüft den Klon danach noch einmal (Tag, Unterschrift, keine veränderten Dateien), trägt den Schlüssel in `/usr/local/inkypi-update/allowed_signers` ein (gehört root), richtet den Befehl `inkypi-update` und den nächtlichen Lauf ein. Der erste `sudo inkypi-update` installiert Dashboard und Ausschaltbild aus den freigegebenen Tags. Ausschaltbild und Tasten werden nur aktualisiert, wenn sie schon installiert sind (sonst einmal wie in ihrer README, aus einem Klon auf einem freigegebenen Tag). Der Klon in `~/inkypi-dashboard` wird danach nicht mehr gebraucht.
 
 ### Im Alltag
 
@@ -45,16 +47,21 @@ Erst selbst prüfen, dann installieren: `install.sh` kommt aus demselben Klon wi
 - **In der Weboberfläche** (seit 1.45): Einstellungen des Dashboards → Abschnitt **Updates** zeigt die installierte Version, eine bereitliegende Freigabe und den letzten Lauf; **Jetzt prüfen und installieren** startet denselben Lauf wie `sudo inkypi-update`. Der Knopf kann nur installieren, was du signiert hast.
 - **Von Hand:** `sudo inkypi-update` (sofort), `sudo inkypi-update --pruefen` (nur nachsehen), `sudo inkypi-update --verlauf` (die letzten Einträge), `sudo inkypi-update --nur tagesdashboard --version v1.42` (bewusst eine ältere Freigabe).
 - **Was geprüft wird:** gültige Unterschrift von deinem Schlüssel; der Name im Inneren des Tags passt zum Namen im Repo; die Version im Code passt zum Tag; neuer als installiert (außer mit `--version`). Ein Tag, das das nicht erfüllt, wird übersprungen und im Verlauf gemeldet – es kann eine gültige Freigabe nicht blockieren.
-- **Wie installiert wird:** Genau der freigegebene Commit wird entpackt (nur `tagesdashboard/`), vorab mit InkyPis Python geladen, dann gegen den alten Ordner getauscht, InkyPi neu gestartet und das Dashboard einmal gezeichnet. Klappt das nicht, kommt der alte Stand zurück. Beim Ausschaltbild ein Probebild, dann sein `install.sh`. Nachts wird eine Version höchstens dreimal versucht; von Hand immer.
+- **Wie installiert wird:** Genau der freigegebene Commit wird entpackt (nur `tagesdashboard/`), vorab mit InkyPis Python geladen, dann gegen den alten Ordner getauscht, InkyPi neu gestartet und das Dashboard einmal gezeichnet. Klappt das nicht, kommt der alte Stand zurück. Beim Ausschaltbild ein Probebild, bei den Tasten `tasten.py --version`, dann jeweils das `install.sh` des Teils (bei einem Fehler kommt der alte Stand zurück und der Dienst läuft wieder). Nachts wird eine Version höchstens dreimal versucht; von Hand immer.
 - **Einstellungen** müssen nach einem Update nicht neu gespeichert werden.
 - **Nicht über den Plugin Manager aktualisieren:** Er lädt den aktuellen Stand von `main` ohne jede Prüfung. Seit 1.45 bietet er das Dashboard deshalb gar nicht mehr an; andere Plugins kannst du dort weiter pflegen.
 - **Nachts aus:** `sudo systemctl disable --now inkypi-update.timer` (wieder an: `enable --now`). Log: `journalctl -u inkypi-update.service`.
 - **Schlüssel verloren oder ersetzt:** neuen Schlüssel anlegen, dann auf dem Pi `sudo bash aktualisierung/install.sh --schluessel "…" --schluessel-ersetzen` (aus einem Klon, der mit dem neuen Schlüssel freigegeben ist). Bis dahin installiert der Pi einfach nichts Neues.
-- **Entfernen:** `sudo bash /pfad/zum/klon/aktualisierung/uninstall.sh` (Dashboard und Ausschaltbild bleiben).
+- **Entfernen:** `sudo bash /pfad/zum/klon/aktualisierung/uninstall.sh` (Dashboard, Ausschaltbild und Tasten bleiben).
 
 ### Ohne signierte Updates
 
 Den Ordner `tagesdashboard/` nach `InkyPi/src/plugins/tagesdashboard/` kopieren (vorhandenen Ordner ersetzen) und `sudo systemctl restart inkypi.service`.
+
+## Neu in 1.51: Tasten im Updater
+
+- `inkypi-update` (Updater 1.2) prüft und installiert nun auch den Tasten-Dienst aus `inkypi_tasten`: signiertes Tag `v<Version>`, Version im Code (`VERSION` in `tasten.py`) muss passen, Vortest, `install.sh`, Rückfall. `sudo inkypi-update --nur tasten`.
+- `freigeben.sh` erkennt das Tasten-Repo. Am Bild ändert sich nichts.
 
 ## Neu in 1.50: mehr im Hilfsbild
 Taste D zeigt jetzt auch, wie man zur Weboberfläche kommt (Adresse automatisch aus Hostnamen und IP, dazu ein QR-Code), wann zuletzt gezeichnet wurde und wann das nächste Mal, was als Nächstes kommt (Nachtbild, Wochenvorschau, Monatsbild), den Stand der signierten Updates, ausgefallene Datenquellen, WLAN-Qualität, Zustand der Dienste, ob die Uhr abgeglichen ist und den letzten Fehler aus dem Journal. Was Aufmerksamkeit braucht, steht mit rotem Punkt davor. Fehlt etwas auf dem Gerät (kein WLAN, keine Leserechte fürs Journal), fehlt nur die Zeile. Keine neuen Einstellungen.

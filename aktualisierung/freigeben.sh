@@ -2,7 +2,7 @@
 # Eine Version freigeben (auf DEINEM Rechner, nicht auf dem Pi):
 #
 #   bash aktualisierung/freigeben.sh                      im Klon von InkyPi_Dashboard
-#   bash aktualisierung/freigeben.sh ~/InkyPi_Ausschaltbild   für das Ausschaltbild
+#   bash aktualisierung/freigeben.sh ~/InkyPi_Ausschaltbild   für das Ausschaltbild (ebenso ~/inkypi_tasten für die Tasten)
 #
 # Zeigt, was freigegeben würde, fragt nach, signiert das Tag v<Version> mit deinem Freigabe-Schlüssel,
 # prüft die Unterschrift und schiebt das Tag zu GitHub. Der Pi holt es nachts (oder: sudo inkypi-update).
@@ -28,7 +28,7 @@ cd "$WURZEL"
 
 [ -f "$SCHLUESSEL.pub" ] || fehler "Freigabe-Schlüssel $SCHLUESSEL.pub fehlt (anlegen: ssh-keygen -t ed25519 -C InkyPi-Freigabe -f $SCHLUESSEL)"
 
-# Nur die beiden Repos, die der Pi kennt (nicht InkyPi_Plugin_Dev – dort gäbe es beide Ordner)
+# Nur die drei Repos, die der Pi kennt (nicht InkyPi_Plugin_Dev – dort gäbe es beide Ordner)
 HERKUNFT="$(git remote get-url origin 2>/dev/null || true)"
 case "$HERKUNFT" in
   *[Ii]nky[Pp]i_[Dd]ashboard|*[Ii]nky[Pp]i_[Dd]ashboard.git|*[Ii]nky[Pp]i_[Dd]ashboard/)
@@ -39,8 +39,12 @@ case "$HERKUNFT" in
     NAME="Ausschaltbild"
     [ -f ausschaltbild/ausschaltbild.py ] || fehler "$WURZEL: ausschaltbild/ausschaltbild.py fehlt"
     VERSION="$(sed -n 's/^VERSION = "\([0-9.]*\)".*/\1/p' ausschaltbild/ausschaltbild.py | head -1)" ;;
+  *[Ii]nky[Pp]i_[Tt]asten|*[Ii]nky[Pp]i_[Tt]asten.git|*[Ii]nky[Pp]i_[Tt]asten/)
+    NAME="Tasten"
+    [ -f tasten.py ] || fehler "$WURZEL: tasten.py fehlt"
+    VERSION="$(sed -n 's/^VERSION = "\([0-9.]*\)".*/\1/p' tasten.py | head -1)" ;;
   *)
-    fehler "$WURZEL ist ein Klon von ${HERKUNFT:-?} – freigegeben werden nur InkyPi_Dashboard und InkyPi_Ausschaltbild" ;;
+    fehler "$WURZEL ist ein Klon von ${HERKUNFT:-?} – freigegeben werden nur InkyPi_Dashboard, InkyPi_Ausschaltbild und inkypi_tasten" ;;
 esac
 [ -n "$VERSION" ] || fehler "keine Versionsnummer im Code gefunden"
 TAG="v$VERSION"
